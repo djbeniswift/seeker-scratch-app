@@ -615,7 +615,7 @@ export default function Home() {
                     { label: 'Total Wins', value: profile?.wins || 0 },
                     { label: 'Total Won', value: `${(profile?.totalWon || 0).toFixed(3)} SOL`, highlight: true },
                     { label: 'Referrals', value: profile?.referralsCount || 0 },
-                    { label: 'Referred Bonus', value: profile?.referredBy ? '✅ 100 pts' : 'N/A', referralBonus: !!profile?.referredBy },
+                    { label: 'Referred Bonus', value: profile?.referredBy ? '✅ 10 pts' : 'N/A', referralBonus: !!profile?.referredBy },
                     { label: 'Points (Month)', value: profile?.pointsThisMonth || 0 },
                     { label: 'Points (All Time)', value: profile?.pointsAllTime || 0 },
                     { label: 'NFT Tier', value: nftTierName || 'None' },

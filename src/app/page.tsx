@@ -70,14 +70,25 @@ export default function Home() {
     }
   }, [profile])
 
-  useEffect(() => {
-    if (!mounted) return
+useEffect(() => {
+    if (!mounted || !wallet.publicKey) return
     const params = new URLSearchParams(window.location.search)
     const ref = params.get('ref')
-    if (ref && wallet.publicKey && !profile?.referredBy) {
-      registerReferral(ref).catch(() => {})
+    console.log('🔍 Checking referral after wallet connected...')
+    console.log('   ref param:', ref)
+    console.log('   wallet:', wallet.publicKey.toString())
+    console.log('   already referred?:', profile?.referredBy?.toString())
+    if (ref && !profile?.referredBy) {
+      console.log('✅ Attempting to register referral...')
+      registerReferral(ref).then(() => {
+        console.log('✅ Referral registered successfully!')
+      }).catch((err) => {
+        console.error('❌ Referral registration failed:', err)
+      })
+    } else {
+      console.log('⏭️ Skipping referral registration (already referred or no ref param)')
     }
-  }, [mounted, wallet.publicKey, profile?.referredBy, registerReferral])
+  }, [mounted, wallet.publicKey, profile, registerReferral])
 
   const handleBuy = async (cardType: string): Promise<number> => {
     const prize = await buyAndScratch(cardType)

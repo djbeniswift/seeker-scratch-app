@@ -4,9 +4,6 @@ import { PublicKey } from '@solana/web3.js'
 import { useCallback, useEffect, useRef } from 'react'
 import { PROGRAM_ID, PROFILE_SEED, IDL } from '../lib/constants'
 
-/**
- * Monitor for ReferralQualified events and automatically award points
- */
 export function useReferralMonitor() {
   const { connection } = useConnection()
   const wallet = useWallet()
@@ -51,7 +48,6 @@ export function useReferralMonitor() {
       console.log('   Referrer:', referrer.toString())
       console.log('   Referee:', referee.toString())
 
-      // Call the award_referral_points instruction
       const tx = await (program.methods as any)
         .awardReferralPoints()
         .accounts({
@@ -63,54 +59,52 @@ export function useReferralMonitor() {
       console.log('✅ Referral points awarded! Tx:', tx)
     } catch (err: any) {
       console.error('❌ Failed to award referral points:', err)
-      // Don't throw - we don't want to break the UI if this fails
-      // User can contact support if points aren't awarded
     }
   }, [getProgram, getProfilePda])
 
-  // Monitor for ReferralQualified events
   useEffect(() => {
+    if (!wallet.publicKey) return
+    
     const program = getProgram()
     if (!program) return
 
     console.log('👀 Starting referral monitor...')
 
-    // Listen for ReferralQualified events
-    const listenerId = program.addEventListener('ReferralQualified', async (event: any) => {
-      const referrer = event.referrer as PublicKey
-      const referee = event.referee as PublicKey
+    try {
+      const listenerId = program.addEventListener('ReferralQualified', async (event: any) => {
+        const referrer = event.referrer as PublicKey
+        const referee = event.referee as PublicKey
 
-      // Create unique key for this qualification
-      const qualificationKey = `${referrer.toString()}-${referee.toString()}`
+        const qualificationKey = `${referrer.toString()}-${referee.toString()}`
 
-      // Check if we've already processed this
-      if (processedQualifications.current.has(qualificationKey)) {
-        console.log('⏭️ Already processed this qualification, skipping')
-        return
-      }
+        if (processedQualifications.current.has(qualificationKey)) {
+          console.log('⏭️ Already processed this qualification, skipping')
+          return
+        }
 
-      console.log('🎉 ReferralQualified event detected!')
-      console.log('   Referrer:', referrer.toString())
-      console.log('   Referee:', referee.toString())
+        console.log('🎉 ReferralQualified event detected!')
+        console.log('   Referrer:', referrer.toString())
+        console.log('   Referee:', referee.toString())
 
-      // Mark as processed
-      processedQualifications.current.add(qualificationKey)
+        processedQualifications.current.add(qualificationKey)
 
-      // Award points automatically
-      await awardReferralPoints(referrer, referee)
-    })
+        await awardReferralPoints(referrer, referee)
+      })
 
-    listenerIdRef.current = listenerId
+      listenerIdRef.current = listenerId
+    } catch (err) {
+      console.error('❌ Failed to start referral monitor:', err)
+    }
 
     return () => {
-      if (listenerIdRef.current !== null) {
+      if (listenerIdRef.current !== null && program) {
         console.log('🛑 Stopping referral monitor')
         program.removeEventListener(listenerIdRef.current)
       }
     }
-  }, [getProgram, awardReferralPoints])
+  }, [wallet.publicKey, getProgram, awardReferralPoints])
 
   return {
-    awardReferralPoints, // Expose for manual awarding if needed
+    awardReferralPoints,
   }
 }

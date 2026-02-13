@@ -1,5 +1,5 @@
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
-import { Program, AnchorProvider, BN, web3 } from '@coral-xyz/anchor'
+import { Program, AnchorProvider, web3 } from '@coral-xyz/anchor'
 import { PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js'
 import { useCallback, useEffect, useState } from 'react'
 import { PROGRAM_ID, TREASURY_SEED, PROFILE_SEED, NFT_SEED, IDL } from '../lib/constants'
@@ -75,7 +75,6 @@ export function useScratchProgram() {
     return pda
   }, [])
 
-  // ── Fetch treasury ──
   const fetchTreasury = useCallback(async () => {
     const program = getProgram()
     if (!program) return
@@ -93,7 +92,6 @@ export function useScratchProgram() {
     }
   }, [getProgram, treasuryPda])
 
-  // ── Fetch player profile ──
   const fetchProfile = useCallback(async () => {
     if (!wallet.publicKey) return
     const program = getProgram()
@@ -120,7 +118,6 @@ export function useScratchProgram() {
     }
   }, [wallet.publicKey, getProgram, getProfilePda])
 
-  // ── Fetch SOL balance ──
   const fetchBalance = useCallback(async () => {
     if (!wallet.publicKey) return
     try {
@@ -131,10 +128,9 @@ export function useScratchProgram() {
     }
   }, [wallet.publicKey, connection])
 
-  // ── Buy and scratch ──
   const buyAndScratch = useCallback(async (cardType: string): Promise<number> => {
     const program = getProgram()
-    if (!program || !wallet.publicKey || !wallet.signTransaction) {
+    if (!program || !wallet.publicKey) {
       throw new Error('Wallet not connected')
     }
 
@@ -160,7 +156,8 @@ export function useScratchProgram() {
 
       const balanceBefore = await connection.getBalance(wallet.publicKey)
 
-      const tx = await (program.methods as any)
+      // Use .rpc() which handles signing automatically
+      await (program.methods as any)
         .buyAndScratch(cardTypeArg)
         .accounts({
           treasury: treasuryPda,
@@ -168,24 +165,7 @@ export function useScratchProgram() {
           player: wallet.publicKey,
           systemProgram: web3.SystemProgram.programId,
         })
-        .transaction()
-
-      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
-      tx.recentBlockhash = blockhash
-      tx.feePayer = wallet.publicKey
-
-      const signedTx = await wallet.signTransaction(tx)
-
-      const signature = await connection.sendRawTransaction(signedTx.serialize(), {
-        skipPreflight: false,
-        preflightCommitment: 'confirmed',
-      })
-
-      await connection.confirmTransaction({
-        signature,
-        blockhash,
-        lastValidBlockHeight,
-      }, 'confirmed')
+        .rpc({ commitment: 'confirmed' })
 
       const balanceAfter = await connection.getBalance(wallet.publicKey)
 
@@ -217,12 +197,11 @@ export function useScratchProgram() {
     } finally {
       setLoading(false)
     }
-  }, [getProgram, wallet.publicKey, wallet.signTransaction, treasuryPda, getProfilePda, connection, fetchTreasury, fetchProfile, fetchBalance])
+  }, [getProgram, wallet.publicKey, treasuryPda, getProfilePda, connection, fetchTreasury, fetchProfile, fetchBalance])
 
-  // ── Update profile (name/pfp) ──
   const updateProfile = useCallback(async (name: string | null, pfpUrl: string | null) => {
     const program = getProgram()
-    if (!program || !wallet.publicKey || !wallet.signTransaction) {
+    if (!program || !wallet.publicKey) {
       throw new Error('Wallet not connected')
     }
 
@@ -230,39 +209,21 @@ export function useScratchProgram() {
     try {
       const profilePda = getProfilePda(wallet.publicKey)
 
-      const tx = await (program.methods as any)
+      await (program.methods as any)
         .updateProfile(name, pfpUrl)
         .accounts({
           profile: profilePda,
           player: wallet.publicKey,
           systemProgram: web3.SystemProgram.programId,
         })
-        .transaction()
-
-      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
-      tx.recentBlockhash = blockhash
-      tx.feePayer = wallet.publicKey
-
-      const signedTx = await wallet.signTransaction(tx)
-
-      const signature = await connection.sendRawTransaction(signedTx.serialize(), {
-        skipPreflight: false,
-        preflightCommitment: 'confirmed',
-      })
-
-      await connection.confirmTransaction({
-        signature,
-        blockhash,
-        lastValidBlockHeight,
-      }, 'confirmed')
+        .rpc({ commitment: 'confirmed' })
 
       await fetchProfile()
     } finally {
       setLoading(false)
     }
-  }, [getProgram, wallet.publicKey, wallet.signTransaction, getProfilePda, connection, fetchProfile])
+  }, [getProgram, wallet.publicKey, getProfilePda, fetchProfile])
 
-  // ── Register referral ──
   const registerReferral = useCallback(async (referrerAddress: string) => {
     const program = getProgram()
     if (!program || !wallet.publicKey) throw new Error('Wallet not connected')
@@ -290,7 +251,6 @@ export function useScratchProgram() {
     }
   }, [getProgram, wallet.publicKey, getProfilePda, fetchProfile])
 
-  // ── Mint bonus NFT ──
   const mintBonusNft = useCallback(async (tier: string) => {
     const program = getProgram()
     if (!program || !wallet.publicKey) throw new Error('Wallet not connected')
@@ -318,7 +278,6 @@ export function useScratchProgram() {
     }
   }, [getProgram, wallet.publicKey, getProfilePda, getNftPda, treasuryPda, fetchProfile, fetchBalance])
 
-  // ── Auto-fetch on wallet connect ──
   useEffect(() => {
     if (wallet.publicKey) {
       fetchTreasury()

@@ -1,4 +1,3 @@
-cat > src/app/components/WalletProvider.tsx << 'EOF'
 'use client'
 
 import { FC, ReactNode, useMemo } from 'react'
@@ -43,4 +42,3 @@ export const WalletContextProvider: FC<{ children: ReactNode }> = ({ children })
     </ConnectionProvider>
   )
 }
-EOF

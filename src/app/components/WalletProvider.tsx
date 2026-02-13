@@ -1,3 +1,4 @@
+cat > src/app/components/WalletProvider.tsx << 'EOF'
 'use client'
 
 import { FC, ReactNode, useMemo } from 'react'
@@ -14,7 +15,9 @@ import { LeaderboardProvider } from '../contexts/LeaderboardContext'
 require('@solana/wallet-adapter-react-ui/styles.css')
 
 export const WalletContextProvider: FC<{ children: ReactNode }> = ({ children }) => {
-const endpoint = 'https://devnet.helius-rpc.com/?api-key=e74081ed-6624-4d7b-9b49-9732a61b29ba'  const config = {
+  const endpoint = 'https://devnet.helius-rpc.com/?api-key=e74081ed-6624-4d7b-9b49-9732a61b29ba'
+
+  const config = {
     commitment: 'confirmed' as const,
     confirmTransactionInitialTimeout: 60000,
   }
@@ -40,3 +43,4 @@ const endpoint = 'https://devnet.helius-rpc.com/?api-key=e74081ed-6624-4d7b-9b49
     </ConnectionProvider>
   )
 }
+EOF

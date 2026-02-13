@@ -86,8 +86,8 @@ export default function PrivacyPolicy() {
       <section style={{ marginBottom: 32 }}>
         <h2 style={{ color: 'var(--cyan)', fontSize: 18, marginBottom: 12 }}>7. Age Requirement</h2>
         <p style={{ color: 'var(--muted)', fontSize: 14 }}>
-          Our Service is not intended for anyone under 18 years of age. We do not knowingly collect 
-          information from children under 18.
+          Our Service is not intended for anyone under 21 years of age. We do not knowingly collect 
+          information from anyone under 21.
         </p>
       </section>
 

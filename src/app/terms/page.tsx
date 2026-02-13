@@ -36,8 +36,8 @@ export default function TermsOfService() {
       <section style={{ marginBottom: 32 }}>
         <h2 style={{ color: 'var(--cyan)', fontSize: 18, marginBottom: 12 }}>2. Eligibility</h2>
         <p style={{ color: 'var(--muted)', fontSize: 14 }}>
-          You must be at least 18 years old to use this Service. By using the Service, you represent and 
-          warrant that you are at least 18 years of age and that gambling is legal in your jurisdiction. 
+          You must be at least 21 years old to use this Service. By using the Service, you represent and 
+          warrant that you are at least 21 years of age and that gambling is legal in your jurisdiction. 
           It is your responsibility to ensure compliance with local laws.
         </p>
       </section>

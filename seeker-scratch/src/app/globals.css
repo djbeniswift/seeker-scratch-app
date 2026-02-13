@@ -1,0 +1,348 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg: #080810;
+  --surface: #0f0f1a;
+  --surface2: #15152a;
+  --border: rgba(255,255,255,0.06);
+  --gold: #f5c842;
+  --gold2: #e8a020;
+  --cyan: #00e5ff;
+  --green: #00ff88;
+  --red: #ff3d6b;
+  --purple: #a855f7;
+  --text: #f0f0ff;
+  --muted: rgba(240,240,255,0.4);
+  --glow-gold: 0 0 30px rgba(245,200,66,0.4);
+  --glow-cyan: 0 0 30px rgba(0,229,255,0.3);
+  --glow-green: 0 0 40px rgba(0,255,136,0.4);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0.4;
+}
+
+/* ── LAYOUT ── */
+.app {
+  position: relative;
+  z-index: 1;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0 16px 120px;
+}
+
+/* ── HEADER ── */
+header {
+  padding: 28px 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo { display: flex; align-items: center; gap: 10px; }
+
+.logo-icon {
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, var(--gold), var(--gold2));
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  box-shadow: var(--glow-gold);
+}
+
+.logo-text {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  letter-spacing: 2px;
+  background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.6) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.logo-sub {
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: var(--gold);
+  font-family: 'DM Mono', monospace;
+  margin-top: -3px;
+}
+
+/* ── BALANCE BAR ── */
+.balance-bar {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.balance-item { text-align: center; }
+.balance-label {
+  font-size: 10px; letter-spacing: 2px; color: var(--muted);
+  font-family: 'DM Mono', monospace; text-transform: uppercase; margin-bottom: 4px;
+}
+.balance-value { font-family: 'DM Mono', monospace; font-size: 18px; font-weight: 500; }
+.balance-value.gold { color: var(--gold); }
+.balance-value.green { color: var(--green); text-shadow: 0 0 10px rgba(0,255,136,0.4); }
+.balance-divider { width: 1px; height: 36px; background: var(--border); }
+
+/* ── SECTION HEADER ── */
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.section-title { font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 2px; color: var(--muted); }
+.section-badge { font-size: 10px; font-family: 'DM Mono', monospace; padding: 4px 10px; border-radius: 20px; letter-spacing: 1px; }
+.badge-live { background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.3); color: var(--green); }
+
+/* ── TICKER ── */
+.ticker-wrap {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  padding: 12px 16px; margin-bottom: 24px; overflow: hidden;
+  display: flex; align-items: center; gap: 12px;
+}
+.ticker-label { font-size: 9px; letter-spacing: 3px; color: var(--gold); font-family: 'DM Mono', monospace; text-transform: uppercase; white-space: nowrap; flex-shrink: 0; }
+.ticker-track { overflow: hidden; flex: 1; }
+.ticker-items { display: flex; gap: 32px; animation: ticker 20s linear infinite; white-space: nowrap; }
+@keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+.ticker-item { font-size: 12px; font-family: 'DM Mono', monospace; color: var(--muted); display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.ticker-win { color: var(--green); font-weight: 500; }
+
+/* ── STATS ROW ── */
+.stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 24px; }
+.stat-cell { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px 12px; text-align: center; }
+.stat-value { font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 1px; line-height: 1; margin-bottom: 4px; }
+.stat-label { font-size: 9px; letter-spacing: 2px; color: var(--muted); font-family: 'DM Mono', monospace; text-transform: uppercase; }
+
+/* ── CARDS GRID ── */
+.cards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 32px; }
+
+.scratch-card {
+  border-radius: 20px; overflow: hidden; cursor: pointer;
+  position: relative; transition: transform 0.2s, box-shadow 0.2s;
+  aspect-ratio: 3/4;
+}
+.scratch-card:hover { transform: translateY(-4px); }
+.scratch-card.featured { grid-column: span 2; aspect-ratio: 16/9; }
+
+.card-gold { background: linear-gradient(135deg, #1a1400, #2a1f00, #1a1400); border: 1px solid rgba(245,200,66,0.3); box-shadow: 0 8px 32px rgba(245,200,66,0.15), inset 0 1px 0 rgba(245,200,66,0.2); }
+.card-gold:hover { box-shadow: 0 16px 48px rgba(245,200,66,0.25); }
+.card-cyan { background: linear-gradient(135deg, #001420, #00202e, #001420); border: 1px solid rgba(0,229,255,0.2); box-shadow: 0 8px 32px rgba(0,229,255,0.1); }
+.card-cyan:hover { box-shadow: 0 16px 48px rgba(0,229,255,0.2); }
+.card-purple { background: linear-gradient(135deg, #0d0014, #160020, #0d0014); border: 1px solid rgba(168,85,247,0.2); box-shadow: 0 8px 32px rgba(168,85,247,0.1); }
+.card-purple:hover { box-shadow: 0 16px 48px rgba(168,85,247,0.2); }
+.card-red { background: linear-gradient(135deg, #1a0008, #240010, #1a0008); border: 1px solid rgba(255,61,107,0.2); box-shadow: 0 8px 32px rgba(255,61,107,0.1); }
+.card-red:hover { box-shadow: 0 16px 48px rgba(255,61,107,0.2); }
+
+.card-grid-pattern {
+  position: absolute; inset: 0; opacity: 0.04; border-radius: 20px;
+  background-image: linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.card-inner { padding: 20px; height: 100%; display: flex; flex-direction: column; justify-content: space-between; position: relative; }
+.card-featured-inner { padding: 24px 28px; height: 100%; display: flex; align-items: center; justify-content: space-between; position: relative; }
+
+.card-tag { font-size: 9px; letter-spacing: 3px; font-family: 'DM Mono', monospace; text-transform: uppercase; padding: 4px 8px; border-radius: 6px; display: inline-block; margin-bottom: 8px; }
+.tag-gold { background: rgba(245,200,66,0.15); color: var(--gold); border: 1px solid rgba(245,200,66,0.3); }
+.tag-cyan { background: rgba(0,229,255,0.1); color: var(--cyan); border: 1px solid rgba(0,229,255,0.3); }
+.tag-purple { background: rgba(168,85,247,0.1); color: var(--purple); border: 1px solid rgba(168,85,247,0.3); }
+.tag-red { background: rgba(255,61,107,0.1); color: var(--red); border: 1px solid rgba(255,61,107,0.3); }
+
+.card-name { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 2px; line-height: 1; margin-bottom: 4px; }
+.card-name-lg { font-family: 'Bebas Neue', sans-serif; font-size: 36px; letter-spacing: 3px; line-height: 1; }
+.card-subtitle { font-size: 11px; color: var(--muted); margin-bottom: 12px; }
+.card-prize { margin-top: auto; }
+.prize-label { font-size: 9px; letter-spacing: 2px; color: var(--muted); font-family: 'DM Mono', monospace; text-transform: uppercase; margin-bottom: 2px; }
+.prize-amount { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 1px; line-height: 1; }
+.prize-amount-lg { font-family: 'Bebas Neue', sans-serif; font-size: 52px; letter-spacing: 2px; line-height: 1; }
+.prize-sol { font-size: 14px; font-family: 'DM Mono', monospace; opacity: 0.6; margin-left: 4px; }
+.card-cost { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
+.cost-pill { font-family: 'DM Mono', monospace; font-size: 11px; padding: 4px 10px; border-radius: 20px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); }
+.odds-text { font-size: 10px; color: var(--muted); font-family: 'DM Mono', monospace; }
+.featured-right { text-align: right; }
+.featured-jackpot-label { font-size: 10px; letter-spacing: 3px; font-family: 'DM Mono', monospace; color: var(--gold); text-transform: uppercase; margin-bottom: 4px; }
+
+/* ── MODAL ── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+  z-index: 100; display: flex; align-items: flex-end; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity 0.3s; backdrop-filter: blur(8px);
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 28px 28px 0 0; padding: 32px 24px 48px;
+  width: 100%; max-width: 480px;
+  transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.16,1,0.3,1);
+  position: relative; max-height: 90vh; overflow-y: auto;
+}
+.modal-overlay.open .modal { transform: translateY(0); }
+.modal-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 28px; }
+
+.close-btn {
+  position: absolute; top: 16px; right: 16px;
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--muted); display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 16px; transition: all 0.2s; z-index: 10;
+}
+.close-btn:hover { color: var(--text); background: rgba(255,255,255,0.1); }
+
+.modal-info { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.info-cell { background: var(--surface2); border-radius: 12px; padding: 12px; text-align: center; border: 1px solid var(--border); }
+.info-cell-label { font-size: 9px; letter-spacing: 2px; color: var(--muted); font-family: 'DM Mono', monospace; text-transform: uppercase; margin-bottom: 4px; }
+.info-cell-value { font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 500; }
+
+/* ── BUTTONS ── */
+.cta-btn {
+  width: 100%; padding: 18px; border-radius: 16px; border: none;
+  font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 3px;
+  cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden; margin-top: 8px;
+}
+.cta-btn::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(255,255,255,0.1), transparent); pointer-events: none; }
+.cta-btn:disabled { cursor: not-allowed; opacity: 0.6; }
+
+.btn-gold { background: linear-gradient(135deg, var(--gold), var(--gold2)); color: #000; box-shadow: 0 8px 32px rgba(245,200,66,0.3); }
+.btn-gold:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(245,200,66,0.4); }
+.btn-cyan { background: linear-gradient(135deg, var(--cyan), #0080ff); color: #000; box-shadow: 0 8px 32px rgba(0,229,255,0.2); }
+.btn-cyan:hover:not(:disabled) { transform: translateY(-2px); }
+.btn-purple { background: linear-gradient(135deg, var(--purple), #7c3aed); color: #fff; box-shadow: 0 8px 32px rgba(168,85,247,0.2); }
+.btn-purple:hover:not(:disabled) { transform: translateY(-2px); }
+.btn-green { background: linear-gradient(135deg, var(--green), #00cc6a); color: #000; box-shadow: 0 8px 32px rgba(0,255,136,0.3); }
+.btn-green:hover:not(:disabled) { transform: translateY(-2px); }
+.btn-red { background: linear-gradient(135deg, var(--red), #cc0033); color: #fff; box-shadow: 0 8px 32px rgba(255,61,107,0.2); }
+.btn-red:hover:not(:disabled) { transform: translateY(-2px); }
+.btn-disabled { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+
+/* ── POINTS CARD ── */
+.points-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 20px; padding: 20px; margin-bottom: 24px; position: relative; overflow: hidden;
+}
+.points-card::before {
+  content: ''; position: absolute; top: -40px; right: -40px;
+  width: 120px; height: 120px;
+  background: radial-gradient(circle, rgba(245,200,66,0.08) 0%, transparent 70%);
+  border-radius: 50%;
+}
+.points-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+.points-title { font-family: 'Bebas Neue', sans-serif; font-size: 16px; letter-spacing: 2px; color: var(--muted); }
+.points-amount { font-family: 'Bebas Neue', sans-serif; font-size: 42px; letter-spacing: 2px; color: var(--gold); line-height: 1; }
+.points-sub { font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; margin-top: 2px; }
+.nft-tier-display { display: flex; align-items: center; gap: 8px; padding: 8px 14px; background: rgba(245,200,66,0.08); border: 1px solid rgba(245,200,66,0.2); border-radius: 20px; font-size: 12px; font-family: 'DM Mono', monospace; color: var(--gold); }
+.multiplier-badge { font-family: 'Bebas Neue', sans-serif; font-size: 18px; color: var(--gold); }
+.points-progress { background: rgba(255,255,255,0.05); border-radius: 4px; height: 4px; margin-top: 12px; overflow: hidden; }
+.points-fill { height: 100%; background: linear-gradient(90deg, var(--gold2), var(--gold)); border-radius: 4px; box-shadow: 0 0 8px rgba(245,200,66,0.4); transition: width 0.5s; }
+.points-footer { display: flex; justify-content: space-between; margin-top: 6px; font-size: 10px; color: var(--muted); font-family: 'DM Mono', monospace; }
+
+/* ── NAV BAR ── */
+.nav-bar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: rgba(8,8,16,0.9); border-top: 1px solid var(--border);
+  backdrop-filter: blur(20px); padding: 12px 0 24px;
+  display: flex; justify-content: space-around; z-index: 50;
+}
+.nav-item {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  cursor: pointer; padding: 8px 20px; border-radius: 12px; transition: all 0.2s;
+  font-size: 10px; letter-spacing: 1px; font-family: 'DM Mono', monospace;
+  color: var(--muted); text-transform: uppercase;
+}
+.nav-item.active { color: var(--gold); }
+.nav-item:hover { color: var(--text); }
+.nav-icon { font-size: 22px; }
+
+/* ── UTILITY ── */
+.text-gold { color: var(--gold); }
+.text-green { color: var(--green); }
+.text-cyan { color: var(--cyan); }
+.text-purple { color: var(--purple); }
+.text-red { color: var(--red); }
+
+/* ── ANIMATIONS ── */
+@keyframes zoomIn {
+  from { transform: scale(0.5); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes confetti-fall {
+  0% { transform: translateY(-100px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+
+/* Wallet adapter overrides */
+.wallet-adapter-button {
+  font-family: 'DM Mono', monospace !important;
+  font-size: 12px !important;
+  border-radius: 20px !important;
+  padding: 8px 16px !important;
+  height: auto !important;
+  background: var(--surface2) !important;
+  border: 1px solid var(--border) !important;
+}
+.wallet-adapter-modal-wrapper { background: var(--surface) !important; border: 1px solid var(--border) !important; border-radius: 20px !important; }
+.wallet-adapter-modal-title { font-family: 'Bebas Neue', sans-serif !important; letter-spacing: 2px !important; }
+/* ── FEATURE BANNER ── */
+.feature-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: linear-gradient(90deg, rgba(245,200,66,0.05) 0%, rgba(245,200,66,0.1) 50%, rgba(245,200,66,0.05) 100%);
+  border: 1px solid rgba(245,200,66,0.15);
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'monospace';
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--gold);
+  text-transform: uppercase;
+}
+
+.feature-icon {
+  font-size: 12px;
+}
+
+.feature-divider {
+  color: rgba(245,200,66,0.3);
+  font-size: 8px;
+}
+
+@media (max-width: 400px) {
+  .feature-banner {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .feature-item {
+    font-size: 9px;
+  }
+  
+  .feature-divider {
+    display: none;
+  }
+}

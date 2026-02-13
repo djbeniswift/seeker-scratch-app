@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import WalletButton from './components/WalletButton'
 import { useScratchProgram } from './hooks/useScratchProgram'
-import { useReferralMonitor } from './hooks/useReferralMonitor'
 import { useTreasuryContext } from './contexts/TreasuryContext'
 import { useSettings } from './contexts/SettingsContext'
 import { useLeaderboard } from './contexts/LeaderboardContext'
@@ -41,9 +40,6 @@ export default function Home() {
   const { treasuryBalance, refreshTreasury } = useTreasuryContext()
   const { soundEnabled, hapticsEnabled, toggleSound, toggleHaptics } = useSettings()
   const { leaderboard, isLoading: leaderboardLoading, getUserRank, refreshLeaderboard } = useLeaderboard()
-  
-  // Initialize referral monitor to automatically award points
-  useReferralMonitor()
 
   const [mounted, setMounted] = useState(false)
   const [activeCard, setActiveCard] = useState<string | null>(null)
@@ -615,7 +611,6 @@ export default function Home() {
                     { label: 'Total Wins', value: profile?.wins || 0 },
                     { label: 'Total Won', value: `${(profile?.totalWon || 0).toFixed(3)} SOL`, highlight: true },
                     { label: 'Referrals', value: profile?.referralsCount || 0 },
-                    { label: 'Referred Bonus', value: profile?.referredBy ? '✅ 100 pts' : 'N/A', referralBonus: !!profile?.referredBy },
                     { label: 'Points (Month)', value: profile?.pointsThisMonth || 0 },
                     { label: 'Points (All Time)', value: profile?.pointsAllTime || 0 },
                     { label: 'NFT Tier', value: nftTierName || 'None' },
@@ -623,7 +618,7 @@ export default function Home() {
                   ].map((row, i) => (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--border)', fontSize: 13 }}>
                       <span style={{ color: 'var(--muted)', fontFamily: 'monospace', fontSize: 11 }}>{row.label}</span>
-                      <span style={{ color: (row as any).highlight ? 'var(--green)' : (row as any).referralBonus ? 'var(--green)' : 'var(--text)', fontFamily: 'monospace', fontSize: 12 }}>{row.value}</span>
+                      <span style={{ color: (row as any).highlight ? 'var(--green)' : 'var(--text)', fontFamily: 'monospace', fontSize: 12 }}>{row.value}</span>
                     </div>
                   ))}
                 </>

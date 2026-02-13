@@ -120,14 +120,6 @@ export const IDL = {
       args: [],
     },
     {
-      name: 'awardReferralPoints',
-      accounts: [
-        { name: 'refereeProfile', isMut: true, isSigner: false },
-        { name: 'referrerProfile', isMut: true, isSigner: false },
-      ],
-      args: [],
-    },
-    {
       name: 'mintBonusNft',
       accounts: [
         { name: 'treasury', isMut: true, isSigner: false },

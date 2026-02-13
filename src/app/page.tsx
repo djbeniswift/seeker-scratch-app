@@ -8,9 +8,10 @@ import { useTreasuryContext } from './contexts/TreasuryContext'
 import { useSettings } from './contexts/SettingsContext'
 import { useLeaderboard } from './contexts/LeaderboardContext'
 import ScratchModal from './components/ScratchModal'
-import { CARD_CONFIG, NFT_TIERS } from './lib/constants'
+import { NFT_TIERS } from './lib/constants'
 
-const IMGBB_API_KEY = process.env.next_public_imgbb_api_key || process.env.NEXT_PUBLIC_IMGBB_API_KEY || ''
+const IMGBB_API_KEY = process.env.NEXT_PUBLIC_IMGBB_API_KEY || process.env.next_public_imgbb_api_key || ''
+
 // Monthly rewards - easy to update!
 const MONTHLY_REWARDS = [
   { place: '1st', sol: '0.25 SOL', skr: '500 SKR', emoji: '🥇', color: 'var(--gold)' },
@@ -564,7 +565,7 @@ export default function Home() {
                 background: 'var(--surface)',
                 border: '1px solid var(--border)',
                 borderRadius: 12,
-                color: 'var(--muted)',
+                color: 'var(--text)',
                 fontFamily: 'monospace',
                 fontSize: 12,
                 cursor: 'pointer',
@@ -772,6 +773,7 @@ export default function Home() {
                   fontSize: 13,
                   background: 'var(--surface)',
                   border: '1px solid var(--border)',
+                  color: 'var(--text)',
                 }}
               >
                 🏆 LEADERBOARD
@@ -874,6 +876,7 @@ export default function Home() {
                 fontSize: 13,
                 background: 'var(--surface)',
                 border: '1px solid var(--border)',
+                color: 'var(--text)',
               }}
             >
               🎁 VIEW REFERRAL PRIZES
@@ -992,6 +995,7 @@ export default function Home() {
                           padding: '14px 20px',
                           background: 'rgba(255,255,255,0.05)',
                           border: '1px solid rgba(255,255,255,0.1)',
+                          color: 'var(--text)',
                         }}
                       >
                         CANCEL

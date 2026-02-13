@@ -5,7 +5,7 @@ import { Connection, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js'
 import { PROGRAM_ID, TREASURY_SEED } from '../lib/constants'
 
 interface TreasuryContextType {
-  treasuryBalance: number | null
+  treasuryBalance: number
   treasuryPda: PublicKey
   refreshTreasury: () => Promise<void>
 }
@@ -21,28 +21,24 @@ export const useTreasuryContext = () => {
 }
 
 const RPC_ENDPOINT = 'https://devnet.helius-rpc.com/?api-key=e74081ed-6624-4d7b-9b49-9732a61b29ba'
-  const [treasuryBalance, setTreasuryBalance] = useState<number | null>(null)
 
-  const [treasuryPda] = PublicKey.findProgramAddressSync(
-    [TREASURY_SEED],
-    PROGRAM_ID
-  )
+const [treasuryPda] = PublicKey.findProgramAddressSync(
+  [TREASURY_SEED],
+  PROGRAM_ID
+)
+
+export const TreasuryProvider: FC<{ children: ReactNode }> = ({ children }) => {
+  const [treasuryBalance, setTreasuryBalance] = useState(0)
 
   const refreshTreasury = useCallback(async () => {
     try {
       const connection = new Connection(RPC_ENDPOINT, 'confirmed')
-      const accountInfo = await connection.getAccountInfo(treasuryPda)
-      
-      if (accountInfo && accountInfo.data) {
-        const dataView = new DataView(accountInfo.data.buffer, accountInfo.data.byteOffset)
-        const balanceLamports = dataView.getBigUint64(40, true)
-        const balanceSol = Number(balanceLamports) / LAMPORTS_PER_SOL
-        setTreasuryBalance(balanceSol)
-      }
+      const balance = await connection.getBalance(treasuryPda)
+      setTreasuryBalance(balance / LAMPORTS_PER_SOL)
     } catch (err) {
       console.error('Failed to fetch treasury:', err)
     }
-  }, [treasuryPda])
+  }, [])
 
   useEffect(() => {
     refreshTreasury()

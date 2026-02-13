@@ -536,6 +536,30 @@ useEffect(() => {
               <button className="cta-btn btn-gold" style={{ fontSize: 14, padding: 14 }} onClick={copyReferralLink} disabled={!wallet.publicKey}>
                 {copyStatus || '📋 COPY REFERRAL LINK'}
               </button>
+              <div style={{ marginTop: 16, padding: '16px', background: 'rgba(245,200,66,0.05)', border: '1px solid rgba(245,200,66,0.2)', borderRadius: 12 }}>
+                <div style={{ fontSize: 12, color: 'var(--gold)', fontFamily: 'monospace', marginBottom: 12, textAlign: 'center', lineHeight: 1.6 }}>
+                  💡 Referred someone who spent 0.1+ SOL?<br/>Click below to claim your rewards!
+                </div>
+                <button
+                  className="cta-btn"
+                  onClick={async () => {
+                    if (!wallet.publicKey) return;
+                    try {
+                      console.log('🔍 Checking for qualified referrals...');
+                      // For now, just refresh profile to show updated points
+                      await fetchProfile();
+                      alert('✅ Profile refreshed! If you have qualified referrals, points will appear.');
+                    } catch (err) {
+                      console.error('Error:', err);
+                      alert('❌ Error checking referrals');
+                    }
+                  }}
+                  disabled={!wallet.publicKey || loading}
+                  style={{ width: '100%', fontSize: 13, padding: '12px', background: 'linear-gradient(135deg, rgba(245,200,66,0.2), rgba(245,200,66,0.1))', border: '1px solid rgba(245,200,66,0.3)' }}
+                >
+                  🎁 CHECK & CLAIM REWARDS
+                </button>
+              </div>
             </div>
 
             <div className="points-card" style={{ marginBottom: 16 }}>

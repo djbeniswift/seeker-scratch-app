@@ -14,8 +14,7 @@ import { LeaderboardProvider } from '../contexts/LeaderboardContext'
 require('@solana/wallet-adapter-react-ui/styles.css')
 
 export const WalletContextProvider: FC<{ children: ReactNode }> = ({ children }) => {
-  const endpoint = `https://devnet.helius-rpc.com/?api-key=${process.env.NEXT_PUBLIC_HELIUS_API_KEY}`
-
+const endpoint = `https://devnet.helius-rpc.com/?api-key=${process.env.next_public_helius_api_key || process.env.NEXT_PUBLIC_HELIUS_API_KEY}`
   const config = {
     commitment: 'confirmed' as const,
     confirmTransactionInitialTimeout: 60000,

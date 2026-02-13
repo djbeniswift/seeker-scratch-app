@@ -10,8 +10,7 @@ import { useLeaderboard } from './contexts/LeaderboardContext'
 import ScratchModal from './components/ScratchModal'
 import { CARD_CONFIG, NFT_TIERS } from './lib/constants'
 
-const IMGBB_API_KEY = process.env.NEXT_PUBLIC_IMGBB_API_KEY || ''
-
+const IMGBB_API_KEY = process.env.next_public_imgbb_api_key || process.env.NEXT_PUBLIC_IMGBB_API_KEY || ''
 // Monthly rewards - easy to update!
 const MONTHLY_REWARDS = [
   { place: '1st', sol: '0.25 SOL', skr: '500 SKR', emoji: '🥇', color: 'var(--gold)' },

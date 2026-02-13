@@ -34,8 +34,7 @@ export const useLeaderboard = () => {
   return context
 }
 
-const RPC_ENDPOINT = `https://devnet.helius-rpc.com/?api-key=${process.env.NEXT_PUBLIC_HELIUS_API_KEY}`
-
+const RPC_ENDPOINT = `https://devnet.helius-rpc.com/?api-key=${process.env.next_public_helius_api_key || process.env.NEXT_PUBLIC_HELIUS_API_KEY}`
 function shortenWallet(wallet: string): string {
   return `${wallet.slice(0, 4)}...${wallet.slice(-4)}`
 }

@@ -1183,7 +1183,37 @@ export default function Home() {
             </div>
           </div>
         )}
-
+{/* Support Section */}
+            <div className="section-header" style={{ marginTop: 24 }}>
+              <div className="section-title">SUPPORT</div>
+            </div>
+            <div className="points-card">
+              <div style={{ textAlign: 'center', padding: '10px 0' }}>
+                <div style={{ fontSize: 12, color: 'var(--muted)', fontFamily: 'monospace', marginBottom: 16, lineHeight: 1.6 }}>
+                  Having issues with referrals, points, or anything else?
+                </div>
+                
+                  href="mailto:seekerscratch@gmail.com?subject=Seeker%20Scratch%20Support"
+                  style={{
+                    display: 'inline-block',
+                    padding: '14px 24px',
+                    background: 'linear-gradient(135deg, rgba(0,212,255,0.2), rgba(0,212,255,0.1))',
+                    border: '1px solid rgba(0,212,255,0.3)',
+                    borderRadius: 12,
+                    color: 'var(--cyan)',
+                    fontFamily: 'monospace',
+                    fontSize: 14,
+                    textDecoration: 'none',
+                    fontWeight: 'bold',
+                  }}
+                >
+                  📧 EMAIL SUPPORT
+                </a>
+                <div style={{ fontSize: 10, color: 'var(--muted)', fontFamily: 'monospace', marginTop: 12 }}>
+                  seekerscratch@gmail.com
+                </div>
+              </div>
+            
       </div>
 
       {/* ── NAV BAR ── */}

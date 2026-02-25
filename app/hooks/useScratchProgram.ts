@@ -4,6 +4,9 @@ import { PublicKey, LAMPORTS_PER_SOL, SystemProgram } from '@solana/web3.js'
 import { useCallback, useState } from 'react'
 import { PROGRAM_ID, TREASURY_SEED, PROFILE_SEED, IDL } from '../lib/constants'
 
+// Dummy pubkey used as referrerProfile when player has no referrer
+const DUMMY_PUBKEY = new PublicKey('11111111111111111111111111111111')
+
 export function useScratchProgram() {
   const { connection } = useConnection()
   const wallet = useWallet()
@@ -24,6 +27,14 @@ export function useScratchProgram() {
 
   const [treasuryPda] = PublicKey.findProgramAddressSync([TREASURY_SEED], PROGRAM_ID)
 
+  const getProfilePda = useCallback((owner: PublicKey) => {
+    const [pda] = PublicKey.findProgramAddressSync(
+      [PROFILE_SEED, owner.toBuffer()],
+      PROGRAM_ID
+    )
+    return pda
+  }, [])
+
   const fetchTreasury = useCallback(async () => {
     const program = getProgram()
     if (!program) return
@@ -43,10 +54,7 @@ export function useScratchProgram() {
     const program = getProgram()
     if (!program) return
     try {
-      const [profilePda] = PublicKey.findProgramAddressSync(
-        [PROFILE_SEED, wallet.publicKey.toBuffer()],
-        PROGRAM_ID
-      )
+      const profilePda = getProfilePda(wallet.publicKey)
       const data = await (program.account as any).playerProfile.fetch(profilePda)
       setProfile({
         pointsThisMonth: data.pointsThisMonth.toNumber(),
@@ -55,12 +63,33 @@ export function useScratchProgram() {
         totalSpent: data.totalSpent.toNumber() / LAMPORTS_PER_SOL,
         totalWon: data.totalWon.toNumber() / LAMPORTS_PER_SOL,
         wins: data.wins,
+        hasBeenReferred: data.hasBeenReferred,
+        referredBy: data.referredBy?.toBase58(),
+        referralBonusPaid: data.referralBonusPaid,
+        referralsCount: data.referralsCount,
       })
     } catch (err) {
       console.log('Profile not found yet')
       setProfile(null)
     }
-  }, [wallet.publicKey, getProgram])
+  }, [wallet.publicKey, getProgram, getProfilePda])
+
+  const registerReferral = useCallback(async (referrerPubkey: string) => {
+    const program = getProgram()
+    if (!program || !wallet.publicKey) throw new Error('Wallet not connected')
+
+    const referrer = new PublicKey(referrerPubkey)
+    const refereeProfile = getProfilePda(wallet.publicKey)
+
+    await (program.methods as any).registerReferral().accounts({
+      refereeProfile,
+      referee: wallet.publicKey,
+      referrer,
+      systemProgram: SystemProgram.programId,
+    }).rpc({ commitment: 'confirmed' })
+
+    await fetchProfile()
+  }, [getProgram, wallet.publicKey, getProfilePda, fetchProfile])
 
   const buyCard = useCallback(async (cardType: string) => {
     const program = getProgram()
@@ -68,10 +97,23 @@ export function useScratchProgram() {
 
     setLoading(true)
     try {
-      const [profilePda] = PublicKey.findProgramAddressSync(
-        [PROFILE_SEED, wallet.publicKey.toBuffer()],
-        PROGRAM_ID
-      )
+      const profilePda = getProfilePda(wallet.publicKey)
+
+      // Fetch current profile to get referredBy
+      let referrerProfilePda: PublicKey
+      try {
+        const profileData = await (program.account as any).playerProfile.fetch(profilePda)
+        const referredBy: PublicKey = profileData.referredBy
+        // If referredBy is default pubkey (no referrer), use dummy
+        if (referredBy.equals(DUMMY_PUBKEY)) {
+          referrerProfilePda = getProfilePda(DUMMY_PUBKEY)
+        } else {
+          referrerProfilePda = getProfilePda(referredBy)
+        }
+      } catch {
+        // Profile doesn't exist yet — no referrer
+        referrerProfilePda = getProfilePda(DUMMY_PUBKEY)
+      }
 
       const cardTypeArg = {
         QuickPick: { quickPick: {} },
@@ -83,6 +125,7 @@ export function useScratchProgram() {
       await (program.methods as any).buyAndScratch(cardTypeArg).accounts({
         treasury: treasuryPda,
         profile: profilePda,
+        referrerProfile: referrerProfilePda,
         player: wallet.publicKey,
         systemProgram: SystemProgram.programId,
       }).rpc({ commitment: 'confirmed' })
@@ -92,7 +135,7 @@ export function useScratchProgram() {
     } finally {
       setLoading(false)
     }
-  }, [getProgram, wallet.publicKey, treasuryPda, fetchTreasury, fetchProfile])
+  }, [getProgram, wallet.publicKey, treasuryPda, getProfilePda, fetchTreasury, fetchProfile])
 
-  return { treasury, profile, loading, fetchTreasury, fetchProfile, buyCard, getProgram }
+  return { treasury, profile, loading, fetchTreasury, fetchProfile, buyCard, registerReferral, getProgram }
 }

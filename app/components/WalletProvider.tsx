@@ -22,6 +22,7 @@ export function WalletProviders({ children }: { children: React.ReactNode }) {
         icon: '/icon-192.png',
       },
       authorizationResultCache: createDefaultAuthorizationResultCache(),
+      onWalletNotFound: async () => { window.open('https://solanamobile.com/wallets', '_blank') },
       cluster: network,
     }),
     new PhantomWalletAdapter(),

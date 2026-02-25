@@ -1,6 +1,6 @@
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { Program, AnchorProvider } from '@coral-xyz/anchor'
-import { PublicKey, LAMPORTS_PER_SOL, SystemProgram, Transaction } from '@solana/web3.js'
+import { PublicKey, LAMPORTS_PER_SOL, SystemProgram } from '@solana/web3.js'
 import { useCallback, useState } from 'react'
 import { PROGRAM_ID, TREASURY_SEED, PROFILE_SEED, IDL } from '../lib/constants'
 
@@ -11,20 +11,22 @@ export function useScratchProgram() {
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(false)
 
-  const getReadonlyProgram = useCallback(() => {
-    const dummyWallet = {
-      publicKey: wallet.publicKey || PublicKey.default,
-      signTransaction: async (tx: Transaction) => tx,
-      signAllTransactions: async (txs: Transaction[]) => txs,
-    }
-    const provider = new AnchorProvider(connection, dummyWallet as any, { commitment: 'confirmed' })
+  const getProvider = useCallback(() => {
+    if (!wallet.publicKey || !wallet.signTransaction) return null
+    return new AnchorProvider(connection, wallet as any, { commitment: 'confirmed' })
+  }, [connection, wallet])
+
+  const getProgram = useCallback(() => {
+    const provider = getProvider()
+    if (!provider) return null
     return new Program(IDL as any, PROGRAM_ID, provider)
-  }, [connection, wallet.publicKey])
+  }, [getProvider])
 
   const [treasuryPda] = PublicKey.findProgramAddressSync([TREASURY_SEED], PROGRAM_ID)
 
   const fetchTreasury = useCallback(async () => {
-    const program = getReadonlyProgram()
+    const program = getProgram()
+    if (!program) return
     try {
       const data = await (program.account as any).treasury.fetch(treasuryPda)
       setTreasury({
@@ -34,11 +36,12 @@ export function useScratchProgram() {
     } catch (err) {
       console.error('Failed to fetch treasury:', err)
     }
-  }, [getReadonlyProgram, treasuryPda])
+  }, [getProgram, treasuryPda])
 
   const fetchProfile = useCallback(async () => {
     if (!wallet.publicKey) return
-    const program = getReadonlyProgram()
+    const program = getProgram()
+    if (!program) return
     try {
       const [profilePda] = PublicKey.findProgramAddressSync(
         [PROFILE_SEED, wallet.publicKey.toBuffer()],
@@ -57,15 +60,14 @@ export function useScratchProgram() {
       console.log('Profile not found yet')
       setProfile(null)
     }
-  }, [wallet.publicKey, getReadonlyProgram])
+  }, [wallet.publicKey, getProgram])
 
   const buyCard = useCallback(async (cardType: string) => {
-    if (!wallet.publicKey || !wallet.sendTransaction) throw new Error('Wallet not connected')
+    const program = getProgram()
+    if (!program || !wallet.publicKey) throw new Error('Wallet not connected')
 
     setLoading(true)
     try {
-      const program = getReadonlyProgram()
-
       const [profilePda] = PublicKey.findProgramAddressSync(
         [PROFILE_SEED, wallet.publicKey.toBuffer()],
         PROGRAM_ID
@@ -78,33 +80,19 @@ export function useScratchProgram() {
         MegaGold: { megaGold: {} },
       }[cardType]
 
-      const ix = await (program.methods as any).buyAndScratch(cardTypeArg).accounts({
+      await (program.methods as any).buyAndScratch(cardTypeArg).accounts({
         treasury: treasuryPda,
         profile: profilePda,
         player: wallet.publicKey,
         systemProgram: SystemProgram.programId,
-      }).instruction()
-
-      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
-      
-      const tx = new Transaction()
-      tx.recentBlockhash = blockhash
-      tx.feePayer = wallet.publicKey
-      tx.add(ix)
-
-      const sig = await wallet.sendTransaction(tx, connection, {
-        skipPreflight: false,
-        preflightCommitment: 'confirmed',
-      })
-
-      await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed')
+      }).rpc({ commitment: 'confirmed' })
 
       await fetchTreasury()
       await fetchProfile()
     } finally {
       setLoading(false)
     }
-  }, [getReadonlyProgram, wallet, connection, treasuryPda, fetchTreasury, fetchProfile])
+  }, [getProgram, wallet.publicKey, treasuryPda, fetchTreasury, fetchProfile])
 
-  return { treasury, profile, loading, fetchTreasury, fetchProfile, buyCard, getProgram: getReadonlyProgram }
+  return { treasury, profile, loading, fetchTreasury, fetchProfile, buyCard, getProgram }
 }

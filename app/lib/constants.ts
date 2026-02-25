@@ -1,6 +1,6 @@
 import { PublicKey } from '@solana/web3.js'
 
-export const PROGRAM_ID = new PublicKey('2oPCsxMuy85Q4tUiEuhJ3zkK8ZurRVjkEEj4CmMdgx1x')
+export const PROGRAM_ID = new PublicKey('3vt5QCwqtn13ihaYoFk8RV7r7gbQMnbVcqSZdqNL6mKC')
 export const TREASURY_SEED = Buffer.from('scratch_treasury')
 export const PROFILE_SEED = Buffer.from('scratch_profile')
 

@@ -85,15 +85,18 @@ export function useScratchProgram() {
         systemProgram: SystemProgram.programId,
       }).instruction()
 
-      const tx = new Transaction().add(ix)
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
+      
+      const tx = new Transaction()
+      tx.recentBlockhash = blockhash
+      tx.feePayer = wallet.publicKey
+      tx.add(ix)
 
-      // Use wallet.sendTransaction — handles signing + sending atomically
       const sig = await wallet.sendTransaction(tx, connection, {
         skipPreflight: false,
         preflightCommitment: 'confirmed',
       })
 
-      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash()
       await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed')
 
       await fetchTreasury()

@@ -646,7 +646,7 @@ export default function Home() {
         display: 'flex',
         justifyContent: 'space-around',
         padding: '8px 0',
-        zIndex: 100
+        zIndex: 999
       }}>
         {[
           { id: 'scratch', icon: '🎰', label: 'Scratch' },

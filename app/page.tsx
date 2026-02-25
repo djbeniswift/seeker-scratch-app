@@ -8,10 +8,10 @@ import { useLeaderboard } from './contexts/LeaderboardContext'
 import AdminPanel from './components/AdminPanel'
 
 const CARD_TYPES = [
-  { id: 'QuickPick', name: 'QUICK PICK', cost: 0.01, maxPrize: 0.5, color: '#00d4ff', tag: '⚡ STARTER' },
-  { id: 'Lucky7s', name: 'LUCKY 7s', cost: 0.05, maxPrize: 2, color: '#9d4edd', tag: '🍀 POPULAR' },
-  { id: 'HotShot', name: 'HOT SHOT', cost: 0.05, maxPrize: 5, color: '#ff006e', tag: '🔥 HIGH RISK' },
-  { id: 'MegaGold', name: 'MEGA GOLD', cost: 0.1, maxPrize: 10, color: '#f5c842', tag: '✦ FEATURED' },
+  { id: 'QuickPick', name: 'QUICK PICK', cost: 0.01, maxPrize: 0.1, color: '#00d4ff', tag: '⚡ STARTER' },
+  { id: 'Lucky7s', name: 'LUCKY 7s', cost: 0.05, maxPrize: 0.5, color: '#9d4edd', tag: '🍀 POPULAR' },
+  { id: 'HotShot', name: 'HOT SHOT', cost: 0.05, maxPrize: 1, color: '#ff006e', tag: '🔥 HIGH RISK' },
+  { id: 'MegaGold', name: 'MEGA GOLD', cost: 0.1, maxPrize: 2, color: '#f5c842', tag: '✦ FEATURED' },
 ]
 
 const MONTHLY_REWARDS = [

@@ -5,6 +5,7 @@ import WalletButton from './components/WalletButton'
 import { useScratchProgram } from './hooks/useScratchProgram'
 import { LAMPORTS_PER_SOL } from '@solana/web3.js'
 import { useLeaderboard } from './contexts/LeaderboardContext'
+import AdminPanel from './components/AdminPanel'
 
 const CARD_TYPES = [
   { id: 'QuickPick', name: 'QUICK PICK', cost: 0.01, maxPrize: 0.5, color: '#00d4ff', tag: '⚡ STARTER' },

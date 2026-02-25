@@ -4,9 +4,6 @@ import { PublicKey, LAMPORTS_PER_SOL, SystemProgram } from '@solana/web3.js'
 import { useCallback, useState } from 'react'
 import { PROGRAM_ID, TREASURY_SEED, PROFILE_SEED, IDL } from '../lib/constants'
 
-// Dummy pubkey used as referrerProfile when player has no referrer
-const DUMMY_PUBKEY = new PublicKey('11111111111111111111111111111111')
-
 export function useScratchProgram() {
   const { connection } = useConnection()
   const wallet = useWallet()
@@ -36,18 +33,24 @@ export function useScratchProgram() {
   }, [])
 
   const fetchTreasury = useCallback(async () => {
-    const program = getProgram()
-    if (!program) return
     try {
-      const data = await (program.account as any).treasury.fetch(treasuryPda)
+      const lamports = await connection.getBalance(treasuryPda)
+      const program = getProgram()
+      let totalCardsSold = 0
+      if (program) {
+        try {
+          const data = await (program.account as any).treasury.fetch(treasuryPda)
+          totalCardsSold = data.totalCardsSold.toNumber()
+        } catch {}
+      }
       setTreasury({
-        balance: data.balance.toNumber() / LAMPORTS_PER_SOL,
-        totalCardsSold: data.totalCardsSold.toNumber(),
+        balance: lamports / LAMPORTS_PER_SOL,
+        totalCardsSold,
       })
     } catch (err) {
       console.error('Failed to fetch treasury:', err)
     }
-  }, [getProgram, treasuryPda])
+  }, [getProgram, treasuryPda, connection])
 
   const fetchProfile = useCallback(async () => {
     if (!wallet.publicKey) return
@@ -77,17 +80,14 @@ export function useScratchProgram() {
   const registerReferral = useCallback(async (referrerPubkey: string) => {
     const program = getProgram()
     if (!program || !wallet.publicKey) throw new Error('Wallet not connected')
-
     const referrer = new PublicKey(referrerPubkey)
     const refereeProfile = getProfilePda(wallet.publicKey)
-
     await (program.methods as any).registerReferral().accounts({
       refereeProfile,
       referee: wallet.publicKey,
       referrer,
       systemProgram: SystemProgram.programId,
     }).rpc({ commitment: 'confirmed' })
-
     await fetchProfile()
   }, [getProgram, wallet.publicKey, getProfilePda, fetchProfile])
 
@@ -99,20 +99,15 @@ export function useScratchProgram() {
     try {
       const profilePda = getProfilePda(wallet.publicKey)
 
-      // Fetch current profile to get referredBy
-      let referrerProfilePda: PublicKey
+      // Get referrer profile PDA — fall back to treasury PDA (always initialized) if no referrer
+      let referrerProfilePda: PublicKey = treasuryPda
       try {
         const profileData = await (program.account as any).playerProfile.fetch(profilePda)
-        const referredBy: PublicKey = profileData.referredBy
-        // If referredBy is default pubkey (no referrer), use dummy
-        if (referredBy.equals(DUMMY_PUBKEY)) {
-          referrerProfilePda = getProfilePda(DUMMY_PUBKEY)
-        } else {
-          referrerProfilePda = getProfilePda(referredBy)
+        if (profileData.hasBeenReferred) {
+          referrerProfilePda = getProfilePda(profileData.referredBy)
         }
       } catch {
-        // Profile doesn't exist yet — no referrer
-        referrerProfilePda = getProfilePda(DUMMY_PUBKEY)
+        // Profile doesn't exist yet - no referrer
       }
 
       const cardTypeArg = {

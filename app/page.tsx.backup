@@ -27,19 +27,10 @@ export default function Home() {
   const [mounted, setMounted] = useState(false)
   const [activeNav, setActiveNav] = useState('scratch')
   const [lastResult, setLastResult] = useState<{ won: boolean; prize: number } | null>(null)
-  const [walletBalance, setWalletBalance] = useState(0)
 
   useEffect(() => {
     setMounted(true)
   }, [])
-
-  useEffect(() => {
-    if (wallet.publicKey) {
-      connection.getBalance(wallet.publicKey).then(bal => {
-        setWalletBalance(bal / LAMPORTS_PER_SOL)
-      })
-    }
-  }, [wallet.publicKey, connection])
 
   const handleBuyCard = async (cardType: string) => {
     if (!wallet.publicKey) return
@@ -60,43 +51,7 @@ export default function Home() {
     const diff = balanceAfter - balanceBefore + cost
     const prize = diff > 0 ? diff / LAMPORTS_PER_SOL : 0
     
-    const won = prize > 0
-    setLastResult({ won, prize })
-    setWalletBalance(balanceAfter / LAMPORTS_PER_SOL)
-
-    // Play sound
-    try {
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
-      if (won) {
-        // Win: ascending arpeggio
-        const notes = [523, 659, 784, 1047]
-        notes.forEach((freq, i) => {
-          const osc = ctx.createOscillator()
-          const gain = ctx.createGain()
-          osc.connect(gain)
-          gain.connect(ctx.destination)
-          osc.frequency.value = freq
-          osc.type = 'sine'
-          gain.gain.setValueAtTime(0.3, ctx.currentTime + i * 0.1)
-          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.1 + 0.3)
-          osc.start(ctx.currentTime + i * 0.1)
-          osc.stop(ctx.currentTime + i * 0.1 + 0.3)
-        })
-      } else {
-        // Loss: descending thud
-        const osc = ctx.createOscillator()
-        const gain = ctx.createGain()
-        osc.connect(gain)
-        gain.connect(ctx.destination)
-        osc.frequency.setValueAtTime(300, ctx.currentTime)
-        osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.4)
-        osc.type = 'sawtooth'
-        gain.gain.setValueAtTime(0.3, ctx.currentTime)
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4)
-        osc.start(ctx.currentTime)
-        osc.stop(ctx.currentTime + 0.4)
-      }
-    } catch (e) { /* audio not supported */ }
+    setLastResult({ won: prize > 0, prize })
   }
 
   const getActualMaxPrize = (cardMaxPrize: number) => {
@@ -110,65 +65,47 @@ export default function Home() {
   return (
     <>
       <div className="app">
-        <header>
-          <div className="logo">
-            <div className="logo-icon">🎰</div>
+        <header style={{ marginBottom: 30 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
             <div>
-              <div className="logo-text">SEEKER SCRATCH</div>
-              <div className="logo-sub">INSTANT WIN ON SOLANA</div>
+              <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 32, letterSpacing: 2, color: 'var(--gold)' }}>SEEKER SCRATCH</h1>
+              <div style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'monospace' }}>INSTANT WIN ON SOLANA</div>
             </div>
+            <WalletButton />
           </div>
-          <WalletButton />
+
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button 
+              onClick={fetchTreasury} 
+              style={{ flex: 1, padding: '10px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text)', fontSize: 12, cursor: 'pointer', fontFamily: 'monospace' }}
+            >
+              🔄 Refresh Treasury
+            </button>
+            {wallet.connected && (
+              <button 
+                onClick={fetchProfile} 
+                style={{ flex: 1, padding: '10px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text)', fontSize: 12, cursor: 'pointer', fontFamily: 'monospace' }}
+              >
+                📊 Refresh Stats
+              </button>
+            )}
+          </div>
         </header>
 
-        <div className="balance-bar">
-          <div className="balance-item">
-            <div className="balance-label">Balance</div>
-            <div className="balance-value gold">{walletBalance.toFixed(3)} SOL</div>
+        {treasury && (
+          <div style={{ marginBottom: 20, padding: 16, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, textAlign: 'center' }}>
+              <div>
+                <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 4 }}>PRIZE POOL</div>
+                <div style={{ fontSize: 20, color: 'var(--cyan)', fontFamily: "'Bebas Neue', sans-serif" }}>{treasury.balance.toFixed(2)} SOL</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 4 }}>CARDS SOLD</div>
+                <div style={{ fontSize: 20, color: 'var(--gold)', fontFamily: "'Bebas Neue', sans-serif" }}>{treasury.totalCardsSold}</div>
+              </div>
+            </div>
           </div>
-          <div className="balance-divider" />
-          <div className="balance-item">
-            <div className="balance-label">Total Won</div>
-            <div className="balance-value green">{(profile?.totalWon || 0).toFixed(3)} SOL</div>
-          </div>
-          <div className="balance-divider" />
-          <div className="balance-item">
-            <div className="balance-label">Points</div>
-            <div className="balance-value">{profile?.pointsThisMonth || 0}</div>
-          </div>
-        </div>
-
-        <div className="feature-banner">
-          <div className="feature-item">
-            <span className="feature-icon">⚡</span>
-            <span>INSTANT PAYOUTS</span>
-          </div>
-          <div className="feature-divider">•</div>
-          <div className="feature-item">
-            <span className="feature-icon">🔗</span>
-            <span>ON-CHAIN</span>
-          </div>
-          <div className="feature-divider">•</div>
-          <div className="feature-item">
-            <span className="feature-icon">🎲</span>
-            <span>PROVABLY FAIR</span>
-          </div>
-        </div>
-
-        <div className="stats-row">
-          <div className="stat-cell">
-            <div className="stat-value text-gold">{treasury?.totalCardsSold || 0}</div>
-            <div className="stat-label">Cards Sold</div>
-          </div>
-          <div className="stat-cell">
-            <div className="stat-value text-green">0%</div>
-            <div className="stat-label">Payout Rate</div>
-          </div>
-          <div className="stat-cell">
-            <div className="stat-value text-cyan">{treasury?.balance.toFixed(2) || '0.00'}</div>
-            <div className="stat-label">Prize Pool</div>
-          </div>
-        </div>
+        )}
 
         {profile && (
           <div style={{ marginBottom: 20, padding: 16, background: 'var(--surface)', border: '1px solid rgba(0,212,255,0.3)', borderRadius: 12 }}>
@@ -208,119 +145,69 @@ export default function Home() {
         {activeNav === 'scratch' && (
           <>
             {lastResult && (
-              <div
-                className={`result-container ${lastResult.won ? 'result-win' : 'result-loss'}`}
-                style={{
-                  marginBottom: 20,
-                  padding: 24,
-                  background: lastResult.won ? 'rgba(0,255,136,0.08)' : 'rgba(255,68,68,0.08)',
-                  border: `2px solid ${lastResult.won ? 'var(--green)' : 'var(--red)'}`,
-                  borderRadius: 16,
-                  textAlign: 'center',
-                }}
-              >
+              <div style={{ 
+                marginBottom: 20, 
+                padding: 20, 
+                background: lastResult.won ? 'rgba(0,255,136,0.1)' : 'rgba(255,68,68,0.1)', 
+                border: `2px solid ${lastResult.won ? 'var(--green)' : 'var(--red)'}`, 
+                borderRadius: 12,
+                textAlign: 'center'
+              }}>
                 {lastResult.won ? (
                   <>
-                    {/* Coin rain */}
-                    {['🪙','💰','✨','🪙','💫','🪙'].map((emoji, i) => (
-                      <span key={i} className="coin" style={{
-                        left: `${10 + i * 16}%`,
-                        animationDelay: `${i * 0.1}s`,
-                        top: 0,
-                      }}>{emoji}</span>
-                    ))}
-                    <div style={{ fontSize: 36, color: 'var(--green)', fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 3, marginBottom: 8 }}>
-                      🎉 YOU WON! 🎉
-                    </div>
-                    <div className="result-prize" style={{ fontSize: 48, color: 'var(--green)', fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 2 }}>
-                      +{lastResult.prize.toFixed(3)}
-                    </div>
-                    <div style={{ fontSize: 16, color: 'var(--green)', opacity: 0.7, fontFamily: 'monospace' }}>SOL</div>
+                    <div style={{ fontSize: 28, color: 'var(--green)', marginBottom: 8, fontFamily: "'Bebas Neue', sans-serif" }}>🎉 YOU WON! 🎉</div>
+                    <div style={{ fontSize: 20, color: 'var(--text)' }}>+{lastResult.prize.toFixed(3)} SOL</div>
                   </>
                 ) : (
-                  <>
-                    <div style={{ fontSize: 36, color: 'var(--red)', fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 3, marginBottom: 8 }}>
-                      ❌ BETTER LUCK NEXT TIME
-                    </div>
-                    <div style={{ fontSize: 13, color: 'var(--muted)', fontFamily: 'monospace' }}>Try again — next one could be the big win</div>
-                  </>
+                  <div style={{ fontSize: 28, color: 'var(--red)', fontFamily: "'Bebas Neue', sans-serif" }}>❌ BETTER LUCK NEXT TIME</div>
                 )}
               </div>
             )}
 
             {wallet.connected ? (
               <>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                  <h2 style={{ fontSize: 14, color: 'var(--muted)', fontFamily: 'monospace', margin: 0 }}>CHOOSE YOUR CARD</h2>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--green)', fontFamily: 'monospace' }}>
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--green)', display: 'inline-block', animation: 'pulse 2s infinite' }} />
-                    LIVE
-                  </div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <h2 style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 12, fontFamily: 'monospace' }}>CHOOSE YOUR CARD</h2>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
                   {CARD_TYPES.map(card => {
                     const actualMaxPrize = getActualMaxPrize(card.maxPrize)
-                    const odds: Record<string, string> = {
-                      QuickPick: '1 in 4 wins',
-                      Lucky7s: '1 in 3 wins',
-                      HotShot: '1 in 4 wins',
-                      MegaGold: '1 in 5 wins',
-                    }
                     return (
                       <div
                         key={card.id}
                         onClick={() => handleBuyCard(card.id)}
-                        style={{
-                          padding: '20px 24px',
-                          background: `linear-gradient(135deg, ${card.color}18 0%, var(--surface) 60%)`,
-                          border: `1px solid ${card.color}44`,
-                          borderLeft: `4px solid ${card.color}`,
-                          borderRadius: 16,
+                        style={{ 
+                          padding: 16,
+                          background: 'var(--surface)',
+                          border: '1px solid var(--border)',
+                          borderRadius: 12,
                           cursor: loading ? 'not-allowed' : 'pointer',
                           opacity: loading ? 0.5 : 1,
                           transition: 'all 0.2s',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
                         }}
                         onMouseEnter={(e) => {
                           if (!loading) {
-                            e.currentTarget.style.transform = 'translateX(4px)'
+                            e.currentTarget.style.transform = 'scale(1.02)'
                             e.currentTarget.style.borderColor = card.color
-                            e.currentTarget.style.borderLeftColor = card.color
                           }
                         }}
                         onMouseLeave={(e) => {
-                          e.currentTarget.style.transform = 'translateX(0)'
-                          e.currentTarget.style.borderColor = `${card.color}44`
-                          e.currentTarget.style.borderLeftColor = card.color
+                          e.currentTarget.style.transform = 'scale(1)'
+                          e.currentTarget.style.borderColor = 'var(--border)'
                         }}
                       >
-                        {/* Left: tag + name + odds */}
-                        <div>
-                          <div style={{ fontSize: 10, color: card.color, marginBottom: 6, fontFamily: 'monospace', letterSpacing: 1 }}>{card.tag}</div>
-                          <div style={{ fontSize: 26, color: card.color, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 2, lineHeight: 1, marginBottom: 8 }}>{card.name}</div>
-                          <div style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'monospace' }}>{odds[card.id]}</div>
-                        </div>
-                        {/* Right: UP TO + cost button */}
-                        <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'monospace', marginBottom: 4 }}>UP TO</div>
-                          <div style={{ fontSize: 42, color: card.color, fontFamily: "'Bebas Neue', sans-serif", lineHeight: 1, marginBottom: 2 }}>
-                            {actualMaxPrize >= 1 ? actualMaxPrize.toFixed(0) : actualMaxPrize.toFixed(1)}
-                          </div>
-                          <div style={{ fontSize: 13, color: card.color, fontFamily: 'monospace', opacity: 0.7, marginBottom: 12 }}>SOL</div>
-                          <div style={{
-                            padding: '8px 20px',
-                            background: `${card.color}22`,
-                            border: `1px solid ${card.color}`,
-                            borderRadius: 8,
-                            color: card.color,
-                            fontSize: 14,
-                            fontFamily: 'monospace',
-                            fontWeight: 'bold',
-                          }}>
-                            {card.cost} SOL
-                          </div>
+                        <div style={{ fontSize: 10, color: card.color, marginBottom: 8, fontFamily: 'monospace' }}>{card.tag}</div>
+                        <div style={{ fontSize: 18, color: card.color, marginBottom: 8, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1 }}>{card.name}</div>
+                        <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 8 }}>UP TO {actualMaxPrize.toFixed(actualMaxPrize >= 1 ? 0 : 1)} SOL</div>
+                        <div style={{ 
+                          padding: '6px 12px', 
+                          background: `${card.color}22`, 
+                          border: `1px solid ${card.color}`,
+                          borderRadius: 6,
+                          color: card.color,
+                          fontSize: 14,
+                          fontFamily: 'monospace',
+                          textAlign: 'center'
+                        }}>
+                          {card.cost} SOL
                         </div>
                       </div>
                     )

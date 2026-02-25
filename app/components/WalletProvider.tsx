@@ -11,7 +11,7 @@ import '@solana/wallet-adapter-react-ui/styles.css'
 
 export function WalletProviders({ children }: { children: React.ReactNode }) {
   const network = WalletAdapterNetwork.Devnet
-  const endpoint = useMemo(() => clusterApiUrl(network), [network])
+  const endpoint = 'https://devnet.helius-rpc.com/?api-key=e74081ed-6624-4d7b-9b49-9732a61b29ba'
 
   const wallets = useMemo(() => [
     new SolanaMobileWalletAdapter({

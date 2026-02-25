@@ -48,7 +48,7 @@ export default function Home() {
     setLastResult(null)
     
     const balanceBefore = await connection.getBalance(wallet.publicKey)
-    try { await buyCard(cardType) } catch (err: any) { alert("Error: " + (err?.message || String(err))); setLoading(false); return }
+    try { await buyCard(cardType) } catch (err: any) { alert("Error: " + (err?.message || String(err))); return }
     const balanceAfter = await connection.getBalance(wallet.publicKey)
     
     const costs: Record<string, number> = {

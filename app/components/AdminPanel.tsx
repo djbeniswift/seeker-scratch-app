@@ -55,7 +55,7 @@ export default function AdminPanel() {
 
   return (
     <div style={{
-      position: 'fixed', bottom: 80, right: 16, zIndex: 1000,
+      position: 'fixed', bottom: 80, right: 16, zIndex: 100,
       background: '#1a1a2e', border: '1px solid #gold',
       borderColor: '#ffd700', borderRadius: 12, padding: 16, width: 260
     }}>

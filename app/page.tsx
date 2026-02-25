@@ -32,6 +32,7 @@ export default function Home() {
 
   useEffect(() => {
     setMounted(true)
+    fetchTreasury()
   }, [])
 
   useEffect(() => {

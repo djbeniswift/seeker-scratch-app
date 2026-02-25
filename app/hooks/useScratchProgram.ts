@@ -63,6 +63,8 @@ export function useScratchProgram() {
   }, [wallet.publicKey, getProgram])
 
   const buyCard = useCallback(async (cardType: string) => {
+    if (!wallet.connected) throw new Error("Wallet not connected")
+    if (!wallet.signTransaction) throw new Error("Wallet does not support signing")
     const program = getProgram()
     if (!program || !wallet.publicKey) throw new Error('Wallet not connected')
     

@@ -42,12 +42,13 @@ export default function Home() {
   }, [wallet.publicKey, connection])
 
   const handleBuyCard = async (cardType: string) => {
+    if (!wallet.connected) { alert("Please connect your wallet first"); return }
     if (!wallet.publicKey) return
     
     setLastResult(null)
     
     const balanceBefore = await connection.getBalance(wallet.publicKey)
-    await buyCard(cardType)
+    try { await buyCard(cardType) } catch (err: any) { alert("Error: " + (err?.message || String(err))); setLoading(false); return }
     const balanceAfter = await connection.getBalance(wallet.publicKey)
     
     const costs: Record<string, number> = {

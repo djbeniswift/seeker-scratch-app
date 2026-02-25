@@ -82,19 +82,28 @@ export function useScratchProgram() {
         MegaGold: { megaGold: {} },
       }[cardType]
       
-      await (program.methods as any).buyAndScratch(cardTypeArg).accounts({
+      // Build transaction manually for MWA compatibility
+      const tx = await (program.methods as any).buyAndScratch(cardTypeArg).accounts({
         treasury: treasuryPda,
         profile: profilePda,
         player: wallet.publicKey,
         systemProgram: SystemProgram.programId,
-      }).rpc()
+      }).transaction()
+      
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash()
+      tx.recentBlockhash = blockhash
+      tx.feePayer = wallet.publicKey
+      
+      const signed = await wallet.signTransaction(tx)
+      const sig = await connection.sendRawTransaction(signed.serialize())
+      await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed')
       
       await fetchTreasury()
       await fetchProfile()
     } finally {
       setLoading(false)
     }
-  }, [getProgram, wallet.publicKey, treasuryPda, fetchTreasury, fetchProfile])
+  }, [getProgram, wallet, connection, treasuryPda, fetchTreasury, fetchProfile])
 
   return { treasury, profile, loading, fetchTreasury, fetchProfile, buyCard, getProgram }
 }

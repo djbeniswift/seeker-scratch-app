@@ -514,7 +514,7 @@ export default function Home() {
           <div>
             <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 4 }}>YOUR RANK</div>
             <div style={{ fontSize: 24, color: 'var(--gold)', fontFamily: "'Bebas Neue', sans-serif" }}>
-              {getUserRank(wallet.publicKey.toString()) || '--'}
+              {getUserRank(wallet.publicKey?.toString() ?? '') || '--'}
             </div>
           </div>
           <div>

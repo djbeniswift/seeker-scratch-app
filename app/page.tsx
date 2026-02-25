@@ -238,14 +238,21 @@ export default function Home() {
                       +{lastResult.prize.toFixed(3)}
                     </div>
                     <div style={{ fontSize: 16, color: 'var(--green)', opacity: 0.7, fontFamily: 'monospace' }}>SOL</div>
-                  </>
+                  
+
+
+    <AdminPanel />
+    </>
                 ) : (
                   <>
                     <div style={{ fontSize: 36, color: 'var(--red)', fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 3, marginBottom: 8 }}>
                       ❌ BETTER LUCK NEXT TIME
                     </div>
                     <div style={{ fontSize: 13, color: 'var(--muted)', fontFamily: 'monospace' }}>Try again — next one could be the big win</div>
-                  </>
+                  
+
+
+    </>
                 )}
               </div>
             )}
@@ -328,13 +335,19 @@ export default function Home() {
                     )
                   })}
                 </div>
-              </>
+              
+
+
+    </>
             ) : (
               <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)' }}>
                 Connect your wallet to start playing! 🎰
               </div>
             )}
-          </>
+          
+
+
+    </>
         )}
 
         {/* PROFILE TAB */}
@@ -406,7 +419,10 @@ export default function Home() {
                 >
                   🎰 PLAY NOW
                 </button>
-              </>
+              
+
+
+    </>
             ) : (
               <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)' }}>
                 Connect your wallet to view your profile! 👤
@@ -572,7 +588,10 @@ export default function Home() {
               </div>
             )
           })}
-        </>
+        
+
+
+    </>
       )}
     </div>
 
@@ -655,6 +674,9 @@ export default function Home() {
           </div>
         ))}
       </div>
+    
+
+
     </>
   )
 }

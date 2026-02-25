@@ -8,10 +8,10 @@ import { useLeaderboard } from './contexts/LeaderboardContext'
 import AdminPanel from './components/AdminPanel'
 
 const CARD_TYPES = [
-  { id: 'QuickPick', name: 'QUICK PICK', cost: 0.01, maxPrize: 0.1, color: '#00d4ff', tag: '⚡ STARTER' },
-  { id: 'Lucky7s', name: 'LUCKY 7s', cost: 0.05, maxPrize: 0.5, color: '#9d4edd', tag: '🍀 POPULAR' },
-  { id: 'HotShot', name: 'HOT SHOT', cost: 0.05, maxPrize: 1, color: '#ff006e', tag: '🔥 HIGH RISK' },
-  { id: 'MegaGold', name: 'MEGA GOLD', cost: 0.1, maxPrize: 5, color: '#f5c842', tag: '✦ FEATURED' },
+  { id: 'QuickPick', name: 'QUICK PICK', cost: 0.01, maxPrize: 0.1, odds: '1 in 7', color: '#00d4ff', tag: '⚡ STARTER' },
+  { id: 'Lucky7s', name: 'LUCKY 7s', cost: 0.05, maxPrize: 0.5, odds: '1 in 5', color: '#9d4edd', tag: '🍀 POPULAR' },
+  { id: 'HotShot', name: 'HOT SHOT', cost: 0.05, maxPrize: 1, odds: '1 in 6', color: '#ff006e', tag: '🔥 HIGH RISK' },
+  { id: 'MegaGold', name: 'MEGA GOLD', cost: 0.1, maxPrize: 5, odds: '1 in 5', color: '#f5c842', tag: '✦ FEATURED' },
 ]
 
 const MONTHLY_REWARDS = [
@@ -268,10 +268,10 @@ export default function Home() {
                   {CARD_TYPES.map(card => {
                     const actualMaxPrize = getActualMaxPrize(card.maxPrize)
                     const odds: Record<string, string> = {
-                      QuickPick: '1 in 4 wins',
-                      Lucky7s: '1 in 3 wins',
-                      HotShot: '1 in 4 wins',
-                      MegaGold: '1 in 5 wins',
+                      QuickPick: card.odds,
+                      Lucky7s: card.odds,
+                      HotShot: card.odds,
+                      MegaGold: card.odds,
                     }
                     return (
                       <div

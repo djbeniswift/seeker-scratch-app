@@ -11,7 +11,6 @@ export function useScratchProgram() {
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(false)
 
-  // Read-only provider for fetching accounts (no signing needed)
   const getReadonlyProgram = useCallback(() => {
     const dummyWallet = {
       publicKey: wallet.publicKey || PublicKey.default,
@@ -61,8 +60,7 @@ export function useScratchProgram() {
   }, [wallet.publicKey, getReadonlyProgram])
 
   const buyCard = useCallback(async (cardType: string) => {
-    if (!wallet.publicKey) throw new Error('Wallet not connected')
-    if (!wallet.signTransaction) throw new Error('Wallet does not support signing')
+    if (!wallet.publicKey || !wallet.sendTransaction) throw new Error('Wallet not connected')
 
     setLoading(true)
     try {
@@ -80,7 +78,6 @@ export function useScratchProgram() {
         MegaGold: { megaGold: {} },
       }[cardType]
 
-      // Build transaction using readonly program (no provider signing)
       const ix = await (program.methods as any).buyAndScratch(cardTypeArg).accounts({
         treasury: treasuryPda,
         profile: profilePda,
@@ -88,15 +85,15 @@ export function useScratchProgram() {
         systemProgram: SystemProgram.programId,
       }).instruction()
 
-      const tx = new Transaction()
-      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash()
-      tx.recentBlockhash = blockhash
-      tx.feePayer = wallet.publicKey
-      tx.add(ix)
+      const tx = new Transaction().add(ix)
 
-      // Sign via MWA / wallet adapter
-      const signed = await wallet.signTransaction(tx)
-      const sig = await connection.sendRawTransaction(signed.serialize())
+      // Use wallet.sendTransaction — handles signing + sending atomically
+      const sig = await wallet.sendTransaction(tx, connection, {
+        skipPreflight: false,
+        preflightCommitment: 'confirmed',
+      })
+
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash()
       await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed')
 
       await fetchTreasury()

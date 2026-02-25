@@ -103,11 +103,8 @@ export default function Home() {
   }
 
   const getActualMaxPrize = (cardMaxPrize: number) => {
-    if (!treasury) return cardMaxPrize
-    const availableBalance = treasury.balance - 5
-    return Math.min(cardMaxPrize, availableBalance / 2)
+    return cardMaxPrize
   }
-
   if (!mounted) return <div>Loading...</div>
 
   return (

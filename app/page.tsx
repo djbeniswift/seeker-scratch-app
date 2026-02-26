@@ -8,6 +8,7 @@ import { useLeaderboard } from './contexts/LeaderboardContext'
 import AdminPanel from './components/AdminPanel'
 import ReferTab from './components/ReferTab'
 import ProfileTab from './components/ProfileTab'
+import WinnerBanner from './components/WinnerBanner'
 import RanksTab from './components/RanksTab'
 import PrizesTab from './components/PrizesTab'
 
@@ -193,6 +194,7 @@ export default function Home() {
           </div>
         )}
 
+        {wallet.connected && <WinnerBanner wallet={wallet} publicKey={wallet.publicKey} connection={connection} />}
         {/* SCRATCH TAB */}
         {activeNav === 'scratch' && (
           <>

@@ -60,6 +60,18 @@ export const IDL = {
       ]
     },
     {
+      name: "updateProfile",
+      accounts: [
+        { name: "profile", isMut: true, isSigner: false },
+        { name: "player", isMut: true, isSigner: true },
+        { name: "systemProgram", isMut: false, isSigner: false }
+      ],
+      args: [
+        { name: "name", type: { option: "string" } },
+        { name: "pfpUrl", type: { option: "string" } }
+      ]
+    },
+    {
       name: "creditReferrer",
       accounts: [
         { name: "referrerProfile", isMut: true, isSigner: false },

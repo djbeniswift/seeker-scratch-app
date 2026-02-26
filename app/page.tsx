@@ -162,9 +162,8 @@ export default function Home() {
             <div className="stat-label">Cards Sold</div>
           </div>
           <div className="stat-cell">
-            <div className="stat-value text-green">0%</div>
-            <div className="stat-label">Payout Rate</div>
-          </div>
+            <div className="stat-value text-green">{treasury?.totalWins ?? 0}</div>
+            <div className="stat-label">Total Winners</div>          </div>
           <div className="stat-cell">
             <div className="stat-value text-cyan">{treasury?.balance.toFixed(2) || '0.00'}</div>
             <div className="stat-label">Prize Pool</div>

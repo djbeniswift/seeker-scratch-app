@@ -6,6 +6,7 @@ import { useScratchProgram } from './hooks/useScratchProgram'
 import { LAMPORTS_PER_SOL } from '@solana/web3.js'
 import { useLeaderboard } from './contexts/LeaderboardContext'
 import AdminPanel from './components/AdminPanel'
+import ReferTab from './components/ReferTab'
 
 const CARD_TYPES = [
   { id: 'QuickPick', name: 'QUICK PICK', cost: 0.01, maxPrize: 0.1, odds: '1 in 7', color: '#00d4ff', tag: '⚡ STARTER' },
@@ -626,9 +627,7 @@ export default function Home() {
 
         {/* REFER TAB */}
         {activeNav === 'refer' && (
-          <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)' }}>
-            Referral system - Coming soon! 🤝
-          </div>
+          <ReferTab wallet={wallet} publicKey={wallet.publicKey} connection={connection} />
         )}
       </div>
 

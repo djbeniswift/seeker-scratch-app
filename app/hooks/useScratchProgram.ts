@@ -127,6 +127,34 @@ export function useScratchProgram() {
 
       await fetchTreasury()
       await fetchProfile()
+
+      // After fetch, check if referral bonus just triggered - credit referrer
+      try {
+        const updatedProfile = await (program.account as any).playerProfile.fetch(profilePda)
+        if (
+          updatedProfile.hasBeenReferred &&
+          updatedProfile.referralBonusPaid &&
+          updatedProfile.referredBy
+        ) {
+          const referrerKey = updatedProfile.referredBy
+          const referrerProfilePda = getProfilePda(referrerKey)
+          // Check if referrer already has referrals_count for this user
+          // We call credit_referrer - contract validates it's legit
+          try {
+            await (program.methods as any).creditReferrer().accounts({
+              referrerProfile: referrerProfilePda,
+              referrerKey: referrerKey,
+              callerProfile: profilePda,
+              caller: wallet.publicKey,
+            }).rpc({ commitment: 'confirmed' })
+            console.log('Referrer credited!')
+          } catch (e: any) {
+            // Already credited or not valid - ignore
+            console.log('Credit referrer skipped:', e.message?.slice(0, 50))
+          }
+        }
+      } catch {}
+
     } finally {
       setLoading(false)
     }

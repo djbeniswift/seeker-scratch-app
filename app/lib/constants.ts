@@ -60,6 +60,16 @@ export const IDL = {
       ]
     },
     {
+      name: "creditReferrer",
+      accounts: [
+        { name: "referrerProfile", isMut: true, isSigner: false },
+        { name: "referrerKey", isMut: false, isSigner: false },
+        { name: "callerProfile", isMut: false, isSigner: false },
+        { name: "caller", isMut: true, isSigner: true }
+      ],
+      args: []
+    },
+    {
       name: "withdrawProfit",
       accounts: [
         { name: "treasury", isMut: true, isSigner: false },

@@ -92,6 +92,14 @@ export function useScratchProgram() {
     await fetchProfile()
   }, [getProgram, wallet.publicKey, getProfilePda, fetchProfile])
 
+  // Auto-fetch when wallet connects or changes
+  useEffect(() => {
+    fetchTreasury()
+    if (wallet.publicKey) {
+      fetchProfile()
+    }
+  }, [wallet.publicKey])
+
   const buyCard = useCallback(async (cardType: string) => {
     const program = getProgram()
     if (!program || !wallet.publicKey) throw new Error('Wallet not connected')

@@ -139,7 +139,7 @@ export default function ProfileTab({ wallet, publicKey, connection }: any) {
             onClick={() => setEditing(!editing)}
             style={{
               position: 'absolute', bottom: 0, right: 0,
-              background: 'var(--gold)', border: 'none', borderRadius: '50%',
+              background: '#ff006e', border: '2px solid #fff', borderRadius: '50%',
               width: 28, height: 28, cursor: 'pointer', fontSize: 14,
               display: 'flex', alignItems: 'center', justifyContent: 'center'
             }}

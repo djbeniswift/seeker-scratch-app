@@ -11,6 +11,29 @@ export default function ProfileTab({ wallet, publicKey, connection }: any) {
   const [pfpUrl, setPfpUrl] = useState('')
   const [status, setStatus] = useState('')
   const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
+
+  const uploadImage = async (file: File) => {
+    setUploading(true)
+    setStatus('')
+    try {
+      const formData = new FormData()
+      formData.append('image', file)
+      formData.append('key', '01ad586326c99598178b3ca835afc16f')
+      const res = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: formData })
+      const data = await res.json()
+      if (data.success) {
+        setPfpUrl(data.data.url)
+        setStatus('✅ Image uploaded!')
+      } else {
+        setStatus('❌ Upload failed')
+      }
+    } catch {
+      setStatus('❌ Upload error')
+    } finally {
+      setUploading(false)
+    }
+  }
 
   const getProgram = () => {
     if (!wallet) return null
@@ -164,20 +187,37 @@ export default function ProfileTab({ wallet, publicKey, connection }: any) {
             />
           </div>
           <div style={{ marginBottom: 12 }}>
-            <div style={{ color: '#aaa', fontSize: 11, marginBottom: 4 }}>PROFILE PICTURE URL</div>
-            <input
-              value={pfpUrl}
-              onChange={e => setPfpUrl(e.target.value.slice(0, 128))}
-              placeholder="https://..."
-              style={{
-                width: '100%', padding: '10px 12px', background: '#0a0a1a',
-                border: '1px solid var(--border)', borderRadius: 8,
-                color: '#fff', fontSize: 14, boxSizing: 'border-box'
-              }}
-            />
-            {pfpUrl && (
-              <img src={pfpUrl} alt="preview" style={{ width: 48, height: 48, borderRadius: '50%', marginTop: 8, objectFit: 'cover', border: '2px solid var(--border)' }} onError={e => (e.currentTarget.style.display = 'none')} />
-            )}
+            <div style={{ color: '#aaa', fontSize: 11, marginBottom: 8 }}>PROFILE PICTURE</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{
+                width: 64, height: 64, borderRadius: '50%',
+                border: '2px solid var(--border)', overflow: 'hidden',
+                background: '#0a0a1a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, flexShrink: 0
+              }}>
+                {pfpUrl ? (
+                  <img src={pfpUrl} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => (e.currentTarget.style.display = 'none')} />
+                ) : '👤'}
+              </div>
+              <label style={{
+                flex: 1, padding: '10px', background: uploading ? '#333' : '#1a1a3e',
+                border: '1px dashed var(--gold)', borderRadius: 8,
+                color: uploading ? '#aaa' : 'var(--gold)', fontSize: 13,
+                textAlign: 'center', cursor: uploading ? 'not-allowed' : 'pointer',
+                fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1
+              }}>
+                {uploading ? '⏳ UPLOADING...' : '📷 CHOOSE IMAGE'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  disabled={uploading}
+                  onChange={e => {
+                    const file = e.target.files?.[0]
+                    if (file) uploadImage(file)
+                  }}
+                />
+              </label>
+            </div>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={saveProfile} disabled={saving} style={{

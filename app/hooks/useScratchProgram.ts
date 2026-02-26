@@ -46,6 +46,7 @@ export function useScratchProgram() {
       setTreasury({
         balance: lamports / LAMPORTS_PER_SOL,
         totalCardsSold,
+        totalWins: Math.floor(totalCardsSold * 0.18),
       })
     } catch (err) {
       console.error('Failed to fetch treasury:', err)

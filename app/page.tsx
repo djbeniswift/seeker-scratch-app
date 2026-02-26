@@ -189,20 +189,6 @@ export default function Home() {
                 <div style={{ fontSize: 10, color: 'var(--muted)' }}>Points</div>
                 <div style={{ fontSize: 18, color: 'var(--gold)', fontFamily: "'Bebas Neue', sans-serif" }}>{profile.pointsThisMonth}</div>
               </div>
-              <div>
-                <div style={{ fontSize: 10, color: 'var(--muted)' }}>Spent</div>
-                <div style={{ fontSize: 14, color: 'var(--red)', fontFamily: 'monospace' }}>{profile.totalSpent.toFixed(2)}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: 10, color: 'var(--muted)' }}>Won</div>
-                <div style={{ fontSize: 14, color: 'var(--green)', fontFamily: 'monospace' }}>{profile.totalWon.toFixed(2)}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: 10, color: 'var(--muted)' }}>Profit</div>
-                <div style={{ fontSize: 14, color: profile.totalWon - profile.totalSpent >= 0 ? 'var(--green)' : 'var(--red)', fontFamily: 'monospace' }}>
-                  {(profile.totalWon - profile.totalSpent).toFixed(2)}
-                </div>
-              </div>
             </div>
           </div>
         )}

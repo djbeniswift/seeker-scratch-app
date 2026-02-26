@@ -8,6 +8,8 @@ import { useLeaderboard } from './contexts/LeaderboardContext'
 import AdminPanel from './components/AdminPanel'
 import ReferTab from './components/ReferTab'
 import ProfileTab from './components/ProfileTab'
+import RanksTab from './components/RanksTab'
+import PrizesTab from './components/PrizesTab'
 
 const CARD_TYPES = [
   { id: 'QuickPick', name: 'QUICK PICK', cost: 0.01, maxPrize: 0.1, odds: '1 in 7', color: '#00d4ff', tag: '⚡ STARTER' },
@@ -349,6 +351,18 @@ export default function Home() {
     </>
         )}
 
+        {/* RANKS TAB */}
+        {activeNav === 'ranks' && (
+          <RanksTab connection={connection} wallet={wallet} publicKey={wallet.publicKey} />
+        )}
+        {/* PRIZES TAB */}
+        {activeNav === 'prizes' && (
+          <PrizesTab />
+        )}
+        {/* REFER TAB */}
+        {activeNav === 'refer' && (
+          <ReferTab wallet={wallet} publicKey={wallet.publicKey} connection={connection} />
+        )}
         {/* PROFILE TAB */}
         {activeNav === 'profile' && (
           <ProfileTab wallet={wallet} publicKey={wallet.publicKey} connection={connection} />

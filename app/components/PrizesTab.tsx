@@ -1,11 +1,10 @@
 'use client'
 
 export default function PrizesTab() {
-  const prizes = [
-    { points: 500, reward: '0.05 SOL', icon: '💰', desc: 'Redeem for devnet SOL' },
-    { points: 1000, reward: '0.1 SOL', icon: '💎', desc: 'Double value bundle' },
-    { points: 2500, reward: '0.3 SOL', icon: '🔥', desc: 'High roller reward' },
-    { points: 5000, reward: '1 SOL', icon: '👑', desc: 'Elite player prize' },
+  const monthlyPrizes = [
+    { place: '🥇 1ST PLACE', sol: '0.25 SOL', points: '500 Seeker Points', icon: '👑', color: '#FFD700' },
+    { place: '🥈 2ND PLACE', sol: '0.15 SOL', points: '250 Seeker Points', icon: '🥈', color: '#C0C0C0' },
+    { place: '🥉 3RD PLACE', sol: '0.05 SOL', points: '100 Seeker Points', icon: '🥉', color: '#CD7F32' },
   ]
 
   return (
@@ -24,36 +23,38 @@ export default function PrizesTab() {
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {prizes.map(({ points, reward, icon, desc }) => (
-          <div key={points} style={{
-            background: 'var(--card-bg)', border: '1px solid var(--border)',
+      <div style={{ color: '#aaa', fontSize: 12, textAlign: 'center', marginBottom: 12 }}>
+        Top 3 players by points each month win SOL + Seeker Points
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+        {monthlyPrizes.map(({ place, sol, points, icon, color }) => (
+          <div key={place} style={{
+            background: 'var(--card-bg)', border: `1px solid ${color}44`,
             borderRadius: 12, padding: 16,
             display: 'flex', alignItems: 'center', gap: 14
           }}>
-            <div style={{ fontSize: 32, flexShrink: 0 }}>{icon}</div>
+            <div style={{ fontSize: 36, flexShrink: 0 }}>{icon}</div>
             <div style={{ flex: 1 }}>
-              <div style={{ color: '#fff', fontSize: 16, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1 }}>
-                {reward}
+              <div style={{ color, fontSize: 16, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1 }}>
+                {place}
               </div>
-              <div style={{ color: '#aaa', fontSize: 11, marginTop: 2 }}>{desc}</div>
-            </div>
-            <div style={{ textAlign: 'right', flexShrink: 0 }}>
-              <div style={{ color: 'var(--gold)', fontSize: 16, fontFamily: "'Bebas Neue', sans-serif" }}>
-                {points.toLocaleString()}
+              <div style={{ color: 'var(--green)', fontSize: 15, fontFamily: "'Bebas Neue', sans-serif", marginTop: 4 }}>
+                {sol}
               </div>
-              <div style={{ color: '#555', fontSize: 9, letterSpacing: 1 }}>POINTS</div>
+              <div style={{ color: '#aaa', fontSize: 11, marginTop: 2 }}>+ {points}</div>
             </div>
           </div>
         ))}
       </div>
 
       <div style={{
-        marginTop: 16, padding: 14, background: '#0a0a1a',
-        border: '1px solid var(--border)', borderRadius: 10,
-        color: '#555', fontSize: 12, textAlign: 'center'
+        padding: 14, background: 'rgba(245,200,66,0.05)',
+        border: '1px solid rgba(245,200,66,0.2)', borderRadius: 10,
+        color: '#aaa', fontSize: 12, textAlign: 'center', lineHeight: 1.6
       }}>
-        Point redemption coming soon. Keep earning! 🚀
+        🏆 Monthly prizes paid out on the 1st of each month.<br/>
+        Keep playing to earn points and climb the leaderboard!
       </div>
     </div>
   )

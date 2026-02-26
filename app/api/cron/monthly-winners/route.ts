@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { Connection, PublicKey, Keypair } from '@solana/web3.js'
-import { Program, AnchorProvider, BN, Wallet } from '@coral-xyz/anchor'
+import { Program, AnchorProvider, BN } from "@coral-xyz/anchor"
 import { IDL, PROGRAM_ID, TREASURY_SEED, MONTHLY_PRIZE_SEED } from '../../../lib/constants'
 
 const RPC_URL = process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com'
@@ -21,8 +21,7 @@ export async function GET(request: Request) {
   try {
     const connection = new Connection(RPC_URL, 'confirmed')
     const adminKeypair = Keypair.fromSecretKey(Buffer.from(JSON.parse(ADMIN_PRIVATE_KEY)))
-    const wallet = new Wallet(adminKeypair)
-    const provider = new AnchorProvider(connection, wallet, { commitment: 'confirmed' })
+    const provider = new AnchorProvider(connection, { publicKey: adminKeypair.publicKey, signTransaction: async (tx: any) => { tx.sign(adminKeypair); return tx }, signAllTransactions: async (txs: any) => txs.map((tx: any) => { tx.sign(adminKeypair); return tx }) } as any, { commitment: 'confirmed' })
     const program = new Program(IDL as any, PROGRAM_ID, provider)
 
     const profiles = await (program.account as any).playerProfile.all()

@@ -1,7 +1,7 @@
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { Program, AnchorProvider } from '@coral-xyz/anchor'
 import { PublicKey, LAMPORTS_PER_SOL, SystemProgram } from '@solana/web3.js'
-import { useCallback, useState } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 import { PROGRAM_ID, TREASURY_SEED, PROFILE_SEED, IDL } from '../lib/constants'
 
 export function useScratchProgram() {

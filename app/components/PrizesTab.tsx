@@ -42,7 +42,7 @@ export default function PrizesTab() {
               <div style={{ color: 'var(--green)', fontSize: 15, fontFamily: "'Bebas Neue', sans-serif", marginTop: 4 }}>
                 {sol}
               </div>
-              <div style={{ color: '#00d4ff', fontSize: 12, fontFamily: "'Bebas Neue', sans-serif", marginTop: 4 }}>+ {skr} <span style={{ color: '#555', fontSize: 10 }}>SKR TOKEN</span></div>
+              <div style={{ color: '#00d4ff', fontSize: 15, fontFamily: "'Bebas Neue', sans-serif", marginTop: 4 }}>+ {skr} <span style={{ color: '#ffffff', fontSize: 15 }}>SKR</span></div>
             </div>
           </div>
         ))}

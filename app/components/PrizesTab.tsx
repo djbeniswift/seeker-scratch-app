@@ -2,9 +2,9 @@
 
 export default function PrizesTab() {
   const monthlyPrizes = [
-    { place: '🥇 1ST PLACE', sol: '0.25 SOL', points: '500 Seeker Points', icon: '👑', color: '#FFD700' },
-    { place: '🥈 2ND PLACE', sol: '0.15 SOL', points: '250 Seeker Points', icon: '🥈', color: '#C0C0C0' },
-    { place: '🥉 3RD PLACE', sol: '0.05 SOL', points: '100 Seeker Points', icon: '🥉', color: '#CD7F32' },
+    { place: '🥇 1ST PLACE', sol: '0.25 SOL', skr: '250 SKR', icon: '👑', color: '#FFD700' },
+    { place: '🥈 2ND PLACE', sol: '0.15 SOL', skr: '150 SKR', icon: '🥈', color: '#C0C0C0' },
+    { place: '🥉 3RD PLACE', sol: '0.05 SOL', skr: '100 SKR', icon: '🥉', color: '#CD7F32' },
   ]
 
   return (
@@ -42,7 +42,7 @@ export default function PrizesTab() {
               <div style={{ color: 'var(--green)', fontSize: 15, fontFamily: "'Bebas Neue', sans-serif", marginTop: 4 }}>
                 {sol}
               </div>
-              <div style={{ color: '#aaa', fontSize: 11, marginTop: 2 }}>+ {points}</div>
+              <div style={{ color: '#00d4ff', fontSize: 12, fontFamily: "'Bebas Neue', sans-serif", marginTop: 4 }}>+ {skr} <span style={{ color: '#555', fontSize: 10 }}>SKR TOKEN</span></div>
             </div>
           </div>
         ))}

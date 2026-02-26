@@ -35,14 +35,14 @@ export function useScratchProgram() {
   const fetchTreasury = useCallback(async () => {
     try {
       const lamports = await connection.getBalance(treasuryPda)
-      const program = getProgram()
+      // Use read-only provider that doesn't need wallet
       let totalCardsSold = 0
-      if (program) {
-        try {
-          const data = await (program.account as any).treasury.fetch(treasuryPda)
-          totalCardsSold = data.totalCardsSold.toNumber()
-        } catch {}
-      }
+      try {
+        const readProvider = new AnchorProvider(connection, {} as any, { commitment: 'confirmed' })
+        const readProgram = new Program(IDL as any, PROGRAM_ID, readProvider)
+        const data = await (readProgram.account as any).treasury.fetch(treasuryPda)
+        totalCardsSold = data.totalCardsSold.toNumber()
+      } catch {}
       setTreasury({
         balance: lamports / LAMPORTS_PER_SOL,
         totalCardsSold,

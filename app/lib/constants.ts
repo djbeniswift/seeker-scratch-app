@@ -2,6 +2,7 @@ import { PublicKey } from '@solana/web3.js'
 
 export const PROGRAM_ID = new PublicKey('3vt5QCwqtn13ihaYoFk8RV7r7gbQMnbVcqSZdqNL6mKC')
 export const TREASURY_SEED = Buffer.from('scratch_treasury')
+export const MONTHLY_PRIZE_SEED = Buffer.from('monthly_prize')
 export const PROFILE_SEED = Buffer.from('scratch_profile')
 
 export const IDL = {
@@ -88,6 +89,28 @@ export const IDL = {
         { name: "admin", isMut: true, isSigner: true }
       ],
       args: [{ name: "amount", type: "u64" }]
+    },
+    {
+      name: "setMonthlyWinners",
+      accounts: [
+        { name: "monthlyPrize", isMut: true, isSigner: false },
+        { name: "treasury", isMut: true, isSigner: false },
+        { name: "admin", isMut: true, isSigner: true },
+        { name: "systemProgram", isMut: false, isSigner: false }
+      ],
+      args: [
+        { name: "winners", type: { array: ["publicKey", 3] } },
+        { name: "amounts", type: { array: ["u64", 3] } }
+      ]
+    },
+    {
+      name: "claimMonthlyPrize",
+      accounts: [
+        { name: "monthlyPrize", isMut: true, isSigner: false },
+        { name: "treasury", isMut: true, isSigner: false },
+        { name: "claimant", isMut: true, isSigner: true }
+      ],
+      args: []
     }
   ],
   accounts: [
@@ -104,6 +127,19 @@ export const IDL = {
           { name: "dailyPaidOut", type: "u64" },
           { name: "dayStartTime", type: "i64" },
           { name: "paused", type: "bool" },
+          { name: "bump", type: "u8" }
+        ]
+      }
+    },
+    {
+      name: "MonthlyPrize",
+      type: {
+        kind: "struct",
+        fields: [
+          { name: "month", type: "i64" },
+          { name: "winners", type: { array: ["publicKey", 3] } },
+          { name: "amounts", type: { array: ["u64", 3] } },
+          { name: "paid", type: { array: ["bool", 3] } },
           { name: "bump", type: "u8" }
         ]
       }

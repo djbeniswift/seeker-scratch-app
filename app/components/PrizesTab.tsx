@@ -28,7 +28,7 @@ export default function PrizesTab() {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
-        {monthlyPrizes.map(({ place, sol, points, icon, color }) => (
+        {monthlyPrizes.map(({ place, sol, skr, icon, color }) => (
           <div key={place} style={{
             background: 'var(--card-bg)', border: `1px solid ${color}44`,
             borderRadius: 12, padding: 16,

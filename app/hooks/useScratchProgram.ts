@@ -12,8 +12,17 @@ export function useScratchProgram() {
   const [loading, setLoading] = useState(false)
 
   const getProvider = useCallback(() => {
-    if (!wallet.publicKey || !wallet.signTransaction) return null
-    return new AnchorProvider(connection, wallet as any, { commitment: 'confirmed' })
+    if (!wallet.publicKey) return null
+    // MWA wallets may not have signTransaction but have signAllTransactions
+    const walletAdapter = {
+      publicKey: wallet.publicKey,
+      signTransaction: wallet.signTransaction || (async (tx: any) => {
+        const signed = await wallet.signAllTransactions?.([tx])
+        return signed?.[0] ?? tx
+      }),
+      signAllTransactions: wallet.signAllTransactions || (async (txs: any[]) => txs),
+    }
+    return new AnchorProvider(connection, walletAdapter as any, { commitment: 'confirmed' })
   }, [connection, wallet])
 
   const getProgram = useCallback(() => {

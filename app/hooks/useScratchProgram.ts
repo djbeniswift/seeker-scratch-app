@@ -133,7 +133,7 @@ export function useScratchProgram() {
         houseWallet: new PublicKey("DBH2VpbjWLdrJnau4RjdpYBTcLy9pMGa1qQr4U9dDgER"),
         player: wallet.publicKey,
         systemProgram: SystemProgram.programId,
-      }).rpc({ commitment: 'confirmed', skipPreflight: false, preflightCommitment: 'confirmed' })
+      }).rpc({ commitment: 'confirmed', skipPreflight: true })
 
       await fetchTreasury()
       await fetchProfile()
@@ -157,7 +157,7 @@ export function useScratchProgram() {
               referrerKey: referrerKey,
               callerProfile: profilePda,
               caller: wallet.publicKey,
-            }).rpc({ commitment: 'confirmed', skipPreflight: false, preflightCommitment: 'confirmed' })
+            }).rpc({ commitment: 'confirmed', skipPreflight: true })
             console.log('Referrer credited!')
           } catch (e: any) {
             // Already credited or not valid - ignore

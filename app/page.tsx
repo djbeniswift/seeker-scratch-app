@@ -54,8 +54,23 @@ export default function Home() {
     setLastResult(null)
     
     const balanceBefore = await connection.getBalance(wallet.publicKey)
+    console.log('Balance before:', balanceBefore)
     try { await buyCard(cardType) } catch (err: any) { alert("Error: " + (err?.message || JSON.stringify(err)) + " | signTx: " + !!wallet.signTransaction + " | signAll: " + !!wallet.signAllTransactions + " | pubkey: " + wallet.publicKey?.toBase58().slice(0,8)); return }
-    const balanceAfter = await connection.getBalance(wallet.publicKey)
+    
+    // Wait a moment for devnet to update balance
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
+    let balanceAfter = await connection.getBalance(wallet.publicKey)
+    console.log('Balance after:', balanceAfter)
+    
+    // If balance hasn't changed, retry a few times
+    let retries = 0
+    while (balanceAfter === balanceBefore && retries < 3) {
+      console.log('Balance not updated, retrying...', retries + 1)
+      await new Promise(resolve => setTimeout(resolve, 500))
+      balanceAfter = await connection.getBalance(wallet.publicKey)
+      retries++
+    }
     
     const costs: Record<string, number> = {
       QuickPick: 10_000_000,
@@ -64,13 +79,16 @@ export default function Home() {
       MegaGold: 100_000_000,
     }
     const cost = costs[cardType] || 0
-    // Player pays full cost, gets prize back if they win
-    // net = balanceAfter - balanceBefore + cost (cost was deducted)
-    // But 3% house fee means player actually paid cost, so diff should account for fees too
+    console.log('Cost:', cost, 'Balance diff:', balanceAfter - balanceBefore)
+    
+    // Player pays cost, gets prize back if they win
+    // netDiff = balanceAfter - balanceBefore should be negative if they lost (paid cost)
+    // or positive if they won (prize > cost)
     const netDiff = balanceAfter - balanceBefore
     const prize = netDiff > 0 ? netDiff / LAMPORTS_PER_SOL : 0
     
     const won = prize > 0 && netDiff > 5000 // ignore dust
+    console.log('Final result - won:', won, 'prize:', prize)
     setLastResult({ won, prize })
     setWalletBalance(balanceAfter / LAMPORTS_PER_SOL)
 

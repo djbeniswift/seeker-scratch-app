@@ -1,6 +1,6 @@
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { Program, AnchorProvider } from '@coral-xyz/anchor'
-import { PublicKey, LAMPORTS_PER_SOL, SystemProgram } from '@solana/web3.js'
+import { PublicKey, LAMPORTS_PER_SOL, SystemProgram, VersionedTransaction, TransactionMessage } from '@solana/web3.js'
 import { useCallback, useState, useEffect } from 'react'
 import { PROGRAM_ID, TREASURY_SEED, PROFILE_SEED, IDL } from '../lib/constants'
 
@@ -135,22 +135,27 @@ export function useScratchProgram() {
         MegaGold: { megaGold: {} },
       }[cardType]
 
-      const tx = await (program.methods as any).buyAndScratch(cardTypeArg).accounts({
+      // Build instruction manually to avoid any simulation
+      const ix = await (program.methods as any).buyAndScratch(cardTypeArg).accounts({
         treasury: treasuryPda,
         profile: profilePda,
         referrerProfile: referrerProfilePda,
         houseWallet: new PublicKey("DBH2VpbjWLdrJnau4RjdpYBTcLy9pMGa1qQr4U9dDgER"),
         player: wallet.publicKey,
         systemProgram: SystemProgram.programId,
-      }).transaction()
+      }).instruction()
 
       const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
-      tx.recentBlockhash = blockhash
-      tx.lastValidBlockHeight = lastValidBlockHeight
-      tx.feePayer = wallet.publicKey
+      
+      const message = new TransactionMessage({
+        payerKey: wallet.publicKey!,
+        recentBlockhash: blockhash,
+        instructions: [ix],
+      }).compileToV0Message()
 
-      const signed = await wallet.signTransaction!(tx)
-      const sig = await connection.sendRawTransaction(signed.serialize(), { skipPreflight: true })
+      const vtx = new VersionedTransaction(message)
+      const signed = await wallet.signTransaction!(vtx as any)
+      const sig = await connection.sendRawTransaction((signed as any).serialize(), { skipPreflight: true, maxRetries: 3 })
       await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed')
 
       await fetchTreasury()

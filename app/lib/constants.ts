@@ -43,8 +43,8 @@ export const IDL = {
         { name: "treasury", isMut: true, isSigner: false },
         { name: "profile", isMut: true, isSigner: false },
         { name: "referrerProfile", isMut: true, isSigner: false },
-        { name: "player", isMut: true, isSigner: true },
         { name: "houseWallet", isMut: true, isSigner: false },
+        { name: "player", isMut: true, isSigner: true },
         { name: "systemProgram", isMut: false, isSigner: false }
       ],
       args: [{ name: "cardType", type: { defined: "CardType" } }]

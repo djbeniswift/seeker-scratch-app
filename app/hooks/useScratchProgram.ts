@@ -130,8 +130,8 @@ export function useScratchProgram() {
         treasury: treasuryPda,
         profile: profilePda,
         referrerProfile: referrerProfilePda,
-        player: wallet.publicKey,
         houseWallet: new PublicKey("DBH2VpbjWLdrJnau4RjdpYBTcLy9pMGa1qQr4U9dDgER"),
+        player: wallet.publicKey,
         systemProgram: SystemProgram.programId,
       }).rpc({ commitment: 'confirmed', skipPreflight: false, preflightCommitment: 'confirmed' })
 

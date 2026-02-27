@@ -6,13 +6,23 @@ import { useEffect, useState } from 'react'
 export default function WalletButton() {
   const { connected, publicKey, disconnect } = useWallet()
   const { setVisible } = useWalletModal()
+  const [isMobile, setIsMobile] = useState(false)
+  const [isPhantomBrowser, setIsPhantomBrowser] = useState(false)
   const [mounted, setMounted] = useState(false)
 
-  useEffect(() => { setMounted(true) }, [])
+  useEffect(() => {
+    setMounted(true)
+    const mobile = /Android|iPhone|iPad/i.test(navigator.userAgent)
+    const phantom = !!(window as any).solana?.isPhantom
+    setIsMobile(mobile)
+    setIsPhantomBrowser(phantom)
+  }, [])
 
   const handleClick = () => {
-    if (connected) {
-      disconnect()
+    if (connected) { disconnect(); return }
+    if (isMobile && !isPhantomBrowser) {
+      const currentUrl = encodeURIComponent(window.location.href)
+      window.location.href = `https://phantom.app/ul/browse/${currentUrl}?ref=${currentUrl}`
       return
     }
     setVisible(true)
@@ -29,7 +39,7 @@ export default function WalletButton() {
       onClick={handleClick}
       style={{
         padding: '10px 16px',
-        background: connected ? '#9d4edd' : '#9d4edd',
+        background: '#9d4edd',
         border: 'none',
         borderRadius: 12,
         color: '#fff',
@@ -43,7 +53,7 @@ export default function WalletButton() {
       }}
     >
       <span>👻</span>
-      {connected ? short : 'Connect Wallet'}
+      {connected ? short : isMobile && !isPhantomBrowser ? 'Open in Phantom' : 'Connect Wallet'}
     </button>
   )
 }

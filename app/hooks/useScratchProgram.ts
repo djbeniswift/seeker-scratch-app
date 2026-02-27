@@ -135,14 +135,23 @@ export function useScratchProgram() {
         MegaGold: { megaGold: {} },
       }[cardType]
 
-      await (program.methods as any).buyAndScratch(cardTypeArg).accounts({
+      const tx = await (program.methods as any).buyAndScratch(cardTypeArg).accounts({
         treasury: treasuryPda,
         profile: profilePda,
         referrerProfile: referrerProfilePda,
         houseWallet: new PublicKey("DBH2VpbjWLdrJnau4RjdpYBTcLy9pMGa1qQr4U9dDgER"),
         player: wallet.publicKey,
         systemProgram: SystemProgram.programId,
-      }).rpc({ commitment: 'confirmed', skipPreflight: true })
+      }).transaction()
+
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
+      tx.recentBlockhash = blockhash
+      tx.lastValidBlockHeight = lastValidBlockHeight
+      tx.feePayer = wallet.publicKey
+
+      const signed = await wallet.signTransaction!(tx)
+      const sig = await connection.sendRawTransaction(signed.serialize(), { skipPreflight: true })
+      await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed')
 
       await fetchTreasury()
       await fetchProfile()

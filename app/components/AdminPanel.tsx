@@ -17,8 +17,16 @@ export default function AdminPanel() {
 
   useEffect(() => { setMounted(true) }, [])
 
+  // debug: log wallet address and desired admin
+  useEffect(() => {
+    console.log('AdminPanel: publicKey =', publicKey?.toBase58(), 'ADMIN =', ADMIN)
+  }, [publicKey])
+
   if (!mounted) return null
-  if (!publicKey || publicKey.toBase58() !== ADMIN) return null
+  if (!publicKey || publicKey.toBase58() !== ADMIN) {
+    // show nothing for non-admin wallets
+    return null
+  }
 
   const [treasuryPda] = PublicKey.findProgramAddressSync([TREASURY_SEED], PROGRAM_ID)
 

@@ -1,7 +1,7 @@
 import { PublicKey } from '@solana/web3.js'
 
 export const PROGRAM_ID = new PublicKey('3vt5QCwqtn13ihaYoFk8RV7r7gbQMnbVcqSZdqNL6mKC')
-export const TREASURY_SEED = Buffer.from('scratch_treasury')
+export const TREASURY_SEED = Buffer.from('scratch_treasury_v2')
 export const MONTHLY_PRIZE_SEED = Buffer.from('monthly_prize')
 export const PROFILE_SEED = Buffer.from('scratch_profile')
 
@@ -174,7 +174,6 @@ export const IDL = {
         kind: "enum",
         variants: [
           { name: "QuickPick" },
-          { name: "Lucky7s" },
           { name: "HotShot" },
           { name: "MegaGold" }
         ]

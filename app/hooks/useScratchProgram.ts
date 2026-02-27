@@ -132,7 +132,6 @@ export function useScratchProgram() {
 
       const cardTypeArg = {
         QuickPick: { quickPick: {} },
-        Lucky7s: { lucky7s: {} },
         HotShot: { hotShot: {} },
         MegaGold: { megaGold: {} },
       }[cardType]

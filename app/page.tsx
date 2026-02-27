@@ -74,7 +74,6 @@ export default function Home() {
     
     const costs: Record<string, number> = {
       QuickPick: 10_000_000,
-      Lucky7s: 50_000_000,
       HotShot: 50_000_000,
       MegaGold: 100_000_000,
     }

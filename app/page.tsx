@@ -13,10 +13,9 @@ import RanksTab from './components/RanksTab'
 import PrizesTab from './components/PrizesTab'
 
 const CARD_TYPES = [
-  { id: 'QuickPick', name: 'QUICK PICK', cost: 0.01, maxPrize: 0.1, odds: '1 in 7', color: '#00d4ff', tag: '⚡ STARTER' },
-  { id: 'Lucky7s', name: 'LUCKY 7s', cost: 0.05, maxPrize: 0.5, odds: '1 in 5', color: '#9d4edd', tag: '🍀 POPULAR' },
-  { id: 'HotShot', name: 'HOT SHOT', cost: 0.05, maxPrize: 1, odds: '1 in 6', color: '#ff006e', tag: '🔥 HIGH RISK' },
-  { id: 'MegaGold', name: 'MEGA GOLD', cost: 0.1, maxPrize: 5, odds: '1 in 5', color: '#f5c842', tag: '✦ FEATURED' },
+  { id: 'QuickPick', name: 'QUICK PICK', cost: 0.01, maxPrize: 0.1, color: '#00d4ff', tag: '⚡ STARTER' },
+  { id: 'HotShot', name: 'HOT SHOT', cost: 0.05, maxPrize: 1, color: '#ff006e', tag: '🔥 HIGH RISK' },
+  { id: 'MegaGold', name: 'MEGA GOLD', cost: 0.1, maxPrize: 5, color: '#f5c842', tag: '✦ FEATURED' },
 ]
 
 const MONTHLY_REWARDS = [
@@ -261,12 +260,6 @@ export default function Home() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {CARD_TYPES.map(card => {
                     const actualMaxPrize = getActualMaxPrize(card.maxPrize)
-                    const odds: Record<string, string> = {
-                      QuickPick: card.odds,
-                      Lucky7s: card.odds,
-                      HotShot: card.odds,
-                      MegaGold: card.odds,
-                    }
                     return (
                       <div
                         key={card.id}
@@ -301,7 +294,7 @@ export default function Home() {
                         <div>
                           <div style={{ fontSize: 10, color: card.color, marginBottom: 6, fontFamily: 'monospace', letterSpacing: 1 }}>{card.tag}</div>
                           <div style={{ fontSize: 26, color: card.color, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 2, lineHeight: 1, marginBottom: 8 }}>{card.name}</div>
-                          <div style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'monospace' }}>{odds[card.id]}</div>
+
                         </div>
                         {/* Right: UP TO + cost button */}
                         <div style={{ textAlign: 'right' }}>

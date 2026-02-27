@@ -154,7 +154,17 @@ export function useScratchProgram() {
       }).compileToV0Message()
 
       const vtx = new VersionedTransaction(message)
-      const signed = await wallet.signTransaction!(vtx as any)
+      let signed: any
+      try {
+        signed = await wallet.signTransaction!(vtx as any)
+      } catch (signErr: any) {
+        // Handle Seeker wallet capability error - fall back gracefully
+        const errMsg = signErr?.message || JSON.stringify(signErr)
+        if (errMsg.includes('Seeker') || errMsg.includes('wallet') || errMsg.includes('capability')) {
+          throw new Error(`Wallet signing failed: ${errMsg}. Please ensure your wallet supports transaction signing.`)
+        }
+        throw signErr
+      }
       const sig = await connection.sendRawTransaction((signed as any).serialize(), { skipPreflight: true, maxRetries: 3 })
       await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed')
 

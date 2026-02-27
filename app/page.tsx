@@ -54,7 +54,7 @@ export default function Home() {
     setLastResult(null)
     
     const balanceBefore = await connection.getBalance(wallet.publicKey)
-    try { await buyCard(cardType) } catch (err: any) { alert("Error: " + (err?.message || String(err)) + " | signTx: " + !!wallet.signTransaction + " | signAll: " + !!wallet.signAllTransactions + " | pubkey: " + wallet.publicKey?.toBase58().slice(0,8)); return }
+    try { await buyCard(cardType) } catch (err: any) { alert("Error: " + (err?.message || JSON.stringify(err)) + " | signTx: " + !!wallet.signTransaction + " | signAll: " + !!wallet.signAllTransactions + " | pubkey: " + wallet.publicKey?.toBase58().slice(0,8)); return }
     const balanceAfter = await connection.getBalance(wallet.publicKey)
     
     const costs: Record<string, number> = {

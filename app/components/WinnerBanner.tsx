@@ -48,7 +48,7 @@ export default function WinnerBanner({ wallet, publicKey, connection }: any) {
       setClaimed(true)
       setWinnerInfo(null)
     } catch (e: any) {
-      alert('Claim failed: ' + e.message)
+      alert('Claim failed: ' + (e?.message || JSON.stringify(e)))
     } finally {
       setClaiming(false)
     }

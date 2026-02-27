@@ -65,10 +65,13 @@ export default function Home() {
       MegaGold: 100_000_000,
     }
     const cost = costs[cardType] || 0
-    const diff = balanceAfter - balanceBefore + cost
-    const prize = diff > 0 ? diff / LAMPORTS_PER_SOL : 0
+    // Player pays full cost, gets prize back if they win
+    // net = balanceAfter - balanceBefore + cost (cost was deducted)
+    // But 3% house fee means player actually paid cost, so diff should account for fees too
+    const netDiff = balanceAfter - balanceBefore
+    const prize = netDiff > 0 ? netDiff / LAMPORTS_PER_SOL : 0
     
-    const won = prize > 0
+    const won = prize > 0 && netDiff > 5000 // ignore dust
     setLastResult({ won, prize })
     setWalletBalance(balanceAfter / LAMPORTS_PER_SOL)
 

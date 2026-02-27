@@ -4,7 +4,7 @@ import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui'
 import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets'
 import { BackpackWalletAdapter } from '@solana/wallet-adapter-backpack'
-import { SolanaMobileWalletAdapter, createDefaultAuthorizationResultCache, createDefaultAddressSelector } from '@solana-mobile/wallet-adapter-mobile'
+import { SolanaMobileWalletAdapter, createDefaultAuthorizationResultCache, createDefaultAddressSelector, createDefaultWalletNotFoundHandler } from '@solana-mobile/wallet-adapter-mobile'
 import { clusterApiUrl } from '@solana/web3.js'
 import { useMemo } from 'react'
 import '@solana/wallet-adapter-react-ui/styles.css'
@@ -28,7 +28,11 @@ export function WalletProviders({ children }: { children: React.ReactNode }) {
             uri: 'https://seekerscratch.vercel.app',
             icon: 'https://seekerscratch.vercel.app/icon-192.png',
           },
-          authorizationResultCache: createDefaultAuthorizationResultCache(),
+          authorizationResultCache: {
+            clear: async () => { try { localStorage.removeItem('SolanaMobileWalletAdapter:cachedAuthorizationResult') } catch {} },
+            get: async () => { try { const v = localStorage.getItem('SolanaMobileWalletAdapter:cachedAuthorizationResult'); return v ? JSON.parse(v) : null } catch { return null } },
+            set: async (r: any) => { try { localStorage.setItem('SolanaMobileWalletAdapter:cachedAuthorizationResult', JSON.stringify(r)) } catch {} },
+          },
           onWalletNotFound: async () => { window.open('https://solanamobile.com/wallets', '_blank') },
           cluster: network,
         }),

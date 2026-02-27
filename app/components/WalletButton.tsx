@@ -11,10 +11,7 @@ export default function WalletButton() {
   useEffect(() => { setMounted(true) }, [])
 
   const handleClick = () => {
-    if (connected) {
-      disconnect()
-      return
-    }
+    if (connected) { disconnect(); return }
     setVisible(true)
   }
 
@@ -29,7 +26,7 @@ export default function WalletButton() {
       onClick={handleClick}
       style={{
         padding: '10px 16px',
-        background: connected ? '#9d4edd' : '#9d4edd',
+        background: '#9d4edd',
         border: 'none',
         borderRadius: 12,
         color: '#fff',

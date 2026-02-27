@@ -115,7 +115,9 @@ export function useScratchProgram() {
 
     setLoading(true)
     try {
+      console.log('🎰 buyCard started for:', cardType)
       const profilePda = getProfilePda(wallet.publicKey)
+      console.log('Profile PDA:', profilePda.toBase58())
 
       // Get referrer profile PDA — fall back to treasury PDA (always initialized) if no referrer
       let referrerProfilePda: PublicKey = treasuryPda
@@ -130,10 +132,11 @@ export function useScratchProgram() {
 
       const cardTypeArg = {
         QuickPick: { quickPick: {} },
-
+        Lucky7s: { lucky7s: {} },
         HotShot: { hotShot: {} },
         MegaGold: { megaGold: {} },
       }[cardType]
+      console.log('Card type arg:', cardTypeArg)
 
       // Build instruction manually to avoid any simulation
       const ix = await (program.methods as any).buyAndScratch(cardTypeArg).accounts({
@@ -144,8 +147,10 @@ export function useScratchProgram() {
         player: wallet.publicKey,
         systemProgram: SystemProgram.programId,
       }).instruction()
+      console.log('Instruction built')
 
       const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
+      console.log('Got blockhash:', blockhash)
       
       const message = new TransactionMessage({
         payerKey: wallet.publicKey!,
@@ -154,15 +159,26 @@ export function useScratchProgram() {
       }).compileToV0Message()
 
       const vtx = new VersionedTransaction(message)
+      console.log('Transaction compiled')
+      
       const signed = await wallet.signTransaction!(vtx as any)
+      console.log('Transaction signed')
+      
       const sig = await connection.sendRawTransaction((signed as any).serialize(), { skipPreflight: true, maxRetries: 3 })
-      await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed')
+      console.log('Transaction sent, signature:', sig)
+      
+      const confirmed = await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed')
+      console.log('Transaction confirmed:', confirmed)
 
       await fetchTreasury()
       await fetchProfile()
+      console.log('✅ buyCard completed successfully')
 
       // Note: creditReferrer is handled separately to avoid double-signing
 
+    } catch (err) {
+      console.error('❌ buyCard error:', err)
+      throw err
     } finally {
       setLoading(false)
     }

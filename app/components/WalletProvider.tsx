@@ -26,7 +26,7 @@ export function WalletProviders({ children }: { children: React.ReactNode }) {
           appIdentity: {
             name: 'Seeker Scratch',
             uri: 'https://seekerscratch.vercel.app',
-            icon: '/icon-192.png',
+            icon: 'https://seekerscratch.vercel.app/icon-192.png',
           },
           authorizationResultCache: createDefaultAuthorizationResultCache(),
           onWalletNotFound: async () => { window.open('https://solanamobile.com/wallets', '_blank') },

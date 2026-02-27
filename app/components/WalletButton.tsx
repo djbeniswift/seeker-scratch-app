@@ -6,36 +6,23 @@ import { useEffect, useState } from 'react'
 export default function WalletButton() {
   const { connected, publicKey, disconnect } = useWallet()
   const { setVisible } = useWalletModal()
-  const [isMobile, setIsMobile] = useState(false)
-  const [isPhantomBrowser, setIsPhantomBrowser] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
-  useEffect(() => {
-    const mobile = /Android|iPhone|iPad/i.test(navigator.userAgent)
-    const phantom = !!(window as any).solana?.isPhantom
-    setIsMobile(mobile)
-    setIsPhantomBrowser(phantom)
-  }, [])
+  useEffect(() => { setMounted(true) }, [])
 
   const handleClick = () => {
     if (connected) {
       disconnect()
       return
     }
-
-    // On mobile but NOT in Phantom browser — deep link into Phantom
-    if (isMobile && !isPhantomBrowser) {
-      const currentUrl = encodeURIComponent(window.location.href)
-      window.location.href = `https://phantom.app/ul/browse/${currentUrl}?ref=${currentUrl}`
-      return
-    }
-
-    // Desktop or already in Phantom browser — show normal modal
     setVisible(true)
   }
 
   const short = publicKey
     ? `${publicKey.toString().slice(0, 4)}..${publicKey.toString().slice(-4)}`
     : null
+
+  if (!mounted) return null
 
   return (
     <button
@@ -52,10 +39,11 @@ export default function WalletButton() {
         display: 'flex',
         alignItems: 'center',
         gap: 8,
+        minHeight: 44,
       }}
     >
       <span>👻</span>
-      {connected ? short : isMobile && !isPhantomBrowser ? 'Open in Phantom' : 'Select Wallet'}
+      {connected ? short : 'Connect Wallet'}
     </button>
   )
 }

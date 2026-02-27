@@ -126,9 +126,9 @@ export default function RanksTab({ connection, wallet, publicKey }: any) {
           display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, textAlign: 'center'
         }}>
           {[
-            { place: '🥇 1st', prize: '0.5 SOL' },
-            { place: '🥈 2nd', prize: '0.2 SOL' },
-            { place: '🥉 3rd', prize: '0.1 SOL' },
+            { place: '🥇 1st', prize: '0.25 SOL' },
+            { place: '🥈 2nd', prize: '0.15 SOL' },
+            { place: '🥉 3rd', prize: '0.05 SOL' },
           ].map(({ place, prize }) => (
             <div key={place}>
               <div style={{ color: 'var(--gold)', fontSize: 13, fontFamily: "'Bebas Neue', sans-serif" }}>{place}</div>

@@ -313,3 +313,53 @@ body {
     padding-right: 24px;
   }
 }
+
+/* ===== MOBILE OPTIMIZATIONS ===== */
+
+/* Prevent double-tap zoom */
+button, [role="button"] {
+  touch-action: manipulation;
+}
+
+/* Remove tap highlight */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Active state for card touch feedback */
+@media (hover: none) {
+  .scratch-card:active {
+    transform: scale(0.97) !important;
+    opacity: 0.85 !important;
+    transition: all 0.1s !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .logo-icon { font-size: 24px; }
+  .logo-text { font-size: 19px; }
+  .logo-sub { display: none; }
+
+  header { margin-bottom: 10px; }
+
+  .balance-bar { padding: 10px 8px; margin-bottom: 10px; }
+  .balance-value { font-size: 15px; }
+  .balance-label { font-size: 8px; }
+
+  .feature-banner { padding: 8px; gap: 6px; margin-bottom: 10px; }
+  .feature-item { font-size: 9px; gap: 3px; }
+  .feature-icon { font-size: 12px; }
+  .feature-divider { display: none; }
+
+  .stats-row { gap: 6px; margin-bottom: 12px; }
+  .stat-cell { padding: 10px 6px; }
+  .stat-value { font-size: 18px; }
+  .stat-label { font-size: 8px; }
+
+  .app { padding: 12px; padding-bottom: max(90px, calc(70px + env(safe-area-inset-bottom))); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}

@@ -184,13 +184,15 @@ export function useScratchProgram() {
       }).instruction()
       console.log('Instruction built')
 
+      // Fetch blockhash as late as possible — right before sendTransaction — so it's
+      // fresh when MWA receives it (MWA shows a sign prompt which can take seconds)
       const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
       console.log('Got blockhash:', blockhash)
 
       // Use legacy transaction for maximum wallet compatibility (iOS + Android + MWA)
       const tx = new Transaction().add(ix)
-      tx.recentBlockhash = blockhash
       tx.feePayer = wallet.publicKey!
+      tx.recentBlockhash = blockhash
       console.log('Transaction compiled')
 
       const sig = await wallet.sendTransaction(tx, connection, { skipPreflight: true, maxRetries: 3 })
@@ -201,7 +203,6 @@ export function useScratchProgram() {
 
       await fetchTreasury()
       await fetchProfile()
-      await creditReferrer()
       console.log('✅ buyCard completed successfully')
 
     } catch (err) {

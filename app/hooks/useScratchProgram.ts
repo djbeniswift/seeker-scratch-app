@@ -101,6 +101,41 @@ export function useScratchProgram() {
     await fetchProfile()
   }, [getProgram, wallet.publicKey, getProfilePda, fetchProfile])
 
+  const creditReferrer = useCallback(async () => {
+    const program = getProgram()
+    if (!program || !wallet.publicKey) { console.log('creditReferrer: no program/wallet'); return }
+    const profilePda = getProfilePda(wallet.publicKey)
+    let profileData: any
+    try {
+      profileData = await (program.account as any).playerProfile.fetch(profilePda)
+    } catch (e: any) { console.log('creditReferrer: profile not found', e.message); return }
+    console.log('creditReferrer check:', {
+      hasBeenReferred: profileData.hasBeenReferred,
+      referralBonusPaid: profileData.referralBonusPaid,
+      totalSpentLamports: profileData.totalSpent.toNumber(),
+      referredBy: profileData.referredBy?.toBase58(),
+    })
+    if (!profileData.hasBeenReferred) { console.log('creditReferrer: not referred'); return }
+    if (profileData.totalSpent.toNumber() < 100_000_000) { console.log('creditReferrer: totalSpent too low', profileData.totalSpent.toNumber()); return }
+    // Note: do NOT gate on referralBonusPaid — buyAndScratch sets it to true on-chain
+    // before JS runs, so we'd always skip. Let the on-chain instruction handle idempotency.
+    const referrerKey = profileData.referredBy
+    const referrerProfile = getProfilePda(referrerKey)
+    console.log('creditReferrer: calling on-chain instruction, referrer:', referrerKey?.toBase58())
+    try {
+      await (program.methods as any).creditReferrer().accounts({
+        referrerProfile,
+        referrerKey,
+        callerProfile: profilePda,
+        caller: wallet.publicKey,
+      }).rpc({ commitment: 'confirmed' })
+      await fetchProfile()
+      console.log('✅ Referrer credited!')
+    } catch (e: any) {
+      console.log('creditReferrer tx failed:', e.message)
+    }
+  }, [getProgram, wallet.publicKey, getProfilePda, fetchProfile])
+
   // Auto-fetch when wallet connects or changes
   useEffect(() => {
     fetchTreasury()
@@ -171,9 +206,8 @@ export function useScratchProgram() {
 
       await fetchTreasury()
       await fetchProfile()
+      await creditReferrer()
       console.log('✅ buyCard completed successfully')
-
-      // Note: creditReferrer is handled separately to avoid double-signing
 
     } catch (err) {
       console.error('❌ buyCard error:', err)
@@ -181,7 +215,7 @@ export function useScratchProgram() {
     } finally {
       setLoading(false)
     }
-  }, [getProgram, wallet.publicKey, treasuryPda, getProfilePda, fetchTreasury, fetchProfile])
+  }, [getProgram, wallet.publicKey, treasuryPda, getProfilePda, fetchTreasury, fetchProfile, creditReferrer])
 
-  return { treasury, profile, loading, fetchTreasury, fetchProfile, buyCard, registerReferral, getProgram }
+  return { treasury, profile, loading, fetchTreasury, fetchProfile, buyCard, registerReferral, creditReferrer, getProgram }
 }

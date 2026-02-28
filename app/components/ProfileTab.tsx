@@ -36,8 +36,16 @@ export default function ProfileTab({ wallet, publicKey, connection }: any) {
   }
 
   const getProgram = () => {
-    if (!wallet) return null
-    const provider = new AnchorProvider(connection, wallet as any, { commitment: 'confirmed' })
+    if (!publicKey || !wallet) return null
+    const walletAdapter = {
+      publicKey,
+      signTransaction: wallet.signTransaction || (async (tx: any) => {
+        const signed = await wallet.signAllTransactions?.([tx])
+        return signed?.[0] ?? tx
+      }),
+      signAllTransactions: wallet.signAllTransactions || (async (txs: any[]) => txs),
+    }
+    const provider = new AnchorProvider(connection, walletAdapter as any, { commitment: 'confirmed' })
     return new Program(IDL as any, PROGRAM_ID, provider)
   }
 

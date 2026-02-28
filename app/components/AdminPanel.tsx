@@ -5,10 +5,10 @@ import { PublicKey, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js'
 import { useState, useEffect } from 'react'
 import { PROGRAM_ID, TREASURY_SEED, IDL } from '../lib/constants'
 
-const ADMIN = '6RhLQikkjzace4ti4D458iSmKofbPdMGNB7VKHmWwYPP'
+const ADMIN = 'A6CqGe7oeEqctqqiJJn7ep4H64gKUzipKaARssD4hcFx'
 
 export default function AdminPanel() {
-  const { wallet, publicKey } = useWallet()
+  const { wallet, publicKey, signTransaction, signAllTransactions } = useWallet()
   const { connection } = useConnection()
   const [status, setStatus] = useState('')
   const [fundAmount, setFundAmount] = useState('5')
@@ -31,7 +31,16 @@ export default function AdminPanel() {
   const [treasuryPda] = PublicKey.findProgramAddressSync([TREASURY_SEED], PROGRAM_ID)
 
   const getProgram = () => {
-    const provider = new AnchorProvider(connection, wallet as any, { commitment: 'confirmed' })
+    if (!publicKey) return null
+    const walletAdapter = {
+      publicKey,
+      signTransaction: signTransaction || (async (tx: any) => {
+        const signed = await signAllTransactions?.([tx])
+        return signed?.[0] ?? tx
+      }),
+      signAllTransactions: signAllTransactions || (async (txs: any[]) => txs),
+    }
+    const provider = new AnchorProvider(connection, walletAdapter as any, { commitment: 'confirmed' })
     return new Program(IDL as any, PROGRAM_ID, provider)
   }
 
@@ -39,6 +48,7 @@ export default function AdminPanel() {
     try {
       setStatus('Initializing...')
       const program = getProgram()
+      if (!program) return setStatus('❌ Wallet not connected')
       const tx = await (program.methods as any).initialize().accounts({
         treasury: treasuryPda,
         admin: publicKey,
@@ -54,6 +64,7 @@ export default function AdminPanel() {
     try {
       setStatus('Funding...')
       const program = getProgram()
+      if (!program) return setStatus('❌ Wallet not connected')
       const lamports = parseFloat(fundAmount) * LAMPORTS_PER_SOL
       const tx = await (program.methods as any).fundTreasury(new BN(lamports)).accounts({
         treasury: treasuryPda,

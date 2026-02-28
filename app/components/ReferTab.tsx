@@ -4,14 +4,23 @@ import { Program, AnchorProvider } from '@coral-xyz/anchor'
 import { PublicKey, SystemProgram } from '@solana/web3.js'
 import { PROGRAM_ID, PROFILE_SEED, IDL } from '../lib/constants'
 
-export default function ReferTab({ wallet, publicKey, connection }: any) {
+export default function ReferTab({ wallet, publicKey, connection, onClaimBonus }: any) {
   const [profile, setProfile] = useState<any>(null)
   const [copied, setCopied] = useState(false)
   const [referralStatus, setReferralStatus] = useState<string | null>(null)
+  const [claiming, setClaiming] = useState(false)
 
   const getProgram = () => {
-    if (!wallet) return null
-    const provider = new AnchorProvider(connection, wallet as any, { commitment: 'confirmed' })
+    if (!publicKey || !wallet) return null
+    const walletAdapter = {
+      publicKey,
+      signTransaction: wallet.signTransaction || (async (tx: any) => {
+        const signed = await wallet.signAllTransactions?.([tx])
+        return signed?.[0] ?? tx
+      }),
+      signAllTransactions: wallet.signAllTransactions || (async (txs: any[]) => txs),
+    }
+    const provider = new AnchorProvider(connection, walletAdapter as any, { commitment: 'confirmed' })
     return new Program(IDL as any, PROGRAM_ID, provider)
   }
 
@@ -33,6 +42,7 @@ export default function ReferTab({ wallet, publicKey, connection }: any) {
         hasBeenReferred: data.hasBeenReferred,
         referralBonusPaid: data.referralBonusPaid,
         totalSpent: data.totalSpent.toNumber() / 1_000_000_000,
+        referredBy: data.referredBy?.toBase58(),
       })
     } catch {
       setProfile(null)
@@ -164,12 +174,31 @@ export default function ReferTab({ wallet, publicKey, connection }: any) {
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#aaa', marginBottom: 4 }}>
                 <span>Progress</span><span>{profile.totalSpent.toFixed(3)} / 0.1 SOL</span>
               </div>
-              <div style={{ background: '#0a0a1a', borderRadius: 99, height: 8 }}>
+              <div style={{ background: '#0a0a1a', borderRadius: 99, height: 8, marginBottom: 12 }}>
                 <div style={{
                   background: 'linear-gradient(90deg, #00d4ff, var(--gold))',
                   borderRadius: 99, height: 8, width: `${spendProgress}%`, transition: 'width 0.5s ease'
                 }} />
               </div>
+              {spendProgress >= 100 && onClaimBonus && (
+                <button
+                  onClick={async () => {
+                    setClaiming(true)
+                    try { await onClaimBonus(); await fetchProfile() } catch {}
+                    setClaiming(false)
+                  }}
+                  disabled={claiming}
+                  style={{
+                    width: '100%', padding: '10px',
+                    background: claiming ? '#333' : 'var(--gold)',
+                    color: '#000', border: 'none', borderRadius: 8,
+                    fontFamily: "'Bebas Neue', sans-serif", fontSize: 15, letterSpacing: 1,
+                    cursor: claiming ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {claiming ? 'CLAIMING...' : '🎁 CLAIM 10 POINT BONUS'}
+                </button>
+              )}
             </>
           )}
           {profile.referralBonusPaid && (

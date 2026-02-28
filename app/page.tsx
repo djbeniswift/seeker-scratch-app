@@ -28,7 +28,7 @@ export default function Home() {
   const wallet = useWallet()
   const { connection } = useConnection()
   const { leaderboard, isLoading: leaderboardLoading, getUserRank } = useLeaderboard()
-  const { treasury, profile, loading, fetchTreasury, fetchProfile, buyCard } = useScratchProgram()
+  const { treasury, profile, loading, fetchTreasury, fetchProfile, buyCard, registerReferral, creditReferrer } = useScratchProgram()
   const [mounted, setMounted] = useState(false)
   const [activeNav, setActiveNav] = useState('scratch')
   const [lastResult, setLastResult] = useState<{ won: boolean; prize: number } | null>(null)
@@ -46,6 +46,18 @@ export default function Home() {
       })
     }
   }, [wallet.publicKey, connection])
+
+  // Auto-register referral when wallet connects and ?ref= is in the URL
+  // After registration, also try to credit (handles case where user already has enough spend)
+  useEffect(() => {
+    if (!wallet.publicKey) return
+    const ref = new URLSearchParams(window.location.search).get('ref')
+    if (!ref) { console.log('No ?ref= param in URL'); return }
+    console.log('Auto-registering referral for ref:', ref)
+    registerReferral(ref)
+      .then(() => { console.log('Referral registered, attempting credit...'); return creditReferrer() })
+      .catch(e => console.log('Referral auto-register failed:', e.message))
+  }, [wallet.publicKey])
 
   const handleBuyCard = async (cardType: string) => {
     if (!wallet.connected) { alert("Please connect your wallet first"); return }
@@ -246,21 +258,14 @@ export default function Home() {
                       +{lastResult.prize.toFixed(3)}
                     </div>
                     <div style={{ fontSize: 16, color: 'var(--green)', opacity: 0.7, fontFamily: 'monospace' }}>SOL</div>
-                  
-
-
-    <AdminPanel />
-    </>
+                  </>
                 ) : (
                   <>
                     <div style={{ fontSize: 36, color: 'var(--red)', fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 3, marginBottom: 8 }}>
                       ❌ BETTER LUCK NEXT TIME
                     </div>
                     <div style={{ fontSize: 13, color: 'var(--muted)', fontFamily: 'monospace' }}>Try again — next one could be the big win</div>
-                  
-
-
-    </>
+                  </>
                 )}
               </div>
             )}
@@ -340,16 +345,13 @@ export default function Home() {
               
 
 
-    </>
+              </>
             ) : (
               <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)' }}>
                 Connect your wallet to start playing! 🎰
               </div>
             )}
-          
-
-
-    </>
+        </>
         )}
 
         {/* RANKS TAB */}
@@ -362,7 +364,7 @@ export default function Home() {
         )}
         {/* REFER TAB */}
         {activeNav === 'refer' && (
-          <ReferTab wallet={wallet} publicKey={wallet.publicKey} connection={connection} />
+          <ReferTab wallet={wallet} publicKey={wallet.publicKey} connection={connection} onClaimBonus={creditReferrer} />
         )}
         {/* PROFILE TAB */}
         {activeNav === 'profile' && (
@@ -410,9 +412,7 @@ export default function Home() {
           </div>
         ))}
       </div>
-    
-
-
+      <AdminPanel />
     </>
   )
 }

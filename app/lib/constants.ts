@@ -62,18 +62,6 @@ export const IDL = {
       ]
     },
     {
-      name: "updateProfile",
-      accounts: [
-        { name: "profile", isMut: true, isSigner: false },
-        { name: "player", isMut: true, isSigner: true },
-        { name: "systemProgram", isMut: false, isSigner: false }
-      ],
-      args: [
-        { name: "name", type: { option: "string" } },
-        { name: "pfpUrl", type: { option: "string" } }
-      ]
-    },
-    {
       name: "creditReferrer",
       accounts: [
         { name: "referrerProfile", isMut: true, isSigner: false },
@@ -128,6 +116,7 @@ export const IDL = {
           { name: "dailyPaidOut", type: "u64" },
           { name: "dayStartTime", type: "i64" },
           { name: "paused", type: "bool" },
+          { name: "monthStart", type: "i64" },
           { name: "bump", type: "u8" }
         ]
       }
@@ -189,6 +178,10 @@ export const IDL = {
     { code: 6005, name: "NameTooLong", msg: "Name too long (max 16 characters)" },
     { code: 6006, name: "PfpTooLong", msg: "PFP URL too long (max 128 characters)" },
     { code: 6007, name: "CannotReferSelf", msg: "Cannot refer yourself" },
-    { code: 6008, name: "AlreadyReferred", msg: "Already been referred" }
+    { code: 6008, name: "AlreadyReferred", msg: "Already been referred" },
+    { code: 6009, name: "InvalidReferral", msg: "Invalid referral credit attempt" },
+    { code: 6010, name: "InvalidInput", msg: "Invalid input" },
+    { code: 6011, name: "NotAWinner", msg: "Not a monthly winner" },
+    { code: 6012, name: "AlreadyClaimed", msg: "Prize already claimed" }
   ]
 }

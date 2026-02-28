@@ -23,7 +23,6 @@ export default function PrizesTab() {
         <div style={{ color: 'var(--gold)', fontSize: 11, letterSpacing: 2, marginBottom: 10 }}>HOW TO EARN POINTS</div>
         {[
           { card: 'Quick Pick (0.01 SOL)', pts: '1 pt' },
-          { card: 'Lucky 7s (0.05 SOL)', pts: '3 pts' },
           { card: 'Hot Shot (0.05 SOL)', pts: '5 pts' },
           { card: 'Mega Gold (0.1 SOL)', pts: '10 pts' },
           { card: 'Refer a friend', pts: '+100 pts' },
@@ -42,7 +41,7 @@ export default function PrizesTab() {
             <div style={{ flex: 1 }}>
               <div style={{ color, fontSize: 16, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1 }}>{place}</div>
               <div style={{ color: 'var(--green)', fontSize: 15, fontFamily: "'Bebas Neue', sans-serif", marginTop: 4 }}>{sol}</div>
-              <div style={{ color: '#00d4ff', fontSize: 15, fontFamily: "'Bebas Neue', sans-serif", marginTop: 2 }}>+ {skr} <span style={{ color: '#fff', fontSize: 15 }}>SKR</span></div>
+              <div style={{ color: '#00d4ff', fontSize: 15, fontFamily: "'Bebas Neue', sans-serif", marginTop: 2 }}>+ {skr}</div>
             </div>
           </div>
         ))}

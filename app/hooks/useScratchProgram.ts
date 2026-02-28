@@ -1,6 +1,6 @@
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { Program, AnchorProvider } from '@coral-xyz/anchor'
-import { PublicKey, LAMPORTS_PER_SOL, SystemProgram, VersionedTransaction, TransactionMessage } from '@solana/web3.js'
+import { PublicKey, LAMPORTS_PER_SOL, SystemProgram, Transaction } from '@solana/web3.js'
 import { useCallback, useState, useEffect } from 'react'
 import { PROGRAM_ID, TREASURY_SEED, PROFILE_SEED, IDL } from '../lib/constants'
 
@@ -186,18 +186,14 @@ export function useScratchProgram() {
 
       const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
       console.log('Got blockhash:', blockhash)
-      
-      const message = new TransactionMessage({
-        payerKey: wallet.publicKey!,
-        recentBlockhash: blockhash,
-        instructions: [ix],
-      }).compileToV0Message()
 
-      const vtx = new VersionedTransaction(message)
+      // Use legacy transaction for maximum wallet compatibility (iOS + Android + MWA)
+      const tx = new Transaction().add(ix)
+      tx.recentBlockhash = blockhash
+      tx.feePayer = wallet.publicKey!
       console.log('Transaction compiled')
 
-      // Use wallet.sendTransaction — works with both browser extensions and MWA (Seeker/Saga)
-      const sig = await wallet.sendTransaction(vtx as any, connection, { skipPreflight: true, maxRetries: 3 })
+      const sig = await wallet.sendTransaction(tx, connection, { skipPreflight: true, maxRetries: 3 })
       console.log('Transaction sent, signature:', sig)
 
       const confirmed = await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed')

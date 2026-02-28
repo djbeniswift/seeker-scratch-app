@@ -7,7 +7,7 @@ export async function POST(req: Request) {
     const { balance } = await req.json()
 
     await resend.emails.send({
-      from: 'Seeker Scratch <alerts@seekerscratch.vercel.app>',
+      from: 'Seeker Scratch <onboarding@resend.dev>',
       to: 'labswift@gmail.com',
       subject: 'Seeker Scratch Treasury Alert',
       text: `⚠️ Treasury Low Balance Warning\n\nCurrent balance: ${balance} SOL\n\nThe treasury has dropped below 6 SOL. The game has been automatically paused.\n\nLog in to the admin panel at https://seekerscratch.vercel.app to fund the treasury and unpause the game.`,

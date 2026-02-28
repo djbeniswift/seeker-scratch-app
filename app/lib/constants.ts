@@ -72,6 +72,14 @@ export const IDL = {
       args: []
     },
     {
+      name: "setPaused",
+      accounts: [
+        { name: "treasury", isMut: true, isSigner: false },
+        { name: "admin", isMut: true, isSigner: true }
+      ],
+      args: [{ name: "paused", type: "bool" }]
+    },
+    {
       name: "withdrawProfit",
       accounts: [
         { name: "treasury", isMut: true, isSigner: false },

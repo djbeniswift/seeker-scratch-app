@@ -153,6 +153,27 @@ export default function Home() {
   }
   if (!mounted) return <div>Loading...</div>
 
+  if (treasury?.paused) {
+    return (
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 99999,
+        background: '#0a0a0f',
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        gap: 16, padding: 32, textAlign: 'center',
+      }}>
+        <div style={{ fontSize: 64 }}>🔧</div>
+        <div style={{ color: '#ffd700', fontSize: 24, fontWeight: 'bold', fontFamily: 'monospace' }}>
+          MAINTENANCE
+        </div>
+        <div style={{ color: '#aaa', fontSize: 15, maxWidth: 300, lineHeight: 1.6 }}>
+          Seeker Scratch is temporarily down for maintenance. Check back soon!
+        </div>
+        <AdminPanel />
+      </div>
+    )
+  }
+
   return (
     <>
       <div className="app">

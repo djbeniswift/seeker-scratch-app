@@ -67,7 +67,17 @@ export default function Home() {
     
     const balanceBefore = await connection.getBalance(wallet.publicKey)
     console.log('Balance before:', balanceBefore)
-    try { await buyCard(cardType) } catch (err: any) { alert("Error: " + (err?.message || JSON.stringify(err)) + " | signTx: " + !!wallet.signTransaction + " | signAll: " + !!wallet.signAllTransactions + " | pubkey: " + wallet.publicKey?.toBase58().slice(0,8)); return }
+    try { await buyCard(cardType) } catch (err: any) {
+      const details = [
+        "msg: " + (err?.message || '?'),
+        "name: " + (err?.name || '?'),
+        "code: " + (err?.code || '?'),
+        "logs: " + JSON.stringify(err?.logs || err?.transactionLogs || []).slice(0, 200),
+        "full: " + JSON.stringify(err).slice(0, 300),
+      ].join('\n')
+      alert(details)
+      return
+    }
     
     // Wait a moment for devnet to update balance
     await new Promise(resolve => setTimeout(resolve, 500))

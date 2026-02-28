@@ -194,13 +194,11 @@ export function useScratchProgram() {
 
       const vtx = new VersionedTransaction(message)
       console.log('Transaction compiled')
-      
-      const signed = await wallet.signTransaction!(vtx as any)
-      console.log('Transaction signed')
-      
-      const sig = await connection.sendRawTransaction((signed as any).serialize(), { skipPreflight: true, maxRetries: 3 })
+
+      // Use wallet.sendTransaction — works with both browser extensions and MWA (Seeker/Saga)
+      const sig = await wallet.sendTransaction(vtx as any, connection, { skipPreflight: true, maxRetries: 3 })
       console.log('Transaction sent, signature:', sig)
-      
+
       const confirmed = await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed')
       console.log('Transaction confirmed:', confirmed)
 

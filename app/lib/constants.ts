@@ -124,7 +124,6 @@ export const IDL = {
           { name: "dailyPaidOut", type: "u64" },
           { name: "dayStartTime", type: "i64" },
           { name: "paused", type: "bool" },
-          { name: "monthStart", type: "i64" },
           { name: "bump", type: "u8" }
         ]
       }
@@ -171,6 +170,7 @@ export const IDL = {
         kind: "enum",
         variants: [
           { name: "QuickPick" },
+          { name: "Lucky7s" },
           { name: "HotShot" },
           { name: "MegaGold" }
         ]

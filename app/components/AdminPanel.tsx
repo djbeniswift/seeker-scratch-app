@@ -21,6 +21,20 @@ export default function AdminPanel() {
 
   const [treasuryPda] = PublicKey.findProgramAddressSync([TREASURY_SEED], PROGRAM_ID)
 
+  const checkAndAlertTreasury = async () => {
+    try {
+      const lamports = await connection.getBalance(treasuryPda)
+      const balanceSol = lamports / 1_000_000_000
+      if (balanceSol < 6) {
+        fetch('/api/treasury-alert', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ balance: balanceSol.toFixed(3) }),
+        }).catch(() => {})
+      }
+    } catch {}
+  }
+
   const getProgram = () => {
     if (!publicKey) return null
     const walletAdapter = {
@@ -92,6 +106,7 @@ export default function AdminPanel() {
         admin: publicKey,
       }).rpc()
       setStatus(`✅ Withdrew ${withdrawAmount} SOL!`)
+      await checkAndAlertTreasury()
     } catch (e: any) {
       setStatus(`❌ ${e.message?.slice(0, 60)}`)
     }

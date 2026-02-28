@@ -119,7 +119,6 @@ export default function ProfileTab({ wallet, publicKey, connection }: any) {
     </div>
   )
 
-  const netProfit = ((profile?.totalWon || 0) - (profile?.totalSpent || 0))
   const winRate = profile?.cardsScratched > 0 ? ((profile.wins / profile.cardsScratched) * 100).toFixed(1) : '0.0'
 
   return (
@@ -249,9 +248,7 @@ export default function ProfileTab({ wallet, publicKey, connection }: any) {
         {[
           { label: 'CARDS PLAYED', value: profile?.cardsScratched || 0, color: '#fff' },
           { label: 'WIN RATE', value: `${winRate}%`, color: 'var(--green)' },
-          { label: 'TOTAL SPENT', value: `${(profile?.totalSpent || 0).toFixed(3)} SOL`, color: 'var(--red)' },
           { label: 'TOTAL WON', value: `${(profile?.totalWon || 0).toFixed(3)} SOL`, color: 'var(--green)' },
-          { label: 'NET PROFIT', value: `${netProfit >= 0 ? '+' : ''}${netProfit.toFixed(3)} SOL`, color: netProfit >= 0 ? 'var(--green)' : 'var(--red)' },
           { label: 'WINS', value: profile?.wins || 0, color: 'var(--gold)' },
         ].map(({ label, value, color }) => (
           <div key={label} style={{

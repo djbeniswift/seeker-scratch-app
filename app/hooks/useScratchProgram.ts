@@ -154,15 +154,16 @@ export function useScratchProgram() {
       const profilePda = getProfilePda(wallet.publicKey)
       console.log('Profile PDA:', profilePda.toBase58())
 
-      // Get referrer profile PDA — fall back to treasury PDA (always initialized) if no referrer
-      let referrerProfilePda: PublicKey = treasuryPda
+      // Get referrer profile PDA — fall back to admin's profile (always a valid PlayerProfile) if no referrer
+      const ADMIN_PUBKEY = new PublicKey('A6CqGe7oeEqctqqiJJn7ep4H64gKUzipKaARssD4hcFx')
+      let referrerProfilePda: PublicKey = getProfilePda(ADMIN_PUBKEY)
       try {
         const profileData = await (program.account as any).playerProfile.fetch(profilePda)
         if (profileData.hasBeenReferred) {
           referrerProfilePda = getProfilePda(profileData.referredBy)
         }
       } catch {
-        // Profile doesn't exist yet - no referrer
+        // Profile doesn't exist yet - no referrer, use admin profile as dummy
       }
 
       const cardTypeArg = {

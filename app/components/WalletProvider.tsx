@@ -15,13 +15,17 @@ export function WalletProviders({ children }: { children: React.ReactNode }) {
 
   const wallets = useMemo(() => {
     const isAndroid = typeof window !== 'undefined' && /Android/i.test(navigator.userAgent)
+    // If a wallet extension is already injected (e.g. Phantom in-app browser), skip MWA
+    const hasInjectedWallet = typeof window !== 'undefined' && !!(
+      (window as any).phantom?.solana || (window as any).solana || (window as any).backpack
+    )
     const list: any[] = [
       new PhantomWalletAdapter(),
       new SolflareWalletAdapter(),
       new BackpackWalletAdapter(),
     ]
-    // MWA only on Android (Seeker/Saga native wallet support)
-    if (isAndroid) {
+    // MWA only on Android without an injected wallet (native browser → Seeker/Saga wallet app)
+    if (isAndroid && !hasInjectedWallet) {
       const appUri = typeof window !== 'undefined'
         ? window.location.origin
         : 'https://seekerscratch.vercel.app'

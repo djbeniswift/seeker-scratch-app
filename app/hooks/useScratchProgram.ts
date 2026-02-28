@@ -206,6 +206,33 @@ export function useScratchProgram() {
 
       await fetchTreasury()
       await fetchProfile()
+
+      // Treasury health check — auto-pause + email alert if balance drops below 6 SOL
+      const postBuyLamports = await connection.getBalance(treasuryPda)
+      const postBuyBalanceSol = postBuyLamports / LAMPORTS_PER_SOL
+      if (postBuyBalanceSol < 6) {
+        // Fire-and-forget email alert
+        fetch('/api/treasury-alert', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ balance: postBuyBalanceSol.toFixed(3) }),
+        }).catch(() => {})
+
+        // Auto-pause if the admin wallet is the one buying
+        const ADMIN_KEY = 'A6CqGe7oeEqctqqiJJn7ep4H64gKUzipKaARssD4hcFx'
+        if (wallet.publicKey?.toBase58() === ADMIN_KEY) {
+          try {
+            await (program.methods as any).setPaused(true).accounts({
+              treasury: treasuryPda,
+              admin: wallet.publicKey,
+            }).rpc()
+            console.log('⏸ Treasury low — game auto-paused')
+          } catch (e) {
+            console.error('Auto-pause failed:', e)
+          }
+        }
+      }
+
       console.log('✅ buyCard completed successfully')
 
     } catch (err) {

@@ -12,6 +12,7 @@ import WinnerBanner from './components/WinnerBanner'
 import RanksTab from './components/RanksTab'
 import PrizesTab from './components/PrizesTab'
 import Confetti from './components/Confetti'
+import ShareWinModal from './components/ShareWinModal'
 import { useSound } from './hooks/useSound'
 
 const CARD_TYPES = [
@@ -36,6 +37,7 @@ export default function Home() {
   const [lastResult, setLastResult] = useState<{ won: boolean; prize: number } | null>(null)
   const [walletBalance, setWalletBalance] = useState(0)
   const [showConfetti, setShowConfetti] = useState(false)
+  const [shareWinAmount, setShareWinAmount] = useState<number | null>(null)
   const { muted, toggleMute, playScratch, playSmallWin, playBigWin, playLoss } = useSound()
 
   useEffect(() => {
@@ -69,6 +71,7 @@ export default function Home() {
     
     setLastResult(null)
     setShowConfetti(false)
+    setShareWinAmount(null)
     playScratch()
 
     const balanceBefore = await connection.getBalance(wallet.publicKey)
@@ -128,6 +131,7 @@ export default function Home() {
       }
       setShowConfetti(true)
       setTimeout(() => setShowConfetti(false), 5000)
+      setTimeout(() => setShareWinAmount(prize), 1200)
     } else {
       playLoss()
     }
@@ -444,6 +448,9 @@ export default function Home() {
       </div>
       <AdminPanel />
       <Confetti active={showConfetti} />
+      {shareWinAmount !== null && (
+        <ShareWinModal amount={shareWinAmount} onClose={() => setShareWinAmount(null)} />
+      )}
     </>
   )
 }

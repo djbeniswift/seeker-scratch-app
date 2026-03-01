@@ -114,7 +114,7 @@ export default function ReferTab({ wallet, publicKey, connection, onClaimBonus }
       }}>
         <div style={{ fontSize: 36, marginBottom: 8 }}>🎁</div>
         <div style={{ color: 'var(--gold)', fontSize: 22, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 2 }}>REFER & EARN</div>
-        <div style={{ color: '#aaa', fontSize: 13, marginTop: 8 }}>
+        <div style={{ color: '#a0aec0', fontSize: 14, marginTop: 8 }}>
           Earn <span style={{ color: 'var(--gold)', fontWeight: 'bold' }}>100 points</span> when your friend plays 0.1 SOL.
           They get <span style={{ color: '#00d4ff', fontWeight: 'bold' }}>10 bonus points</span> too.
         </div>

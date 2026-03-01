@@ -16,7 +16,7 @@ export default function PrizesTab() {
       }}>
         <div style={{ fontSize: 36, marginBottom: 6 }}>🏆</div>
         <div style={{ color: 'var(--gold)', fontSize: 26, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 2 }}>MONTHLY PRIZES</div>
-        <div style={{ color: '#aaa', fontSize: 13, marginTop: 4 }}>Top 3 players by points each month win SOL + SKR</div>
+        <div style={{ color: '#a0aec0', fontSize: 14, marginTop: 4 }}>Top 3 players by points each month win SOL + SKR</div>
       </div>
 
       <div style={{ background: '#0a0a1a', border: '1px solid var(--border)', borderRadius: 10, padding: 14, marginBottom: 16 }}>
@@ -47,7 +47,7 @@ export default function PrizesTab() {
         ))}
       </div>
 
-      <div style={{ padding: 14, background: 'rgba(245,200,66,0.05)', border: '1px solid rgba(245,200,66,0.2)', borderRadius: 10, color: '#aaa', fontSize: 13, textAlign: 'center', lineHeight: 1.6 }}>
+      <div style={{ padding: 14, background: 'rgba(245,200,66,0.05)', border: '1px solid rgba(245,200,66,0.2)', borderRadius: 10, color: '#a0aec0', fontSize: 13, textAlign: 'center', lineHeight: 1.6 }}>
         🏆 Monthly prizes paid out on the 1st of each month.<br/>
         Check the Ranks tab to see your position!
       </div>

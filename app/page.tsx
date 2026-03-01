@@ -240,15 +240,15 @@ export default function Home() {
             <div style={{ fontSize: 13, color: 'var(--cyan)', marginBottom: 12, fontFamily: 'monospace' }}>📊 YOUR STATS</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, textAlign: 'center' }}>
               <div>
-                <div style={{ fontSize: 13, color: 'var(--muted)' }}>Scratched</div>
+                <div style={{ fontSize: 14, color: '#a0aec0' }}>Scratched</div>
                 <div style={{ fontSize: 18, color: 'var(--text)', fontFamily: "'Bebas Neue', sans-serif" }}>{profile.cardsScratched}</div>
               </div>
               <div>
-                <div style={{ fontSize: 13, color: 'var(--muted)' }}>Wins</div>
+                <div style={{ fontSize: 14, color: '#a0aec0' }}>Wins</div>
                 <div style={{ fontSize: 18, color: 'var(--green)', fontFamily: "'Bebas Neue', sans-serif" }}>{profile.wins}</div>
               </div>
               <div>
-                <div style={{ fontSize: 13, color: 'var(--muted)' }}>Points</div>
+                <div style={{ fontSize: 14, color: '#a0aec0' }}>Points</div>
                 <div style={{ fontSize: 18, color: 'var(--gold)', fontFamily: "'Bebas Neue', sans-serif" }}>{profile.pointsThisMonth}</div>
               </div>
             </div>

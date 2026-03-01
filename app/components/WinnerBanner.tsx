@@ -80,7 +80,7 @@ export default function WinnerBanner({ wallet, publicKey, connection }: any) {
         <div style={{ color: 'var(--gold)', fontSize: 24, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 2, marginBottom: 4 }}>
           YOU WON {placeText[winnerInfo.place - 1]} PLACE!
         </div>
-        <div style={{ color: '#aaa', fontSize: 13, marginBottom: 20 }}>Monthly Leaderboard Prize</div>
+        <div style={{ color: '#a0aec0', fontSize: 13, marginBottom: 20 }}>Monthly Leaderboard Prize</div>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
           <div style={{ background: 'rgba(0,255,136,0.1)', border: '1px solid rgba(0,255,136,0.3)', borderRadius: 12, padding: '14px 32px' }}>
             <div style={{ color: 'var(--green)', fontSize: 32, fontFamily: "'Bebas Neue', sans-serif" }}>{winnerInfo.amount} SOL</div>

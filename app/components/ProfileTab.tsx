@@ -256,7 +256,7 @@ export default function ProfileTab({ wallet, publicKey, connection }: any) {
             borderRadius: 10, padding: '12px', textAlign: 'center'
           }}>
             <div style={{ color, fontSize: 20, fontFamily: "'Bebas Neue', sans-serif" }}>{value}</div>
-            <div style={{ color: '#555', fontSize: 13, letterSpacing: 1, marginTop: 2 }}>{label}</div>
+            <div style={{ color: '#a0aec0', fontSize: 13, letterSpacing: 1, marginTop: 2 }}>{label}</div>
           </div>
         ))}
       </div>
@@ -278,7 +278,7 @@ export default function ProfileTab({ wallet, publicKey, connection }: any) {
             display: 'flex', justifyContent: 'space-between',
             padding: '8px 0', borderBottom: '1px solid #111'
           }}>
-            <span style={{ color: '#aaa', fontSize: 13 }}>{label}</span>
+            <span style={{ color: '#a0aec0', fontSize: 13 }}>{label}</span>
             <span style={{ color: 'var(--gold)', fontSize: 13, fontWeight: 'bold' }}>{value}</span>
           </div>
         ))}

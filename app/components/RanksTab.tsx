@@ -96,7 +96,7 @@ export default function RanksTab({ connection, wallet, publicKey }: any) {
         <div style={{ color: 'var(--gold)', fontSize: 24, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 2 }}>
           LEADERBOARD
         </div>
-        <div style={{ color: '#aaa', fontSize: 13, marginTop: 4 }}>
+        <div style={{ color: '#a0aec0', fontSize: 14, marginTop: 4 }}>
           Top players earn SOL prizes each month
         </div>
       </div>
@@ -190,7 +190,7 @@ export default function RanksTab({ connection, wallet, publicKey }: any) {
                   }}>
                     {player.displayName || shortWallet} {isMe && '(YOU)'}
                   </div>
-                  <div style={{ color: '#555', fontSize: 13, marginTop: 2 }}>
+                  <div style={{ color: '#a0aec0', fontSize: 13, marginTop: 2 }}>
                     {player.wins}W • {player.cardsScratched} played • {player.totalWon.toFixed(2)} SOL won
                   </div>
                 </div>
@@ -200,7 +200,7 @@ export default function RanksTab({ connection, wallet, publicKey }: any) {
                   <div style={{ color: 'var(--gold)', fontSize: 18, fontFamily: "'Bebas Neue', sans-serif" }}>
                     {points.toLocaleString()}
                   </div>
-                  <div style={{ color: '#555', fontSize: 13, letterSpacing: 1 }}>POINTS</div>
+                  <div style={{ color: '#a0aec0', fontSize: 13, letterSpacing: 1 }}>POINTS</div>
                 </div>
               </div>
             )

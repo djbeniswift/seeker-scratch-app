@@ -20,7 +20,7 @@ export function useSound() {
     })
   }, [])
 
-  // Scratching noise: short mid-range noise burst with pitch drop — fingernail on paper
+  // Scratching noise: 4 rapid overlapping bursts with varying frequencies — multiple scratch strokes
   const playScratch = useCallback(() => {
     if (typeof window === 'undefined') return
     const m = localStorage.getItem('scratch-muted') === 'true'
@@ -28,36 +28,49 @@ export function useSound() {
     const ctx = getCtx()
     if (!ctx) return
 
-    const duration = 0.08
     const sr = ctx.sampleRate
-    const buf = ctx.createBuffer(1, sr * duration, sr)
-    const data = buf.getChannelData(0)
-    for (let i = 0; i < data.length; i++) {
-      // Sharp attack, fast decay envelope
-      const attack = Math.min(i / (sr * 0.005), 1)
-      const decay = Math.pow(1 - i / data.length, 1.5)
-      data[i] = (Math.random() * 2 - 1) * attack * decay
-    }
+    // Base frequencies for each stroke — each gets a random ±15% variation
+    const baseFreqs = [400, 700, 1000, 1300]
+    const strokeDuration = 0.07  // 70ms each
+    const strokeSpacing = 0.04   // 40ms apart (overlap by 30ms)
 
-    const src = ctx.createBufferSource()
-    src.buffer = buf
+    baseFreqs.forEach((baseFreq, i) => {
+      const startTime = ctx.currentTime + i * strokeSpacing
+      // Randomize frequency so no two scratches sound identical
+      const freq = baseFreq * (0.85 + Math.random() * 0.3)
+      const bufLen = Math.floor(sr * strokeDuration)
+      const buf = ctx.createBuffer(1, bufLen, sr)
+      const data = buf.getChannelData(0)
 
-    // Mid-range bandpass: paper/fingernail texture
-    const bandpass = ctx.createBiquadFilter()
-    bandpass.type = 'bandpass'
-    bandpass.frequency.setValueAtTime(1100, ctx.currentTime)
-    bandpass.frequency.exponentialRampToValueAtTime(700, ctx.currentTime + duration)
-    bandpass.Q.value = 2.5
+      for (let j = 0; j < bufLen; j++) {
+        // Sharp attack (first 6ms), then fast decay
+        const attack = Math.min(j / (sr * 0.006), 1)
+        const decay = Math.pow(1 - j / bufLen, 1.8)
+        data[j] = (Math.random() * 2 - 1) * attack * decay
+      }
 
-    const gain = ctx.createGain()
-    gain.gain.setValueAtTime(0.5, ctx.currentTime)
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration)
+      const src = ctx.createBufferSource()
+      src.buffer = buf
 
-    src.connect(bandpass)
-    bandpass.connect(gain)
-    gain.connect(ctx.destination)
-    src.start()
-    src.stop(ctx.currentTime + duration)
+      const bandpass = ctx.createBiquadFilter()
+      bandpass.type = 'bandpass'
+      // Each stroke starts at its freq and drops slightly — fingernail drag
+      bandpass.frequency.setValueAtTime(freq, startTime)
+      bandpass.frequency.exponentialRampToValueAtTime(freq * 0.75, startTime + strokeDuration)
+      bandpass.Q.value = 2.0 + Math.random() * 1.5
+
+      const gain = ctx.createGain()
+      // Slightly vary volume per stroke for natural feel
+      const vol = 0.38 + Math.random() * 0.15
+      gain.gain.setValueAtTime(vol, startTime)
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + strokeDuration)
+
+      src.connect(bandpass)
+      bandpass.connect(gain)
+      gain.connect(ctx.destination)
+      src.start(startTime)
+      src.stop(startTime + strokeDuration)
+    })
   }, [])
 
   // Small win: warm ascending arpeggio

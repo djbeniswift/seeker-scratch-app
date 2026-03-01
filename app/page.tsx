@@ -11,6 +11,8 @@ import ProfileTab from './components/ProfileTab'
 import WinnerBanner from './components/WinnerBanner'
 import RanksTab from './components/RanksTab'
 import PrizesTab from './components/PrizesTab'
+import Confetti from './components/Confetti'
+import { useSound } from './hooks/useSound'
 
 const CARD_TYPES = [
   { id: 'QuickPick', name: 'QUICK PICK', cost: 0.01, maxPrize: 0.1, color: '#00d4ff', tag: '⚡ STARTER' },
@@ -33,6 +35,8 @@ export default function Home() {
   const [activeNav, setActiveNav] = useState('scratch')
   const [lastResult, setLastResult] = useState<{ won: boolean; prize: number } | null>(null)
   const [walletBalance, setWalletBalance] = useState(0)
+  const [showConfetti, setShowConfetti] = useState(false)
+  const { muted, toggleMute, playScratch, playSmallWin, playBigWin, playLoss } = useSound()
 
   useEffect(() => {
     setMounted(true)
@@ -64,7 +68,9 @@ export default function Home() {
     if (!wallet.publicKey) return
     
     setLastResult(null)
-    
+    setShowConfetti(false)
+    playScratch()
+
     const balanceBefore = await connection.getBalance(wallet.publicKey)
     console.log('Balance before:', balanceBefore)
     try { await buyCard(cardType) } catch (err: any) {
@@ -113,39 +119,18 @@ export default function Home() {
     setLastResult({ won, prize })
     setWalletBalance(balanceAfter / LAMPORTS_PER_SOL)
 
-    // Play sound
-    try {
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
-      if (won) {
-        // Win: ascending arpeggio
-        const notes = [523, 659, 784, 1047]
-        notes.forEach((freq, i) => {
-          const osc = ctx.createOscillator()
-          const gain = ctx.createGain()
-          osc.connect(gain)
-          gain.connect(ctx.destination)
-          osc.frequency.value = freq
-          osc.type = 'sine'
-          gain.gain.setValueAtTime(0.3, ctx.currentTime + i * 0.1)
-          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.1 + 0.3)
-          osc.start(ctx.currentTime + i * 0.1)
-          osc.stop(ctx.currentTime + i * 0.1 + 0.3)
-        })
+    if (won) {
+      const isBigWin = prize >= 0.5
+      if (isBigWin) {
+        playBigWin()
+        setShowConfetti(true)
+        setTimeout(() => setShowConfetti(false), 5000)
       } else {
-        // Loss: descending thud
-        const osc = ctx.createOscillator()
-        const gain = ctx.createGain()
-        osc.connect(gain)
-        gain.connect(ctx.destination)
-        osc.frequency.setValueAtTime(300, ctx.currentTime)
-        osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.4)
-        osc.type = 'sawtooth'
-        gain.gain.setValueAtTime(0.3, ctx.currentTime)
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4)
-        osc.start(ctx.currentTime)
-        osc.stop(ctx.currentTime + 0.4)
+        playSmallWin()
       }
-    } catch (e) { /* audio not supported */ }
+    } else {
+      playLoss()
+    }
   }
 
   const getActualMaxPrize = (cardMaxPrize: number) => {
@@ -185,7 +170,21 @@ export default function Home() {
               <div className="logo-sub">INSTANT WIN ON SOLANA</div>
             </div>
           </div>
-          <WalletButton />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button
+              onClick={toggleMute}
+              title={muted ? 'Unmute' : 'Mute'}
+              style={{
+                background: 'none', border: '1px solid var(--border)',
+                borderRadius: 8, padding: '6px 10px', cursor: 'pointer',
+                color: muted ? 'var(--muted)' : 'var(--text)', fontSize: 18,
+                lineHeight: 1,
+              }}
+            >
+              {muted ? '🔇' : '🔊'}
+            </button>
+            <WalletButton />
+          </div>
         </header>
 
         <div className="balance-bar">
@@ -444,6 +443,7 @@ export default function Home() {
         ))}
       </div>
       <AdminPanel />
+      <Confetti active={showConfetti} />
     </>
   )
 }

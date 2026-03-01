@@ -19,12 +19,17 @@ export function WalletProviders({ children }: { children: React.ReactNode }) {
     const hasInjectedWallet = typeof window !== 'undefined' && !!(
       (window as any).phantom?.solana || (window as any).solana || (window as any).backpack
     )
-    // Android native browser (Seeker/Saga) — MWA only; extension wallets have no app to open
+    const list: any[] = [
+      new PhantomWalletAdapter(),
+      new SolflareWalletAdapter(),
+      new BackpackWalletAdapter(),
+    ]
+    // MWA first on Android native browser (Seeker/Saga) — other wallets deep-link into their apps
     if (isAndroid && !hasInjectedWallet) {
       const appUri = typeof window !== 'undefined'
         ? window.location.origin
         : 'https://seekerscratch.com'
-      return [new SolanaMobileWalletAdapter({
+      list.unshift(new SolanaMobileWalletAdapter({
         addressSelector: createDefaultAddressSelector(),
         appIdentity: {
           name: 'Seeker Scratch',
@@ -34,14 +39,9 @@ export function WalletProviders({ children }: { children: React.ReactNode }) {
         authorizationResultCache: createDefaultAuthorizationResultCache(),
         onWalletNotFound: async () => { window.open('https://solanamobile.com/wallets', '_blank') },
         cluster: network,
-      })]
+      }))
     }
-    // Desktop / Phantom in-app browser — extension wallets
-    return [
-      new PhantomWalletAdapter(),
-      new SolflareWalletAdapter(),
-      new BackpackWalletAdapter(),
-    ]
+    return list
   }, [network])
 
   return (

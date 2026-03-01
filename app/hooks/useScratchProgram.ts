@@ -214,7 +214,7 @@ export function useScratchProgram() {
       instructions.push(ix)
       console.log('Instructions built:', instructions.length)
 
-      // Fetch blockhash as late as possible — right before sendTransaction — so it's
+      // Fetch blockhash as late as possible — right before signing — so it's
       // fresh when MWA receives it (MWA shows a sign prompt which can take seconds)
       const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
       console.log('Got blockhash:', blockhash)
@@ -225,7 +225,19 @@ export function useScratchProgram() {
       tx.recentBlockhash = blockhash
       console.log('Transaction compiled')
 
-      const sig = await wallet.sendTransaction(tx, connection, { skipPreflight: true, maxRetries: 3 })
+      // MWA-safe signing: use signTransaction (MWA signTransactions action) so we receive
+      // the fully-signed tx back and submit it to OUR Helius RPC with skipPreflight.
+      // wallet.sendTransaction routes through signAndSendTransaction which lets the Seeker
+      // wallet app submit to its own RPC — causing "Missing signature" rejections.
+      let sig: string
+      if (wallet.signTransaction) {
+        console.log('Using signTransaction + sendRawTransaction (MWA-safe path)')
+        const signedTx = await wallet.signTransaction(tx)
+        sig = await connection.sendRawTransaction(signedTx.serialize(), { skipPreflight: true, maxRetries: 3 })
+      } else {
+        console.log('Using sendTransaction fallback')
+        sig = await wallet.sendTransaction(tx, connection, { skipPreflight: true, maxRetries: 3 })
+      }
       console.log('Transaction sent, signature:', sig)
 
       const confirmed = await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed')

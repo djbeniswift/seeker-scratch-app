@@ -241,18 +241,37 @@ export function useScratchProgram() {
       tx.recentBlockhash = blockhash  // set immediately before signing
       console.log('Transaction compiled — feePayer:', publicKey.toBase58(), 'blockhash:', blockhash)
 
-      // MWA-safe signing: use signTransaction (MWA signTransactions action) so we receive
-      // the fully-signed tx back and submit it to OUR Helius RPC with skipPreflight.
-      // wallet.sendTransaction routes through signAndSendTransaction which lets the Seeker
-      // wallet app submit to its own RPC — causing "Missing signature" rejections.
+      // === DETAILED MWA DIAGNOSTICS ===
+      console.log('=== WALLET DIAGNOSTICS ===')
+      console.log('wallet.publicKey:', publicKey.toBase58())
+      console.log('wallet.signTransaction:', typeof wallet.signTransaction)
+      console.log('wallet.signAllTransactions:', typeof wallet.signAllTransactions)
+      console.log('wallet.sendTransaction:', typeof wallet.sendTransaction)
+      console.log('wallet.wallet?.adapter?.name:', (wallet as any).wallet?.adapter?.name)
+      console.log('tx.feePayer:', tx.feePayer?.toBase58())
+      console.log('tx.signatures before sign:', tx.signatures.map(s => ({ pubkey: s.publicKey.toBase58(), sig: s.signature?.toString('hex') ?? 'null' })))
+
       let sig: string
-      if (wallet.signTransaction) {
-        console.log('Using signTransaction + sendRawTransaction (MWA-safe path)')
-        const signedTx = await wallet.signTransaction(tx)
-        sig = await connection.sendRawTransaction(signedTx.serialize(), { skipPreflight: true, maxRetries: 3 })
-      } else {
-        console.log('Using sendTransaction fallback')
-        sig = await wallet.sendTransaction(tx, connection, { skipPreflight: true, maxRetries: 3 })
+      try {
+        if (wallet.signTransaction) {
+          console.log('Attempting signTransaction...')
+          const signedTx = await wallet.signTransaction(tx)
+          console.log('signedTx.signatures:', signedTx.signatures.map(s => ({ pubkey: s.publicKey.toBase58(), sig: s.signature?.toString('hex') ?? 'null' })))
+          const serialized = signedTx.serialize({ requireAllSignatures: false, verifySignatures: false })
+          console.log('Serialized tx length:', serialized.length)
+          sig = await connection.sendRawTransaction(serialized, { skipPreflight: true, maxRetries: 3 })
+        } else {
+          console.log('Using sendTransaction fallback')
+          sig = await wallet.sendTransaction(tx, connection, { skipPreflight: true, maxRetries: 3 })
+        }
+      } catch (signErr: any) {
+        console.error('=== SIGN ERROR DETAILS ===')
+        console.error('signErr.name:', signErr?.name)
+        console.error('signErr.message:', signErr?.message)
+        console.error('signErr.error:', JSON.stringify(signErr?.error, null, 2))
+        console.error('signErr.cause:', signErr?.cause)
+        console.error('Full error:', JSON.stringify(signErr, Object.getOwnPropertyNames(signErr), 2))
+        throw signErr
       }
       console.log('Transaction sent, signature:', sig)
 

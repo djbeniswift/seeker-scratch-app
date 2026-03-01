@@ -4,9 +4,28 @@ import { WalletProviders } from './components/WalletProvider'
 import { LeaderboardProvider } from './contexts/LeaderboardContext'
 
 export const metadata: Metadata = {
-  title: "Seeker Scratch",
-  description: "Instant win on Solana",
+  title: "Seeker Scratch | Instant Win Scratch Cards on Solana",
+  description: "Provably fair instant win scratch cards on Solana. Win SOL instantly. Built for the Seeker phone.",
   manifest: "/manifest.json",
+  metadataBase: new URL("https://seekerscratch.com"),
+  alternates: {
+    canonical: "https://seekerscratch.com",
+  },
+  openGraph: {
+    title: "Seeker Scratch | Instant Win Scratch Cards on Solana",
+    description: "Provably fair instant win scratch cards on Solana. Win SOL instantly. Built for the Seeker phone.",
+    url: "https://seekerscratch.com",
+    siteName: "Seeker Scratch",
+    type: "website",
+    images: [
+      {
+        url: "https://seekerscratch.com/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Seeker Scratch — Instant Win Scratch Cards on Solana",
+      },
+    ],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",

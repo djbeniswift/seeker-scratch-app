@@ -5,7 +5,7 @@ import { PublicKey, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js'
 import { useState, useEffect } from 'react'
 import { PROGRAM_ID, TREASURY_SEED, IDL } from '../lib/constants'
 
-const ADMIN = 'A6CqGe7oeEqctqqiJJn7ep4H64gKUzipKaARssD4hcFx'
+const ADMIN = '6RhLQikkjzace4ti4D458iSmKofbPdMGNB7VKHmWwYPP'
 
 export default function AdminPanel() {
   const { publicKey, signTransaction, signAllTransactions } = useWallet()

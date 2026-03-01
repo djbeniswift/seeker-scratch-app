@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/beswift/Documents/**)",
+      "Read(//Users/beswift/**)",
+      "Bash(anchor build)",
+      "Bash(solana --version)",
+      "Bash(cargo-build-sbf --version)",
+      "Bash(rustup run 1.75.0 cargo --version)",
+      "Bash(rustup run 1.77.2 cargo --version)",
+      "Bash(git commit -m \"Switch scratch sound to public/scratch.mp3 audio file\")"
+    ],
+    "additionalDirectories": [
+      "/Users/beswift/Downloads",
+      "/Users/beswift/Documents/seeker-scratch-program",
+      "/Users/beswift/Documents"
+    ]
+  }
+}

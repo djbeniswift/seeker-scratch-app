@@ -266,8 +266,9 @@ export function useScratchProgram() {
           console.log('Attempting signTransaction (serialize-patched)...')
           const signedTx = await wallet.signTransaction(tx)
           console.log('signedTx.signatures:', signedTx.signatures.map((s: any) => ({ pubkey: s.publicKey.toBase58(), sig: s.signature?.toString('hex') ?? 'null' })))
-          const serialized = origSerialize({ requireAllSignatures: false, verifySignatures: false })
-          console.log('Serialized tx length:', serialized.length)
+          // Serialize signedTx (has real signature bytes), NOT the original tx (which is unsigned/all-zeros)
+          const serialized = signedTx.serialize({ requireAllSignatures: false, verifySignatures: false })
+          console.log('Serialized signedTx length:', serialized.length)
           sig = await connection.sendRawTransaction(serialized, { skipPreflight: true, maxRetries: 3 })
         } else {
           console.log('Using sendTransaction fallback')

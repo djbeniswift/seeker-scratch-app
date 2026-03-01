@@ -20,59 +20,16 @@ export function useSound() {
     })
   }, [])
 
-  // Scratch sound: continuous white noise through bandpass + LFO modulation
+  // Scratch sound: plays /scratch.mp3 from public folder
   const playScratch = useCallback(() => {
     if (typeof window === 'undefined') return
     const m = localStorage.getItem('scratch-muted') === 'true'
     if (m) return
-    const ctx = getCtx()
-    if (!ctx) return
-
-    const attack = 0.02   // 20ms
-    const sustain = 0.20  // 200ms
-    const release = 0.08  // 80ms
-    const total = attack + sustain + release
-
-    // White noise buffer
-    const sr = ctx.sampleRate
-    const buf = ctx.createBuffer(1, Math.floor(sr * total), sr)
-    const data = buf.getChannelData(0)
-    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1
-
-    const src = ctx.createBufferSource()
-    src.buffer = buf
-
-    // Bandpass at 1000hz, wide Q for texture not clicks
-    const bandpass = ctx.createBiquadFilter()
-    bandpass.type = 'bandpass'
-    bandpass.frequency.value = 1000
-    bandpass.Q.value = 0.5
-
-    // LFO at 8hz modulates filter freq between 800-1200hz (±200hz)
-    const lfo = ctx.createOscillator()
-    lfo.type = 'sine'
-    lfo.frequency.value = 8
-    const lfoGain = ctx.createGain()
-    lfoGain.gain.value = 200
-    lfo.connect(lfoGain)
-    lfoGain.connect(bandpass.frequency)
-
-    // Amplitude envelope: attack / sustain / release
-    const env = ctx.createGain()
-    const t = ctx.currentTime
-    env.gain.setValueAtTime(0, t)
-    env.gain.linearRampToValueAtTime(0.6, t + attack)
-    env.gain.setValueAtTime(0.6, t + attack + sustain)
-    env.gain.linearRampToValueAtTime(0, t + attack + sustain + release)
-
-    src.connect(bandpass)
-    bandpass.connect(env)
-    env.connect(ctx.destination)
-
-    lfo.start(t)
-    src.start(t)
-    lfo.stop(t + total)
-    src.stop(t + total)
+    try {
+      const audio = new Audio('/scratch.mp3')
+      audio.volume = 0.7
+      audio.play().catch(() => {})
+    } catch {}
   }, [])
 
   // Small win: warm ascending arpeggio

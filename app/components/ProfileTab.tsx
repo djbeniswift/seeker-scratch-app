@@ -156,7 +156,7 @@ export default function ProfileTab({ wallet, publicKey, connection }: any) {
         <div style={{ color: 'var(--gold)', fontSize: 22, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 2, marginBottom: 4 }}>
           {profile?.displayName || 'ANONYMOUS'}
         </div>
-        <div style={{ color: '#555', fontSize: 10, fontFamily: 'monospace', wordBreak: 'break-all', marginBottom: 8 }}>
+        <div style={{ color: '#555', fontSize: 12, fontFamily: 'monospace', wordBreak: 'break-all', marginBottom: 8 }}>
           {publicKey?.toBase58()}
         </div>
 
@@ -179,9 +179,9 @@ export default function ProfileTab({ wallet, publicKey, connection }: any) {
           background: 'var(--card-bg)', border: '1px solid var(--gold)',
           borderRadius: 12, padding: 16, marginBottom: 16
         }}>
-          <div style={{ color: 'var(--gold)', fontSize: 11, letterSpacing: 2, marginBottom: 12 }}>EDIT PROFILE</div>
+          <div style={{ color: 'var(--gold)', fontSize: 13, letterSpacing: 2, marginBottom: 12 }}>EDIT PROFILE</div>
           <div style={{ marginBottom: 10 }}>
-            <div style={{ color: '#aaa', fontSize: 11, marginBottom: 4 }}>USERNAME (max 16 chars)</div>
+            <div style={{ color: '#aaa', fontSize: 13, marginBottom: 4 }}>USERNAME (max 16 chars)</div>
             <input
               value={name}
               onChange={e => setName(e.target.value.slice(0, 16))}
@@ -194,7 +194,7 @@ export default function ProfileTab({ wallet, publicKey, connection }: any) {
             />
           </div>
           <div style={{ marginBottom: 12 }}>
-            <div style={{ color: '#aaa', fontSize: 11, marginBottom: 8 }}>PROFILE PICTURE</div>
+            <div style={{ color: '#aaa', fontSize: 13, marginBottom: 8 }}>PROFILE PICTURE</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{
                 width: 64, height: 64, borderRadius: '50%',
@@ -239,7 +239,7 @@ export default function ProfileTab({ wallet, publicKey, connection }: any) {
               border: 'none', borderRadius: 8, cursor: 'pointer'
             }}>Cancel</button>
           </div>
-          {status && <div style={{ marginTop: 8, fontSize: 12, color: status.startsWith('✅') ? 'var(--green)' : '#f87171' }}>{status}</div>}
+          {status && <div style={{ marginTop: 8, fontSize: 13, color: status.startsWith('✅') ? 'var(--green)' : '#f87171' }}>{status}</div>}
         </div>
       )}
 
@@ -256,7 +256,7 @@ export default function ProfileTab({ wallet, publicKey, connection }: any) {
             borderRadius: 10, padding: '12px', textAlign: 'center'
           }}>
             <div style={{ color, fontSize: 20, fontFamily: "'Bebas Neue', sans-serif" }}>{value}</div>
-            <div style={{ color: '#555', fontSize: 10, letterSpacing: 1, marginTop: 2 }}>{label}</div>
+            <div style={{ color: '#555', fontSize: 13, letterSpacing: 1, marginTop: 2 }}>{label}</div>
           </div>
         ))}
       </div>
@@ -266,7 +266,7 @@ export default function ProfileTab({ wallet, publicKey, connection }: any) {
         background: 'var(--card-bg)', border: '1px solid var(--border)',
         borderRadius: 12, padding: 16, marginBottom: 16
       }}>
-        <div style={{ color: 'var(--gold)', fontSize: 11, letterSpacing: 2, marginBottom: 12 }}>POINTS BREAKDOWN</div>
+        <div style={{ color: 'var(--gold)', fontSize: 13, letterSpacing: 2, marginBottom: 12 }}>POINTS BREAKDOWN</div>
         {[
           { label: 'Points This Month', value: profile?.pointsThisMonth || 0 },
           { label: 'Points All Time', value: profile?.pointsAllTime || 0 },
@@ -278,8 +278,8 @@ export default function ProfileTab({ wallet, publicKey, connection }: any) {
             display: 'flex', justifyContent: 'space-between',
             padding: '8px 0', borderBottom: '1px solid #111'
           }}>
-            <span style={{ color: '#aaa', fontSize: 12 }}>{label}</span>
-            <span style={{ color: 'var(--gold)', fontSize: 12, fontWeight: 'bold' }}>{value}</span>
+            <span style={{ color: '#aaa', fontSize: 13 }}>{label}</span>
+            <span style={{ color: 'var(--gold)', fontSize: 13, fontWeight: 'bold' }}>{value}</span>
           </div>
         ))}
       </div>

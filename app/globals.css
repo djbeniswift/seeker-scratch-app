@@ -66,7 +66,7 @@ header {
 }
 
 .logo-sub {
-  font-size: 9px;
+  font-size: 12px;
   color: var(--muted);
   font-family: monospace;
   letter-spacing: 1px;
@@ -90,7 +90,7 @@ header {
 }
 
 .balance-label {
-  font-size: 10px;
+  font-size: 13px;
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -131,7 +131,7 @@ header {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--gold);
   font-family: monospace;
   font-weight: bold;
@@ -173,7 +173,7 @@ header {
 .stat-value.text-cyan { color: var(--cyan); }
 
 .stat-label {
-  font-size: 10px;
+  font-size: 13px;
   color: var(--muted);
   text-transform: uppercase;
   font-family: monospace;
@@ -302,7 +302,7 @@ body {
   .logo-text { font-size: 20px; }
   .balance-value { font-size: 15px; }
   .stat-value { font-size: 20px; }
-  .feature-item { font-size: 10px; }
+  .feature-item { font-size: 12px; }
   .feature-icon { font-size: 13px; }
 }
 
@@ -344,17 +344,17 @@ button, [role="button"] {
 
   .balance-bar { padding: 10px 8px; margin-bottom: 10px; }
   .balance-value { font-size: 15px; }
-  .balance-label { font-size: 8px; }
+  .balance-label { font-size: 11px; }
 
   .feature-banner { padding: 8px; gap: 6px; margin-bottom: 10px; }
-  .feature-item { font-size: 9px; gap: 3px; }
+  .feature-item { font-size: 11px; gap: 3px; }
   .feature-icon { font-size: 12px; }
   .feature-divider { display: none; }
 
   .stats-row { gap: 6px; margin-bottom: 12px; }
   .stat-cell { padding: 10px 6px; }
   .stat-value { font-size: 18px; }
-  .stat-label { font-size: 8px; }
+  .stat-label { font-size: 11px; }
 
   .app { padding: 12px; padding-bottom: max(90px, calc(70px + env(safe-area-inset-bottom))); }
 }

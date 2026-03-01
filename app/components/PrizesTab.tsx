@@ -16,11 +16,11 @@ export default function PrizesTab() {
       }}>
         <div style={{ fontSize: 36, marginBottom: 6 }}>🏆</div>
         <div style={{ color: 'var(--gold)', fontSize: 26, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 2 }}>MONTHLY PRIZES</div>
-        <div style={{ color: '#aaa', fontSize: 12, marginTop: 4 }}>Top 3 players by points each month win SOL + SKR</div>
+        <div style={{ color: '#aaa', fontSize: 13, marginTop: 4 }}>Top 3 players by points each month win SOL + SKR</div>
       </div>
 
       <div style={{ background: '#0a0a1a', border: '1px solid var(--border)', borderRadius: 10, padding: 14, marginBottom: 16 }}>
-        <div style={{ color: 'var(--gold)', fontSize: 11, letterSpacing: 2, marginBottom: 10 }}>HOW TO EARN POINTS</div>
+        <div style={{ color: 'var(--gold)', fontSize: 13, letterSpacing: 2, marginBottom: 10 }}>HOW TO EARN POINTS</div>
         {[
           { card: 'Quick Pick (0.01 SOL)', pts: '1 pt' },
           { card: 'Hot Shot (0.05 SOL)', pts: '5 pts' },
@@ -28,8 +28,8 @@ export default function PrizesTab() {
           { card: 'Refer a friend', pts: '+100 pts' },
         ].map(({ card, pts }) => (
           <div key={card} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #111' }}>
-            <span style={{ color: '#aaa', fontSize: 12 }}>{card}</span>
-            <span style={{ color: 'var(--gold)', fontSize: 12, fontWeight: 'bold' }}>{pts}</span>
+            <span style={{ color: '#aaa', fontSize: 13 }}>{card}</span>
+            <span style={{ color: 'var(--gold)', fontSize: 13, fontWeight: 'bold' }}>{pts}</span>
           </div>
         ))}
       </div>
@@ -47,7 +47,7 @@ export default function PrizesTab() {
         ))}
       </div>
 
-      <div style={{ padding: 14, background: 'rgba(245,200,66,0.05)', border: '1px solid rgba(245,200,66,0.2)', borderRadius: 10, color: '#aaa', fontSize: 12, textAlign: 'center', lineHeight: 1.6 }}>
+      <div style={{ padding: 14, background: 'rgba(245,200,66,0.05)', border: '1px solid rgba(245,200,66,0.2)', borderRadius: 10, color: '#aaa', fontSize: 13, textAlign: 'center', lineHeight: 1.6 }}>
         🏆 Monthly prizes paid out on the 1st of each month.<br/>
         Check the Ranks tab to see your position!
       </div>

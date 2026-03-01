@@ -122,8 +122,8 @@ export default function ReferTab({ wallet, publicKey, connection, onClaimBonus }
 
       {/* Referral Link */}
       <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
-        <div style={{ color: 'var(--gold)', fontSize: 11, letterSpacing: 2, marginBottom: 8 }}>YOUR REFERRAL LINK</div>
-        <div style={{ background: '#0a0a1a', borderRadius: 8, padding: '10px 12px', fontSize: 10, color: '#aaa', fontFamily: 'monospace', wordBreak: 'break-all', marginBottom: 10 }}>
+        <div style={{ color: 'var(--gold)', fontSize: 13, letterSpacing: 2, marginBottom: 8 }}>YOUR REFERRAL LINK</div>
+        <div style={{ background: '#0a0a1a', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: '#aaa', fontFamily: 'monospace', wordBreak: 'break-all', marginBottom: 10 }}>
           {referralLink}
         </div>
         <button onClick={copyLink} style={{
@@ -139,15 +139,15 @@ export default function ReferTab({ wallet, publicKey, connection, onClaimBonus }
       {/* Stats */}
       {profile && (
         <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
-          <div style={{ color: 'var(--gold)', fontSize: 11, letterSpacing: 2, marginBottom: 12 }}>YOUR REFERRAL STATS</div>
+          <div style={{ color: 'var(--gold)', fontSize: 13, letterSpacing: 2, marginBottom: 12 }}>YOUR REFERRAL STATS</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div style={{ textAlign: 'center', background: '#0a0a1a', borderRadius: 8, padding: 12 }}>
               <div style={{ color: 'var(--gold)', fontSize: 28, fontFamily: "'Bebas Neue', sans-serif" }}>{profile.referralsCount}</div>
-              <div style={{ color: '#aaa', fontSize: 11, letterSpacing: 1 }}>FRIENDS REFERRED</div>
+              <div style={{ color: '#aaa', fontSize: 13, letterSpacing: 1 }}>FRIENDS REFERRED</div>
             </div>
             <div style={{ textAlign: 'center', background: '#0a0a1a', borderRadius: 8, padding: 12 }}>
               <div style={{ color: '#00d4ff', fontSize: 28, fontFamily: "'Bebas Neue', sans-serif" }}>{profile.referralsCount * 100}</div>
-              <div style={{ color: '#aaa', fontSize: 11, letterSpacing: 1 }}>POINTS EARNED</div>
+              <div style={{ color: '#aaa', fontSize: 13, letterSpacing: 1 }}>POINTS EARNED</div>
             </div>
           </div>
         </div>
@@ -160,7 +160,7 @@ export default function ReferTab({ wallet, publicKey, connection, onClaimBonus }
           border: `1px solid ${profile.referralBonusPaid ? 'var(--green)' : profile.hasBeenReferred ? 'var(--gold)' : 'var(--border)'}`,
           borderRadius: 12, padding: 16, marginBottom: 16
         }}>
-          <div style={{ color: 'var(--gold)', fontSize: 11, letterSpacing: 2, marginBottom: 12 }}>YOUR BONUS STATUS</div>
+          <div style={{ color: 'var(--gold)', fontSize: 13, letterSpacing: 2, marginBottom: 12 }}>YOUR BONUS STATUS</div>
           {!profile.hasBeenReferred && (
             <div style={{ color: '#aaa', fontSize: 13, textAlign: 'center', padding: '8px 0' }}>
               No referrer yet — ask a friend to share their link
@@ -171,7 +171,7 @@ export default function ReferTab({ wallet, publicKey, connection, onClaimBonus }
               <div style={{ color: '#fff', fontSize: 13, marginBottom: 12 }}>
                 🎯 You were referred! Play <strong style={{ color: 'var(--gold)' }}>0.1 SOL</strong> worth of cards to unlock your <strong style={{ color: '#00d4ff' }}>10 point bonus</strong>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#aaa', marginBottom: 4 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#aaa', marginBottom: 4 }}>
                 <span>Progress</span><span>{profile.totalSpent.toFixed(3)} / 0.1 SOL</span>
               </div>
               <div style={{ background: '#0a0a1a', borderRadius: 99, height: 8, marginBottom: 12 }}>
@@ -217,7 +217,7 @@ export default function ReferTab({ wallet, publicKey, connection, onClaimBonus }
 
       {/* How it works */}
       <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
-        <div style={{ color: 'var(--gold)', fontSize: 11, letterSpacing: 2, marginBottom: 12 }}>HOW IT WORKS</div>
+        <div style={{ color: 'var(--gold)', fontSize: 13, letterSpacing: 2, marginBottom: 12 }}>HOW IT WORKS</div>
         {[
           { step: '1', text: 'Copy your referral link above' },
           { step: '2', text: 'Share it with friends' },

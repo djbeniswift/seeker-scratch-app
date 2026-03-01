@@ -12,7 +12,6 @@ import WinnerBanner from './components/WinnerBanner'
 import RanksTab from './components/RanksTab'
 import PrizesTab from './components/PrizesTab'
 import Confetti from './components/Confetti'
-import ShareWinModal from './components/ShareWinModal'
 import { useSound } from './hooks/useSound'
 
 const CARD_TYPES = [
@@ -37,7 +36,6 @@ export default function Home() {
   const [lastResult, setLastResult] = useState<{ won: boolean; prize: number } | null>(null)
   const [walletBalance, setWalletBalance] = useState(0)
   const [showConfetti, setShowConfetti] = useState(false)
-  const [shareWinAmount, setShareWinAmount] = useState<number | null>(null)
   const { muted, toggleMute, playScratch, playSmallWin, playBigWin, playLoss } = useSound()
 
   useEffect(() => {
@@ -71,7 +69,6 @@ export default function Home() {
     
     setLastResult(null)
     setShowConfetti(false)
-    setShareWinAmount(null)
     playScratch()
 
     const balanceBefore = await connection.getBalance(wallet.publicKey)
@@ -131,7 +128,6 @@ export default function Home() {
       }
       setShowConfetti(true)
       setTimeout(() => setShowConfetti(false), 5000)
-      setTimeout(() => setShareWinAmount(prize), 1200)
     } else {
       playLoss()
     }
@@ -241,18 +237,18 @@ export default function Home() {
 
         {profile && (
           <div style={{ marginBottom: 20, padding: 16, background: 'var(--surface)', border: '1px solid rgba(0,212,255,0.3)', borderRadius: 12 }}>
-            <div style={{ fontSize: 11, color: 'var(--cyan)', marginBottom: 12, fontFamily: 'monospace' }}>📊 YOUR STATS</div>
+            <div style={{ fontSize: 13, color: 'var(--cyan)', marginBottom: 12, fontFamily: 'monospace' }}>📊 YOUR STATS</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, textAlign: 'center' }}>
               <div>
-                <div style={{ fontSize: 10, color: 'var(--muted)' }}>Scratched</div>
+                <div style={{ fontSize: 13, color: 'var(--muted)' }}>Scratched</div>
                 <div style={{ fontSize: 18, color: 'var(--text)', fontFamily: "'Bebas Neue', sans-serif" }}>{profile.cardsScratched}</div>
               </div>
               <div>
-                <div style={{ fontSize: 10, color: 'var(--muted)' }}>Wins</div>
+                <div style={{ fontSize: 13, color: 'var(--muted)' }}>Wins</div>
                 <div style={{ fontSize: 18, color: 'var(--green)', fontFamily: "'Bebas Neue', sans-serif" }}>{profile.wins}</div>
               </div>
               <div>
-                <div style={{ fontSize: 10, color: 'var(--muted)' }}>Points</div>
+                <div style={{ fontSize: 13, color: 'var(--muted)' }}>Points</div>
                 <div style={{ fontSize: 18, color: 'var(--gold)', fontFamily: "'Bebas Neue', sans-serif" }}>{profile.pointsThisMonth}</div>
               </div>
             </div>
@@ -308,7 +304,7 @@ export default function Home() {
               <>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                   <h2 style={{ fontSize: 14, color: 'var(--muted)', fontFamily: 'monospace', margin: 0 }}>CHOOSE YOUR CARD</h2>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--green)', fontFamily: 'monospace' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--green)', fontFamily: 'monospace' }}>
                     <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--green)', display: 'inline-block', animation: 'pulse 2s infinite' }} />
                     LIVE
                   </div>
@@ -348,13 +344,13 @@ export default function Home() {
                       >
                         {/* Left: tag + name + odds */}
                         <div>
-                          <div style={{ fontSize: 10, color: card.color, marginBottom: 6, fontFamily: 'monospace', letterSpacing: 1 }}>{card.tag}</div>
+                          <div style={{ fontSize: 13, color: card.color, marginBottom: 6, fontFamily: 'monospace', letterSpacing: 1 }}>{card.tag}</div>
                           <div style={{ fontSize: 26, color: card.color, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 2, lineHeight: 1, marginBottom: 8 }}>{card.name}</div>
 
                         </div>
                         {/* Right: UP TO + cost button */}
                         <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'monospace', marginBottom: 4 }}>UP TO</div>
+                          <div style={{ fontSize: 13, color: 'var(--muted)', fontFamily: 'monospace', marginBottom: 4 }}>UP TO</div>
                           <div style={{ fontSize: 42, color: card.color, fontFamily: "'Bebas Neue', sans-serif", lineHeight: 1, marginBottom: 2 }}>
                             {actualMaxPrize >= 1 ? actualMaxPrize.toFixed(0) : actualMaxPrize.toFixed(1)}
                           </div>
@@ -442,15 +438,12 @@ export default function Home() {
             }}
           >
             <span style={{ fontSize: 20 }}>{nav.icon}</span>
-            <span style={{ fontSize: 11, fontFamily: 'monospace' }}>{nav.label}</span>
+            <span style={{ fontSize: 13, fontFamily: 'monospace' }}>{nav.label}</span>
           </div>
         ))}
       </div>
       <AdminPanel />
       <Confetti active={showConfetti} />
-      {shareWinAmount !== null && (
-        <ShareWinModal amount={shareWinAmount} onClose={() => setShareWinAmount(null)} />
-      )}
     </>
   )
 }

@@ -251,13 +251,22 @@ export function useScratchProgram() {
       console.log('tx.feePayer:', tx.feePayer?.toBase58())
       console.log('tx.signatures before sign:', tx.signatures.map(s => ({ pubkey: s.publicKey.toBase58(), sig: s.signature?.toString('hex') ?? 'null' })))
 
+      // CRITICAL MWA FIX: The v2.x @solana-mobile/wallet-adapter-mobile calls
+      // tx.serialize() internally with DEFAULT options (requireAllSignatures: true)
+      // before sending to the wallet app. This fails on unsigned transactions.
+      // Patch tx.serialize to force requireAllSignatures: false so the adapter
+      // can package the tx without needing it pre-signed.
+      const origSerialize = (tx as any).serialize.bind(tx)
+      ;(tx as any).serialize = (config?: any) =>
+        origSerialize({ requireAllSignatures: false, verifySignatures: false, ...config })
+
       let sig: string
       try {
         if (wallet.signTransaction) {
-          console.log('Attempting signTransaction...')
+          console.log('Attempting signTransaction (serialize-patched)...')
           const signedTx = await wallet.signTransaction(tx)
-          console.log('signedTx.signatures:', signedTx.signatures.map(s => ({ pubkey: s.publicKey.toBase58(), sig: s.signature?.toString('hex') ?? 'null' })))
-          const serialized = signedTx.serialize({ requireAllSignatures: false, verifySignatures: false })
+          console.log('signedTx.signatures:', signedTx.signatures.map((s: any) => ({ pubkey: s.publicKey.toBase58(), sig: s.signature?.toString('hex') ?? 'null' })))
+          const serialized = origSerialize({ requireAllSignatures: false, verifySignatures: false })
           console.log('Serialized tx length:', serialized.length)
           sig = await connection.sendRawTransaction(serialized, { skipPreflight: true, maxRetries: 3 })
         } else {

@@ -147,7 +147,7 @@ export function useScratchProgram() {
     }
   }, [wallet.publicKey])
 
-  const buyCard = useCallback(async (cardType: string) => {
+  const buyCard = useCallback(async (cardType: string, pendingReferrer?: string) => {
     const program = getProgram()
     if (!program || !wallet.publicKey) throw new Error('Wallet not connected')
 
@@ -158,15 +158,26 @@ export function useScratchProgram() {
       console.log('Profile PDA:', profilePda.toBase58())
 
       // Get referrer profile PDA — fall back to admin's profile (always a valid PlayerProfile) if no referrer
-      const ADMIN_PUBKEY = new PublicKey('A6CqGe7oeEqctqqiJJn7ep4H64gKUzipKaARssD4hcFx')
+      const ADMIN_PUBKEY = new PublicKey('6RhLQikkjzace4ti4D458iSmKofbPdMGNB7VKHmWwYPP')
       let referrerProfilePda: PublicKey = getProfilePda(ADMIN_PUBKEY)
+      let shouldRegisterReferral = false
       try {
         const profileData = await (program.account as any).playerProfile.fetch(profilePda)
         if (profileData.hasBeenReferred) {
           referrerProfilePda = getProfilePda(profileData.referredBy)
+        } else if (pendingReferrer) {
+          // Profile exists but not yet referred — will register in this tx
+          const referrerKey = new PublicKey(pendingReferrer)
+          referrerProfilePda = getProfilePda(referrerKey)
+          shouldRegisterReferral = true
         }
       } catch {
-        // Profile doesn't exist yet - no referrer, use admin profile as dummy
+        // Profile doesn't exist yet — if a referrer was passed, register in this tx
+        if (pendingReferrer) {
+          const referrerKey = new PublicKey(pendingReferrer)
+          referrerProfilePda = getProfilePda(referrerKey)
+          shouldRegisterReferral = true
+        }
       }
 
       const cardTypeArg = {
@@ -176,7 +187,22 @@ export function useScratchProgram() {
       }[cardType]
       console.log('Card type arg:', cardTypeArg)
 
-      // Build instruction manually to avoid any simulation
+      const instructions = []
+
+      // Bundle referral registration as first instruction if needed — one signature, no second prompt
+      if (shouldRegisterReferral && pendingReferrer) {
+        const referrerKey = new PublicKey(pendingReferrer)
+        const registerIx = await (program.methods as any).registerReferral().accounts({
+          refereeProfile: profilePda,
+          referee: wallet.publicKey,
+          referrer: referrerKey,
+          systemProgram: SystemProgram.programId,
+        }).instruction()
+        instructions.push(registerIx)
+        console.log('Bundled registerReferral instruction for referrer:', pendingReferrer)
+      }
+
+      // Build buyAndScratch instruction
       const ix = await (program.methods as any).buyAndScratch(cardTypeArg).accounts({
         treasury: treasuryPda,
         profile: profilePda,
@@ -185,7 +211,8 @@ export function useScratchProgram() {
         player: wallet.publicKey,
         systemProgram: SystemProgram.programId,
       }).instruction()
-      console.log('Instruction built')
+      instructions.push(ix)
+      console.log('Instructions built:', instructions.length)
 
       // Fetch blockhash as late as possible — right before sendTransaction — so it's
       // fresh when MWA receives it (MWA shows a sign prompt which can take seconds)
@@ -193,7 +220,7 @@ export function useScratchProgram() {
       console.log('Got blockhash:', blockhash)
 
       // Use legacy transaction for maximum wallet compatibility (iOS + Android + MWA)
-      const tx = new Transaction().add(ix)
+      const tx = new Transaction().add(...instructions)
       tx.feePayer = wallet.publicKey!
       tx.recentBlockhash = blockhash
       console.log('Transaction compiled')
@@ -219,7 +246,7 @@ export function useScratchProgram() {
         }).catch(() => {})
 
         // Auto-pause if the admin wallet is the one buying
-        const ADMIN_KEY = 'A6CqGe7oeEqctqqiJJn7ep4H64gKUzipKaARssD4hcFx'
+        const ADMIN_KEY = '6RhLQikkjzace4ti4D458iSmKofbPdMGNB7VKHmWwYPP'
         if (wallet.publicKey?.toBase58() === ADMIN_KEY) {
           try {
             await (program.methods as any).setPaused(true).accounts({

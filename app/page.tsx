@@ -36,11 +36,15 @@ export default function Home() {
   const [lastResult, setLastResult] = useState<{ won: boolean; prize: number } | null>(null)
   const [walletBalance, setWalletBalance] = useState(0)
   const [showConfetti, setShowConfetti] = useState(false)
+  const [pendingReferrer, setPendingReferrer] = useState<string | null>(null)
   const { muted, toggleMute, playScratch, playSmallWin, playBigWin, playLoss } = useSound()
 
   useEffect(() => {
     setMounted(true)
     fetchTreasury()
+    // Read ?ref= param once on mount — no transaction, just store it
+    const ref = new URLSearchParams(window.location.search).get('ref')
+    if (ref) setPendingReferrer(ref)
   }, [])
 
   useEffect(() => {
@@ -51,17 +55,6 @@ export default function Home() {
     }
   }, [wallet.publicKey, connection])
 
-  // Auto-register referral when wallet connects and ?ref= is in the URL
-  // After registration, also try to credit (handles case where user already has enough spend)
-  useEffect(() => {
-    if (!wallet.publicKey) return
-    const ref = new URLSearchParams(window.location.search).get('ref')
-    if (!ref) { console.log('No ?ref= param in URL'); return }
-    console.log('Auto-registering referral for ref:', ref)
-    registerReferral(ref)
-      .then(() => { console.log('Referral registered, attempting credit...'); return creditReferrer() })
-      .catch(e => console.log('Referral auto-register failed:', e.message))
-  }, [wallet.publicKey])
 
   const handleBuyCard = async (cardType: string) => {
     if (!wallet.connected) { alert("Please connect your wallet first"); return }
@@ -73,7 +66,7 @@ export default function Home() {
 
     const balanceBefore = await connection.getBalance(wallet.publicKey)
     console.log('Balance before:', balanceBefore)
-    try { await buyCard(cardType) } catch (err: any) {
+    try { await buyCard(cardType, pendingReferrer ?? undefined) } catch (err: any) {
       const details = [
         "msg: " + (err?.message || '?'),
         "name: " + (err?.name || '?'),
@@ -118,6 +111,8 @@ export default function Home() {
     console.log('Final result - won:', won, 'prize:', prize)
     setLastResult({ won, prize })
     setWalletBalance(balanceAfter / LAMPORTS_PER_SOL)
+    // Referral was bundled into this tx — clear it so it doesn't re-register on subsequent buys
+    if (pendingReferrer) setPendingReferrer(null)
 
     if (won) {
       const isBigWin = prize >= 0.5

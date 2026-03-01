@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { Program, AnchorProvider } from '@coral-xyz/anchor'
-import { PublicKey, SystemProgram } from '@solana/web3.js'
+import { PublicKey } from '@solana/web3.js'
 import { PROGRAM_ID, PROFILE_SEED, IDL } from '../lib/constants'
 
 export default function ReferTab({ wallet, publicKey, connection, onClaimBonus }: any) {
@@ -70,15 +70,8 @@ export default function ReferTab({ wallet, publicKey, connection, onClaimBonus }
         const data = await (program.account as any).playerProfile.fetch(pda)
         if (data.hasBeenReferred) { setReferralStatus('ℹ️ You already have a referrer'); return }
       } catch {}
-      setReferralStatus('⏳ Registering referral...')
-      await (program.methods as any).registerReferral().accounts({
-        refereeProfile: pda,
-        referee: publicKey,
-        referrer,
-        systemProgram: SystemProgram.programId,
-      }).rpc({ commitment: 'confirmed' })
-      setReferralStatus('✅ Referral registered! Play 0.1 SOL worth of cards to unlock your 10 point bonus')
-      await fetchProfile()
+      // Referral registration is bundled into the first card purchase — no separate tx needed
+      setReferralStatus('🎁 Referral link detected! Your referrer will be registered automatically when you buy your first card.')
     } catch (e: any) {
       setReferralStatus(`❌ ${e.message?.slice(0, 80)}`)
     }

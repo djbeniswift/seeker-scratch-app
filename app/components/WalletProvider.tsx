@@ -1,13 +1,57 @@
 'use client'
-import { WalletAdapterNetwork } from '@solana/wallet-adapter-base'
+import { WalletAdapterNetwork, WalletReadyState } from '@solana/wallet-adapter-base'
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react'
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui'
 import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets'
 import { BackpackWalletAdapter } from '@solana/wallet-adapter-backpack'
 import { SolanaMobileWalletAdapter, createDefaultAuthorizationResultCache, createDefaultAddressSelector } from '@solana-mobile/wallet-adapter-mobile'
-import { clusterApiUrl } from '@solana/web3.js'
 import { useMemo } from 'react'
 import '@solana/wallet-adapter-react-ui/styles.css'
+
+// On Android without an injected wallet, redirect to the wallet's in-app browser
+// so it opens seekerscratch.com inside the wallet (where the wallet IS injected).
+function androidDeepLink(base: string) {
+  const pageUrl = encodeURIComponent(window.location.href)
+  const ref = encodeURIComponent(window.location.origin)
+  window.location.href = `${base}${pageUrl}?ref=${ref}`
+}
+function isAndroidNoWallet(readyState: WalletReadyState) {
+  return typeof window !== 'undefined'
+    && /Android/i.test(navigator.userAgent)
+    && readyState !== WalletReadyState.Installed
+}
+
+class PhantomDeepLinkAdapter extends PhantomWalletAdapter {
+  async connect(): Promise<void> {
+    if (isAndroidNoWallet(this.readyState)) {
+      androidDeepLink('https://phantom.app/ul/v1/browse/')
+      return
+    }
+    return super.connect()
+  }
+}
+
+class SolflareDeepLinkAdapter extends SolflareWalletAdapter {
+  async connect(): Promise<void> {
+    if (isAndroidNoWallet(this.readyState)) {
+      androidDeepLink('https://solflare.com/ul/v1/browse/')
+      return
+    }
+    return super.connect()
+  }
+}
+
+class BackpackDeepLinkAdapter extends BackpackWalletAdapter {
+  async connect(): Promise<void> {
+    if (isAndroidNoWallet(this.readyState)) {
+      const pageUrl = encodeURIComponent(window.location.href)
+      const ref = encodeURIComponent(window.location.origin)
+      window.location.href = `https://backpack.app/browse?url=${pageUrl}&ref=${ref}`
+      return
+    }
+    return super.connect()
+  }
+}
 
 export function WalletProviders({ children }: { children: React.ReactNode }) {
   const network = WalletAdapterNetwork.Mainnet
@@ -20,11 +64,11 @@ export function WalletProviders({ children }: { children: React.ReactNode }) {
       (window as any).phantom?.solana || (window as any).solana || (window as any).backpack
     )
     const list: any[] = [
-      new PhantomWalletAdapter(),
-      new SolflareWalletAdapter(),
-      new BackpackWalletAdapter(),
+      new PhantomDeepLinkAdapter(),
+      new SolflareDeepLinkAdapter(),
+      new BackpackDeepLinkAdapter(),
     ]
-    // MWA first on Android native browser (Seeker/Saga) — other wallets deep-link into their apps
+    // MWA first on Android native browser (Seeker/Saga)
     if (isAndroid && !hasInjectedWallet) {
       const appUri = typeof window !== 'undefined'
         ? window.location.origin

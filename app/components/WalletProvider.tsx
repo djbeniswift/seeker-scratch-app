@@ -8,45 +8,52 @@ import { SolanaMobileWalletAdapter, createDefaultAuthorizationResultCache, creat
 import { useMemo } from 'react'
 import '@solana/wallet-adapter-react-ui/styles.css'
 
-// On Android without an injected wallet, redirect to the wallet's in-app browser
-// so it opens seekerscratch.com inside the wallet (where the wallet IS injected).
-function androidDeepLink(base: string) {
-  const pageUrl = encodeURIComponent(window.location.href)
-  const ref = encodeURIComponent(window.location.origin)
-  window.location.href = `${base}${pageUrl}?ref=${ref}`
-}
-function isAndroidNoWallet(readyState: WalletReadyState) {
-  return typeof window !== 'undefined'
-    && /Android/i.test(navigator.userAgent)
-    && readyState !== WalletReadyState.Installed
+function isAndroidWithoutWallet(injected: boolean) {
+  return typeof window !== 'undefined' && /Android/i.test(navigator.userAgent) && !injected
 }
 
+// Phantom defaults to NotDetected on Android — the library never calls connect() for NotDetected wallets.
+// Setting _readyState = Loadable on Android causes WalletProviderBase to call connect(),
+// and PhantomWalletAdapter.connect() already handles Loadable by redirecting to phantom.app/ul/browse/.
 class PhantomDeepLinkAdapter extends PhantomWalletAdapter {
-  async connect(): Promise<void> {
-    if (isAndroidNoWallet(this.readyState)) {
-      androidDeepLink('https://phantom.app/ul/v1/browse/')
-      return
+  constructor() {
+    super()
+    if (isAndroidWithoutWallet(!!(window as any).phantom?.solana)) {
+      ;(this as any)._readyState = WalletReadyState.Loadable
+      this.emit('readyStateChange', WalletReadyState.Loadable)
     }
-    return super.connect()
   }
 }
 
+// SolflareWalletAdapter already defaults to Loadable in the browser — no readyState fix needed.
+// Its built-in Loadable redirect only fires on iOS though, so we override connect() for Android.
 class SolflareDeepLinkAdapter extends SolflareWalletAdapter {
   async connect(): Promise<void> {
-    if (isAndroidNoWallet(this.readyState)) {
-      androidDeepLink('https://solflare.com/ul/v1/browse/')
+    if (isAndroidWithoutWallet(!!(window as any).solflare)) {
+      const url = encodeURIComponent(window.location.href)
+      const ref = encodeURIComponent(window.location.origin)
+      window.location.href = `https://solflare.com/ul/v1/browse/${url}?ref=${ref}`
       return
     }
     return super.connect()
   }
 }
 
+// Backpack defaults to NotDetected on Android — same fix as Phantom.
+// Backpack has no built-in Loadable redirect, so we also override connect().
 class BackpackDeepLinkAdapter extends BackpackWalletAdapter {
+  constructor() {
+    super()
+    if (isAndroidWithoutWallet(!!(window as any).backpack)) {
+      ;(this as any)._readyState = WalletReadyState.Loadable
+      this.emit('readyStateChange', WalletReadyState.Loadable)
+    }
+  }
   async connect(): Promise<void> {
-    if (isAndroidNoWallet(this.readyState)) {
-      const pageUrl = encodeURIComponent(window.location.href)
+    if (isAndroidWithoutWallet(!!(window as any).backpack)) {
+      const url = encodeURIComponent(window.location.href)
       const ref = encodeURIComponent(window.location.origin)
-      window.location.href = `https://backpack.app/browse?url=${pageUrl}&ref=${ref}`
+      window.location.href = `https://backpack.app/browse?url=${url}&ref=${ref}`
       return
     }
     return super.connect()
@@ -59,7 +66,6 @@ export function WalletProviders({ children }: { children: React.ReactNode }) {
 
   const wallets = useMemo(() => {
     const isAndroid = typeof window !== 'undefined' && /Android/i.test(navigator.userAgent)
-    // If a wallet extension is already injected (e.g. Phantom in-app browser), skip MWA
     const hasInjectedWallet = typeof window !== 'undefined' && !!(
       (window as any).phantom?.solana || (window as any).solana || (window as any).backpack
     )

@@ -27,7 +27,7 @@ export function useSound() {
     if (m) return
     try {
       const audio = new Audio('/scratch.mp3')
-      audio.volume = 0.7
+      audio.volume = 0.3
       audio.play().catch(() => {})
     } catch {}
   }, [])

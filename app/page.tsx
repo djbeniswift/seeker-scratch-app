@@ -123,11 +123,11 @@ export default function Home() {
       const isBigWin = prize >= 0.5
       if (isBigWin) {
         playBigWin()
-        setShowConfetti(true)
-        setTimeout(() => setShowConfetti(false), 5000)
       } else {
         playSmallWin()
       }
+      setShowConfetti(true)
+      setTimeout(() => setShowConfetti(false), 5000)
     } else {
       playLoss()
     }

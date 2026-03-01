@@ -20,7 +20,7 @@ export function useSound() {
     })
   }, [])
 
-  // Scratching noise: filtered white noise burst
+  // Scratching noise: short mid-range noise burst with pitch drop — fingernail on paper
   const playScratch = useCallback(() => {
     if (typeof window === 'undefined') return
     const m = localStorage.getItem('scratch-muted') === 'true'
@@ -28,26 +28,29 @@ export function useSound() {
     const ctx = getCtx()
     if (!ctx) return
 
-    const duration = 0.35
+    const duration = 0.08
     const sr = ctx.sampleRate
     const buf = ctx.createBuffer(1, sr * duration, sr)
     const data = buf.getChannelData(0)
     for (let i = 0; i < data.length; i++) {
-      // Noise that rises then fades
-      const env = Math.pow(Math.sin((i / data.length) * Math.PI), 0.5)
-      data[i] = (Math.random() * 2 - 1) * env
+      // Sharp attack, fast decay envelope
+      const attack = Math.min(i / (sr * 0.005), 1)
+      const decay = Math.pow(1 - i / data.length, 1.5)
+      data[i] = (Math.random() * 2 - 1) * attack * decay
     }
 
     const src = ctx.createBufferSource()
     src.buffer = buf
 
+    // Mid-range bandpass: paper/fingernail texture
     const bandpass = ctx.createBiquadFilter()
     bandpass.type = 'bandpass'
-    bandpass.frequency.value = 2800
-    bandpass.Q.value = 1.5
+    bandpass.frequency.setValueAtTime(1100, ctx.currentTime)
+    bandpass.frequency.exponentialRampToValueAtTime(700, ctx.currentTime + duration)
+    bandpass.Q.value = 2.5
 
     const gain = ctx.createGain()
-    gain.gain.setValueAtTime(0.35, ctx.currentTime)
+    gain.gain.setValueAtTime(0.5, ctx.currentTime)
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration)
 
     src.connect(bandpass)

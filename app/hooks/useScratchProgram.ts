@@ -149,12 +149,15 @@ export function useScratchProgram() {
 
   const buyCard = useCallback(async (cardType: string, pendingReferrer?: string) => {
     const program = getProgram()
-    if (!program || !wallet.publicKey) throw new Error('Wallet not connected')
+    // Capture publicKey into a local variable immediately — MWA sessions can drift
+    // and wallet.publicKey accessed later may differ from the account that signs
+    const publicKey = wallet.publicKey
+    if (!program || !publicKey) throw new Error('Wallet not connected')
 
     setLoading(true)
     try {
-      console.log('🎰 buyCard started for:', cardType)
-      const profilePda = getProfilePda(wallet.publicKey)
+      console.log('🎰 buyCard started for:', cardType, 'feePayer:', publicKey.toBase58())
+      const profilePda = getProfilePda(publicKey)
       console.log('Profile PDA:', profilePda.toBase58())
 
       // Get referrer profile PDA — fall back to admin's profile (always a valid PlayerProfile) if no referrer
@@ -194,7 +197,7 @@ export function useScratchProgram() {
         const referrerKey = new PublicKey(pendingReferrer)
         const registerIx = await (program.methods as any).registerReferral().accounts({
           refereeProfile: profilePda,
-          referee: wallet.publicKey,
+          referee: publicKey,
           referrer: referrerKey,
           systemProgram: SystemProgram.programId,
         }).instruction()
@@ -208,22 +211,22 @@ export function useScratchProgram() {
         profile: profilePda,
         referrerProfile: referrerProfilePda,
         houseWallet: new PublicKey("DBH2VpbjWLdrJnau4RjdpYBTcLy9pMGa1qQr4U9dDgER"),
-        player: wallet.publicKey,
+        player: publicKey,
         systemProgram: SystemProgram.programId,
       }).instruction()
       instructions.push(ix)
       console.log('Instructions built:', instructions.length)
 
-      // Fetch blockhash as late as possible — right before signing — so it's
-      // fresh when MWA receives it (MWA shows a sign prompt which can take seconds)
-      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
-      console.log('Got blockhash:', blockhash)
+      // Build transaction object first with the captured publicKey as feePayer.
+      // Then fetch blockhash as the LAST async step and set it immediately before
+      // signing — minimises the window between blockhash issue and MWA prompt.
+      const tx = new Transaction()
+      tx.add(...instructions)
+      tx.feePayer = publicKey   // explicit local var — avoids MWA session drift
 
-      // Use legacy transaction for maximum wallet compatibility (iOS + Android + MWA)
-      const tx = new Transaction().add(...instructions)
-      tx.feePayer = wallet.publicKey!
-      tx.recentBlockhash = blockhash
-      console.log('Transaction compiled')
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
+      tx.recentBlockhash = blockhash  // set immediately before signing
+      console.log('Transaction compiled — feePayer:', publicKey.toBase58(), 'blockhash:', blockhash)
 
       // MWA-safe signing: use signTransaction (MWA signTransactions action) so we receive
       // the fully-signed tx back and submit it to OUR Helius RPC with skipPreflight.
@@ -259,11 +262,11 @@ export function useScratchProgram() {
 
         // Auto-pause if the admin wallet is the one buying
         const ADMIN_KEY = '6RhLQikkjzace4ti4D458iSmKofbPdMGNB7VKHmWwYPP'
-        if (wallet.publicKey?.toBase58() === ADMIN_KEY) {
+        if (publicKey.toBase58() === ADMIN_KEY) {
           try {
             await (program.methods as any).setPaused(true).accounts({
               treasury: treasuryPda,
-              admin: wallet.publicKey,
+              admin: publicKey,
             }).rpc()
             console.log('⏸ Treasury low — game auto-paused')
           } catch (e) {

@@ -1,6 +1,60 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useWallet, useConnection } from '@solana/wallet-adapter-react'
+
+function formatBuyError(err: any): string {
+  // Always log the full error object for debugging
+  console.error('❌ buyCard full error:', err)
+  try { console.error('❌ buyCard JSON:', JSON.stringify(err, null, 2)) } catch {}
+
+  const isDev = process.env.NODE_ENV !== 'production'
+
+  const lines: string[] = []
+
+  // Error type + message
+  const name = err?.name || err?.constructor?.name || 'Error'
+  const msg = err?.message || String(err)
+  lines.push(`[${name}] ${msg}`)
+
+  // Wallet/MWA error code
+  if (err?.code !== undefined) lines.push(`Code: ${err.code}`)
+
+  // Anchor program error
+  if (err?.error?.errorCode) {
+    const ec = err.error.errorCode
+    lines.push(`Program error: ${ec.code ?? ''} (${ec.number ?? ''})`)
+  }
+
+  // Transaction signature (if tx landed before error)
+  const sig = err?.signature || err?.transactionSignature
+  if (sig) lines.push(`Signature: ${sig}`)
+
+  // Transaction logs — always show in dev, show error lines in prod
+  const logs: string[] = err?.logs ?? err?.transactionLogs ?? err?.error?.logs ?? []
+  if (logs.length > 0) {
+    if (isDev) {
+      lines.push(`Logs:\n${logs.join('\n')}`)
+    } else {
+      const errLogs = logs.filter((l: string) =>
+        /Error|error|failed|panicked|violated/i.test(l)
+      )
+      if (errLogs.length > 0) lines.push(`Logs: ${errLogs.slice(-3).join(' | ')}`)
+    }
+  }
+
+  // MWA nested cause
+  const cause = err?.cause ?? err?.error
+  if (cause && cause !== err && isDev) {
+    lines.push(`Cause: ${cause?.message ?? JSON.stringify(cause).slice(0, 120)}`)
+  }
+
+  // Full JSON dump in dev only
+  if (isDev) {
+    try { lines.push(`Full: ${JSON.stringify(err).slice(0, 400)}`) } catch {}
+  }
+
+  return lines.join('\n')
+}
 import WalletButton from './components/WalletButton'
 import { useScratchProgram } from './hooks/useScratchProgram'
 import { LAMPORTS_PER_SOL } from '@solana/web3.js'
@@ -67,14 +121,7 @@ export default function Home() {
     const balanceBefore = await connection.getBalance(wallet.publicKey)
     console.log('Balance before:', balanceBefore)
     try { await buyCard(cardType, pendingReferrer ?? undefined) } catch (err: any) {
-      const details = [
-        "msg: " + (err?.message || '?'),
-        "name: " + (err?.name || '?'),
-        "code: " + (err?.code || '?'),
-        "logs: " + JSON.stringify(err?.logs || err?.transactionLogs || []).slice(0, 200),
-        "full: " + JSON.stringify(err).slice(0, 300),
-      ].join('\n')
-      alert(details)
+      alert(formatBuyError(err))
       return
     }
     

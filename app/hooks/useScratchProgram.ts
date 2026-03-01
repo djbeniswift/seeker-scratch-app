@@ -25,6 +25,19 @@ export function useScratchProgram() {
     return new AnchorProvider(connection, walletAdapter as any, { commitment: 'confirmed' })
   }, [connection, wallet])
 
+  // Read-only provider for building instructions — no wallet attached.
+  // This prevents Anchor from injecting the provider wallet (the MWA session key,
+  // which differs from wallet.publicKey) as a required signer into instruction
+  // account metas, which causes "Missing signature for public key <MWA key>" errors.
+  const getReadOnlyProgram = useCallback(() => {
+    const readProvider = new AnchorProvider(connection, {
+      publicKey: PublicKey.default,
+      signTransaction: async (tx: any) => tx,
+      signAllTransactions: async (txs: any[]) => txs,
+    } as any, { commitment: 'confirmed' })
+    return new Program(IDL as any, PROGRAM_ID, readProvider)
+  }, [connection])
+
   const getProgram = useCallback(() => {
     const provider = getProvider()
     if (!provider) return null
@@ -195,7 +208,7 @@ export function useScratchProgram() {
       // Bundle referral registration as first instruction if needed — one signature, no second prompt
       if (shouldRegisterReferral && pendingReferrer) {
         const referrerKey = new PublicKey(pendingReferrer)
-        const registerIx = await (program.methods as any).registerReferral().accounts({
+        const registerIx = await (getReadOnlyProgram().methods as any).registerReferral().accounts({
           refereeProfile: profilePda,
           referee: publicKey,
           referrer: referrerKey,
@@ -206,7 +219,7 @@ export function useScratchProgram() {
       }
 
       // Build buyAndScratch instruction
-      const ix = await (program.methods as any).buyAndScratch(cardTypeArg).accounts({
+      const ix = await (getReadOnlyProgram().methods as any).buyAndScratch(cardTypeArg).accounts({
         treasury: treasuryPda,
         profile: profilePda,
         referrerProfile: referrerProfilePda,
@@ -283,7 +296,7 @@ export function useScratchProgram() {
     } finally {
       setLoading(false)
     }
-  }, [getProgram, wallet.publicKey, treasuryPda, getProfilePda, fetchTreasury, fetchProfile, creditReferrer])
+  }, [getProgram, getReadOnlyProgram, wallet.publicKey, treasuryPda, getProfilePda, fetchTreasury, fetchProfile, creditReferrer])
 
   return { treasury, profile, loading, fetchTreasury, fetchProfile, buyCard, registerReferral, creditReferrer, getProgram }
 }

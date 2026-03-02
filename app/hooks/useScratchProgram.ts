@@ -309,24 +309,34 @@ export function useScratchProgram() {
         }).compileToV0Message()
         const vtx = new VersionedTransaction(message)
 
-        // === PRE-FLIGHT SIMULATION — get real error before Phantom rejects ===
-        console.log('--- Running pre-flight simulation ---')
-        try {
-          const simResult = await connection.simulateTransaction(vtx, { commitment: 'confirmed' })
-          console.log('Sim err:', JSON.stringify(simResult.value.err))
-          console.log('Sim logs:', simResult.value.logs?.join(' | '))
-          console.log('Sim unitsConsumed:', simResult.value.unitsConsumed)
-          if (simResult.value.err) {
-            console.error('SIMULATION FAILED — program likely rejected tx')
-            console.error('accounts:', simResult.value.accounts)
-          }
-        } catch (simErr: any) {
-          console.error('simulateTransaction threw:', simErr?.message)
+        // Run simulation via Helius first — surfaces real program errors
+        // before the wallet rejects with a generic -32603.
+        // sigVerify: false because the tx is unsigned at this point.
+        console.log('--- Pre-flight simulation ---')
+        const simResult = await connection.simulateTransaction(vtx, {
+          commitment: 'confirmed',
+          sigVerify: false,
+          replaceRecentBlockhash: true,
+        } as any)
+        console.log('Sim err:', JSON.stringify(simResult.value.err))
+        console.log('Sim logs:', simResult.value.logs?.join(' | '))
+        if (simResult.value.err) {
+          const logs = simResult.value.logs?.slice(-6).join('\n') ?? ''
+          throw new Error(`Simulation failed:\n${JSON.stringify(simResult.value.err)}\n${logs}`)
         }
-        console.log('--- End simulation ---')
+        console.log('Simulation passed — submitting')
 
-        console.log('Standard path: VersionedTransaction + sendTransaction')
-        sig = await wallet.sendTransaction(vtx as any, connection, { skipPreflight: true, maxRetries: 5 })
+        // Sign via wallet then submit through Helius directly.
+        // Avoids Phantom's signAndSendTransaction which routes via Phantom's own
+        // RPC and ignores our skipPreflight — causing -32603 for specific accounts.
+        console.log('Standard path: signTransaction → sendRawTransaction via Helius')
+        if (!wallet.signTransaction) {
+          // Fallback for wallets that don't expose signTransaction separately
+          sig = await wallet.sendTransaction(vtx as any, connection, { skipPreflight: true, maxRetries: 5 })
+        } else {
+          const signedVtx = await wallet.signTransaction(vtx as any)
+          sig = await connection.sendRawTransaction((signedVtx as any).serialize(), { skipPreflight: true, maxRetries: 5 })
+        }
       }
       console.log('Transaction sent, signature:', sig)
 
@@ -336,12 +346,9 @@ export function useScratchProgram() {
       await fetchTreasury()
       await fetchProfile()
 
-      // Try to credit referrer after successful purchase (fire and forget — separate tx)
-      try {
-        await creditReferrer()
-      } catch (e) {
-        console.log('creditReferrer post-purchase failed (non-critical):', e)
-      }
+      // Note: creditReferrer is NOT called here — buyAndScratch already credits
+      // the referrer on-chain via referrerProfile: isMut. Calling it again would
+      // trigger a second wallet signing prompt and fail (referralBonusPaid is true).
 
       // Treasury health check — auto-pause + email alert if balance drops below 6 SOL
       const postBuyLamports = await connection.getBalance(treasuryPda)

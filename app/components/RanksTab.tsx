@@ -148,7 +148,7 @@ export default function RanksTab({ connection, wallet, publicKey }: any) {
           {sorted.map((player, i) => {
             const isMe = player.wallet === myWallet
             const points = period === 'month' ? player.pointsThisMonth : player.pointsAllTime
-            const shortWallet = `${player.wallet.slice(0, 4)}...${player.wallet.slice(-4)}`
+            const shortWallet = `${player.wallet.slice(0, 6)}...${player.wallet.slice(-5)}`
 
             return (
               <div key={player.wallet} style={{
@@ -189,9 +189,6 @@ export default function RanksTab({ connection, wallet, publicKey }: any) {
                     letterSpacing: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
                   }}>
                     {player.displayName || shortWallet} {isMe && '(YOU)'}
-                  </div>
-                  <div style={{ color: '#a0aec0', fontSize: 13, marginTop: 2 }}>
-                    {player.wins}W • {player.cardsScratched} played
                   </div>
                 </div>
 

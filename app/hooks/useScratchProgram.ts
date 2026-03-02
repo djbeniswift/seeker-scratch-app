@@ -273,26 +273,20 @@ export function useScratchProgram() {
 
       let sig: string
       try {
-        if (wallet.signTransaction) {
-          console.log('Attempting signTransaction (serialize-patched)...')
-          const signedTx = await wallet.signTransaction(tx)
-          console.log('signedTx.signatures:', signedTx.signatures.map((s: any) => ({ pubkey: s.publicKey.toBase58(), sig: s.signature?.toString('hex') ?? 'null' })))
-          // Serialize signedTx (has real signature bytes), NOT the original tx (which is unsigned/all-zeros)
-          const serialized = signedTx.serialize({ requireAllSignatures: false, verifySignatures: false })
-          console.log('Serialized signedTx length:', serialized.length)
-          sig = await connection.sendRawTransaction(serialized, { skipPreflight: false, maxRetries: 3 })
-        } else {
-          console.log('Using sendTransaction fallback')
-          sig = await wallet.sendTransaction(tx, connection, { skipPreflight: true, maxRetries: 3 })
-        }
+        console.log('Attempting signTransaction (serialize-patched)...')
+        const signedTx = await wallet.signTransaction!(tx)
+        console.log('signedTx.signatures:', signedTx.signatures.map((s: any) => ({ pubkey: s.publicKey.toBase58(), sig: s.signature?.toString('hex') ?? 'null' })))
+        const serialized = signedTx.serialize({ requireAllSignatures: false, verifySignatures: false })
+        console.log('Serialized signedTx length:', serialized.length)
+        sig = await connection.sendRawTransaction(serialized, { skipPreflight: false, maxRetries: 5 })
       } catch (signErr: any) {
-        console.error('=== SIGN ERROR DETAILS ===')
-        console.error('signErr.name:', signErr?.name)
-        console.error('signErr.message:', signErr?.message)
-        console.error('signErr.error:', JSON.stringify(signErr?.error, null, 2))
-        console.error('signErr.cause:', signErr?.cause)
-        console.error('Full error:', JSON.stringify(signErr, Object.getOwnPropertyNames(signErr), 2))
-        throw signErr
+        // -32603 = Phantom internal error on signTransaction, fall back to sendTransaction
+        if (signErr?.error?.code === -32603 || signErr?.name === 'WalletSignTransactionError') {
+          console.log('signTransaction failed, falling back to sendTransaction...')
+          sig = await wallet.sendTransaction(tx, connection, { skipPreflight: false, maxRetries: 5 })
+        } else {
+          throw signErr
+        }
       }
       console.log('Transaction sent, signature:', sig)
 

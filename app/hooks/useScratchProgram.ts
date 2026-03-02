@@ -188,8 +188,8 @@ export function useScratchProgram() {
             shouldCreditReferrer = true
             creditReferrerKey = profileData.referredBy
           }
-        } else if (pendingReferrer) {
-          // Profile exists but not yet referred — will register in this tx
+        } else if (pendingReferrer && pendingReferrer !== publicKey.toBase58()) {
+          // Profile exists but not yet referred — will register in this tx (skip self-referral)
           const referrerKey = new PublicKey(pendingReferrer)
           referrerProfilePda = getProfilePda(referrerKey)
           shouldRegisterReferral = true
@@ -198,7 +198,7 @@ export function useScratchProgram() {
         }
       } catch {
         // Profile doesn't exist yet — if a referrer was passed, register in this tx
-        if (pendingReferrer) {
+        if (pendingReferrer && pendingReferrer !== publicKey.toBase58()) {
           const referrerKey = new PublicKey(pendingReferrer)
           referrerProfilePda = getProfilePda(referrerKey)
           shouldRegisterReferral = true
@@ -302,6 +302,13 @@ export function useScratchProgram() {
       await fetchTreasury()
       await fetchProfile()
 
+      // Try to credit referrer after successful purchase (fire and forget — separate tx)
+      try {
+        await creditReferrer()
+      } catch (e) {
+        console.log('creditReferrer post-purchase failed (non-critical):', e)
+      }
+
       // Treasury health check — auto-pause + email alert if balance drops below 6 SOL
       const postBuyLamports = await connection.getBalance(treasuryPda)
       const postBuyBalanceSol = postBuyLamports / LAMPORTS_PER_SOL
@@ -336,7 +343,7 @@ export function useScratchProgram() {
     } finally {
       setLoading(false)
     }
-  }, [getProgram, getReadOnlyProgram, wallet.publicKey, treasuryPda, getProfilePda, fetchTreasury, fetchProfile])
+  }, [getProgram, getReadOnlyProgram, wallet.publicKey, treasuryPda, getProfilePda, fetchTreasury, fetchProfile, creditReferrer])
 
   return { treasury, profile, loading, fetchTreasury, fetchProfile, buyCard, registerReferral, creditReferrer, getProgram }
 }

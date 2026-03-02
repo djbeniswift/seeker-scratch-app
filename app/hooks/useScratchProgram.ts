@@ -276,27 +276,35 @@ export function useScratchProgram() {
       console.log('tx.signatures before sign:', tx.signatures.map(s => ({ pubkey: s.publicKey.toBase58(), sig: s.signature?.toString('hex') ?? 'null' })))
 
       const isMobile = typeof window !== 'undefined' && /Android|iPhone|iPad/i.test(navigator.userAgent)
-      const isMWA = (wallet as any).wallet?.adapter?.name === 'Mobile Wallet Adapter'
+      const isMWA = (wallet as any).wallet?.adapter?.name === 'Mobile Wallet Adapter' ||
+                    ((wallet as any).wallet?.adapter?.name === 'Phantom' && isMobile)
 
       let sig: string
       if (isMWA) {
-        // MWA path: sendTransaction handles signing internally via the wallet app.
-        // The serialize monkey-patch is needed here so MWA can package the unsigned tx.
+        console.log('MWA/PhantomMobile path: sendTransaction')
+        console.log('isMobile:', isMobile, 'adapterName:', (wallet as any).wallet?.adapter?.name)
         const origSerialize = (tx as any).serialize.bind(tx)
         ;(tx as any).serialize = (config?: any) =>
           origSerialize({ requireAllSignatures: false, verifySignatures: false, ...config })
-        console.log('MWA path: sendTransaction')
-        let rawSig = await wallet.sendTransaction(tx, connection, { skipPreflight: true, maxRetries: 5 })
-        console.log('Raw MWA sig:', rawSig)
-
-        // MWA always returns base64 — convert to base58 for confirmTransaction
         try {
-          rawSig = base64ToBase58(rawSig)
-          console.log('Converted base64→base58:', rawSig)
-        } catch (e) {
-          console.log('Already base58 or conversion failed:', e)
+          let rawSig = await wallet.sendTransaction(tx, connection, { skipPreflight: true, maxRetries: 5 })
+          console.log('Raw sig from sendTransaction:', rawSig)
+          console.log('Sig type check — includes +:', rawSig.includes('+'), '/:', rawSig.includes('/'), '=:', rawSig.includes('='))
+          try {
+            rawSig = base64ToBase58(rawSig)
+            console.log('Converted base64→base58:', rawSig)
+          } catch (e) {
+            console.log('base64ToBase58 failed (may already be base58):', e)
+          }
+          sig = rawSig
+        } catch (mwaErr: any) {
+          console.error('MWA sendTransaction failed:')
+          console.error('mwaErr.name:', mwaErr?.name)
+          console.error('mwaErr.message:', mwaErr?.message)
+          console.error('mwaErr.error:', JSON.stringify(mwaErr?.error))
+          console.error('mwaErr.code:', mwaErr?.code)
+          throw mwaErr
         }
-        sig = rawSig
       } else {
         // Standard path: signTransaction then sendRawTransaction (no monkey-patch needed)
         console.log('Standard path: signTransaction')

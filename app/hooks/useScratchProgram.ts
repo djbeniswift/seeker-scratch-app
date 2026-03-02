@@ -1,6 +1,6 @@
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { Program, AnchorProvider } from '@coral-xyz/anchor'
-import { PublicKey, LAMPORTS_PER_SOL, SystemProgram, Transaction } from '@solana/web3.js'
+import { PublicKey, LAMPORTS_PER_SOL, SystemProgram, Transaction, TransactionMessage, VersionedTransaction } from '@solana/web3.js'
 import { useCallback, useState, useEffect } from 'react'
 
 // Pure-JS base64 → base58 conversion for MWA signatures (no external dep needed)
@@ -254,36 +254,28 @@ export function useScratchProgram() {
       instructions.push(ix)
       console.log('Instructions built:', instructions.length)
 
-      // Build transaction object first with the captured publicKey as feePayer.
-      // Then fetch blockhash as the LAST async step and set it immediately before
-      // signing — minimises the window between blockhash issue and MWA prompt.
-      const tx = new Transaction()
-      tx.add(...instructions)
-      tx.feePayer = publicKey   // explicit local var — avoids MWA session drift
-
+      // Fetch blockhash last before signing — minimises blockhash staleness window
       const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
-      tx.recentBlockhash = blockhash  // set immediately before signing
-      console.log('Transaction compiled — feePayer:', publicKey.toBase58(), 'blockhash:', blockhash)
-
-      // === DETAILED MWA DIAGNOSTICS ===
-      console.log('=== WALLET DIAGNOSTICS ===')
-      console.log('wallet.publicKey:', publicKey.toBase58())
-      console.log('wallet.signTransaction:', typeof wallet.signTransaction)
-      console.log('wallet.signAllTransactions:', typeof wallet.signAllTransactions)
-      console.log('wallet.sendTransaction:', typeof wallet.sendTransaction)
-      console.log('wallet.wallet?.adapter?.name:', (wallet as any).wallet?.adapter?.name)
-      console.log('tx.feePayer:', tx.feePayer?.toBase58())
-      console.log('tx.signatures before sign:', tx.signatures.map(s => ({ pubkey: s.publicKey.toBase58(), sig: s.signature?.toString('hex') ?? 'null' })))
 
       const isMobile = typeof window !== 'undefined' && /Android|iPhone|iPad/i.test(navigator.userAgent)
       const isMWA = (wallet as any).wallet?.adapter?.name === 'Mobile Wallet Adapter'
 
+      console.log('=== WALLET DIAGNOSTICS ===')
+      console.log('wallet.publicKey:', publicKey.toBase58())
+      console.log('adapterName:', (wallet as any).wallet?.adapter?.name, 'isMWA:', isMWA, 'isMobile:', isMobile)
+      console.log('blockhash:', blockhash)
+
       let sig: string
       if (isMWA) {
-        // MWA (Seeker/Saga): needs serialize monkey-patch so the adapter can
-        // package the unsigned tx without requireAllSignatures failing.
-        // Returns base64 — convert to base58 for confirmTransaction.
-        console.log('MWA path: sendTransaction with serialize patch')
+        // MWA (Seeker/Saga): must use legacy Transaction + serialize monkey-patch.
+        // MWA adapter calls tx.serialize() internally with requireAllSignatures: true
+        // before sending to the wallet app — patch overrides this so it doesn't fail.
+        // Returns base64 sig — convert to base58 for confirmTransaction.
+        const tx = new Transaction()
+        tx.add(...instructions)
+        tx.feePayer = publicKey
+        tx.recentBlockhash = blockhash
+        console.log('MWA path: legacy Transaction + serialize patch')
         const origSerialize = (tx as any).serialize.bind(tx)
         ;(tx as any).serialize = (config?: any) =>
           origSerialize({ requireAllSignatures: false, verifySignatures: false, ...config })
@@ -298,11 +290,16 @@ export function useScratchProgram() {
         sig = rawSig
       } else {
         // All other wallets (Phantom, Backpack, Solflare in-browser):
-        // sendTransaction WITHOUT the monkey-patch — this is what worked
-        // historically before the signTransaction split was introduced.
-        // signTransaction + sendRawTransaction was breaking Phantom.
-        console.log('Standard path: sendTransaction (no serialize patch)')
-        sig = await wallet.sendTransaction(tx, connection, { skipPreflight: true, maxRetries: 5 })
+        // VersionedTransaction — this is what worked at the last confirmed working
+        // state (commit 743603c). Legacy Transaction causes -32603 in Phantom.
+        const message = new TransactionMessage({
+          payerKey: publicKey,
+          recentBlockhash: blockhash,
+          instructions,
+        }).compileToV0Message()
+        const vtx = new VersionedTransaction(message)
+        console.log('Standard path: VersionedTransaction + sendTransaction')
+        sig = await wallet.sendTransaction(vtx as any, connection, { skipPreflight: true, maxRetries: 5 })
       }
       console.log('Transaction sent, signature:', sig)
 

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { Analytics } from "@vercel/analytics/next"
 import { WalletProviders } from './components/WalletProvider'
 import { LeaderboardProvider } from './contexts/LeaderboardContext'
 
@@ -63,6 +64,7 @@ export default function RootLayout({
             {children}
           </LeaderboardProvider>
         </WalletProviders>
+        <Analytics />
       </body>
     </html>
   );

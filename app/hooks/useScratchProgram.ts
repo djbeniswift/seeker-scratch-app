@@ -277,27 +277,28 @@ export function useScratchProgram() {
 
       let sig: string
       if (isMWA) {
-        // MWA (Seeker/Saga): must use legacy Transaction + serialize monkey-patch.
-        // MWA adapter calls tx.serialize() internally with requireAllSignatures: true
-        // before sending to the wallet app — patch overrides this so it doesn't fail.
-        // Returns base64 sig — convert to base58 for confirmTransaction.
+        console.log('MWA path: signTransaction')
         const tx = new Transaction()
         tx.add(...instructions)
         tx.feePayer = publicKey
         tx.recentBlockhash = blockhash
-        console.log('MWA path: legacy Transaction + serialize patch')
         const origSerialize = (tx as any).serialize.bind(tx)
         ;(tx as any).serialize = (config?: any) =>
           origSerialize({ requireAllSignatures: false, verifySignatures: false, ...config })
-        let rawSig = await wallet.sendTransaction(tx, connection, { skipPreflight: true, maxRetries: 5 })
-        console.log('Raw MWA sig:', rawSig)
-        try {
-          rawSig = base64ToBase58(rawSig)
-          console.log('Converted base64→base58:', rawSig)
-        } catch (e) {
-          console.log('base64ToBase58 failed (may already be base58):', e)
+
+        // Add feePayer signature slot manually — MWA requires it present before signing
+        if (!tx.signatures.find(s => s.publicKey.equals(publicKey))) {
+          tx.signatures.unshift({ publicKey, signature: null })
         }
-        sig = rawSig
+
+        const signedTx = await wallet.signTransaction!(tx)
+        console.log('MWA signedTx signatures:', signedTx.signatures.map(s => ({
+          pubkey: s.publicKey.toBase58(),
+          sig: s.signature ? 'present' : 'null'
+        })))
+
+        const serialized = signedTx.serialize({ requireAllSignatures: false, verifySignatures: false })
+        sig = await connection.sendRawTransaction(serialized, { skipPreflight: true, maxRetries: 5 })
       } else {
         // All other wallets (Phantom, Backpack, Solflare in-browser):
         // VersionedTransaction — this is what worked at the last confirmed working

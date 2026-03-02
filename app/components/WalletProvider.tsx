@@ -102,31 +102,45 @@ export function WalletProviders({ children }: { children: React.ReactNode }) {
   const wallets = useMemo(() => {
     const isAndroid = typeof window !== 'undefined' && /Android/i.test(navigator.userAgent)
     const hasInjectedWallet = typeof window !== 'undefined' && hasAnyInjectedWallet()
-    const list: any[] = [
-      new PhantomDeepLinkAdapter(),
-      new SolflareDeepLinkAdapter(),
-      new BackpackDeepLinkAdapter(),
-    ]
-    // Add MWA on Android only when no wallet app is already injected.
-    // Inside Phantom/Solflare/Backpack's browser the wallet IS injected — adding MWA there
-    // causes it to fire solana-wallet:// URI scheme requests that those browsers can't handle.
-    if (isAndroid && !hasInjectedWallet) {
-      const appUri = typeof window !== 'undefined'
-        ? window.location.origin
-        : 'https://seekerscratch.com'
-      list.unshift(new SolanaMobileWalletAdapter({
-        addressSelector: createDefaultAddressSelector(),
-        appIdentity: {
-          name: 'Seeker Scratch',
-          uri: appUri,
-          icon: '/icon-192.png',
-        },
-        authorizationResultCache: createDefaultAuthorizationResultCache(),
-        onWalletNotFound: async () => { window.open('https://solanamobile.com/wallets', '_blank') },
-        cluster: network,
-      }))
+
+    // Inside a wallet's in-app browser: use plain adapters only.
+    // The injected wallet shows as Installed and connects directly.
+    // Non-injected wallets show as NotDetected and do nothing — no deep linking.
+    if (hasInjectedWallet) {
+      return [
+        new PhantomWalletAdapter(),
+        new SolflareWalletAdapter(),
+        new BackpackWalletAdapter(),
+      ]
     }
-    return list
+
+    // Native Android Chrome (no injected wallet): offer MWA + deep link adapters.
+    if (isAndroid) {
+      const appUri = window.location.origin
+      return [
+        new SolanaMobileWalletAdapter({
+          addressSelector: createDefaultAddressSelector(),
+          appIdentity: {
+            name: 'Seeker Scratch',
+            uri: appUri,
+            icon: '/icon-192.png',
+          },
+          authorizationResultCache: createDefaultAuthorizationResultCache(),
+          onWalletNotFound: async () => { window.open('https://solanamobile.com/wallets', '_blank') },
+          cluster: network,
+        }),
+        new PhantomDeepLinkAdapter(),
+        new SolflareDeepLinkAdapter(),
+        new BackpackDeepLinkAdapter(),
+      ]
+    }
+
+    // Desktop / iOS: standard adapters.
+    return [
+      new PhantomWalletAdapter(),
+      new SolflareWalletAdapter(),
+      new BackpackWalletAdapter(),
+    ]
   }, [network])
 
   return (

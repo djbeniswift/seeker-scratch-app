@@ -298,6 +298,23 @@ export function useScratchProgram() {
           instructions,
         }).compileToV0Message()
         const vtx = new VersionedTransaction(message)
+
+        // === PRE-FLIGHT SIMULATION — get real error before Phantom rejects ===
+        console.log('--- Running pre-flight simulation ---')
+        try {
+          const simResult = await connection.simulateTransaction(vtx, { commitment: 'confirmed' })
+          console.log('Sim err:', JSON.stringify(simResult.value.err))
+          console.log('Sim logs:', simResult.value.logs?.join(' | '))
+          console.log('Sim unitsConsumed:', simResult.value.unitsConsumed)
+          if (simResult.value.err) {
+            console.error('SIMULATION FAILED — program likely rejected tx')
+            console.error('accounts:', simResult.value.accounts)
+          }
+        } catch (simErr: any) {
+          console.error('simulateTransaction threw:', simErr?.message)
+        }
+        console.log('--- End simulation ---')
+
         console.log('Standard path: VersionedTransaction + sendTransaction')
         sig = await wallet.sendTransaction(vtx as any, connection, { skipPreflight: true, maxRetries: 5 })
       }

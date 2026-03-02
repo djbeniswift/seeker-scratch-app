@@ -191,7 +191,7 @@ export default function RanksTab({ connection, wallet, publicKey }: any) {
                     {player.displayName || shortWallet} {isMe && '(YOU)'}
                   </div>
                   <div style={{ color: '#a0aec0', fontSize: 13, marginTop: 2 }}>
-                    {player.wins}W • {player.cardsScratched} played • {player.totalWon.toFixed(2)} SOL won
+                    {player.wins}W • {player.cardsScratched} played
                   </div>
                 </div>
 

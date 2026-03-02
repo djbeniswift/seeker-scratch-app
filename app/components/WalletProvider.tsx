@@ -8,10 +8,13 @@ import { SolanaMobileWalletAdapter, createDefaultAuthorizationResultCache, creat
 import { useEffect, useMemo } from 'react'
 import '@solana/wallet-adapter-react-ui/styles.css'
 
-// Guard: only run on Android browser without the wallet injected
-// Uses a lazy getter fn so window is never accessed during SSR
-function isAndroidWithoutWallet(getInjected: () => boolean) {
-  return typeof window !== 'undefined' && /Android/i.test(navigator.userAgent) && !getInjected()
+// True only in Android native browser with NO wallet injected at all.
+// If any wallet is injected (e.g. we're inside Phantom's browser) we must NOT
+// deep-link to other wallets — they would just open a download page in Phantom's browser.
+function isAndroidNoBrowserWallet() {
+  if (typeof window === 'undefined') return false
+  if (!/Android/i.test(navigator.userAgent)) return false
+  return !((window as any).phantom?.solana || (window as any).solana || (window as any).backpack)
 }
 
 // Phantom defaults to NotDetected on Android — the library never calls connect() for NotDetected wallets.
@@ -20,7 +23,7 @@ function isAndroidWithoutWallet(getInjected: () => boolean) {
 class PhantomDeepLinkAdapter extends PhantomWalletAdapter {
   constructor() {
     super()
-    if (isAndroidWithoutWallet(() => !!(window as any).phantom?.solana)) {
+    if (isAndroidNoBrowserWallet()) {
       ;(this as any)._readyState = WalletReadyState.Loadable
       this.emit('readyStateChange', WalletReadyState.Loadable)
     }
@@ -31,7 +34,7 @@ class PhantomDeepLinkAdapter extends PhantomWalletAdapter {
 // Its built-in Loadable redirect only fires on iOS though, so we override connect() for Android.
 class SolflareDeepLinkAdapter extends SolflareWalletAdapter {
   async connect(): Promise<void> {
-    if (isAndroidWithoutWallet(() => !!(window as any).solflare)) {
+    if (isAndroidNoBrowserWallet()) {
       const url = encodeURIComponent(window.location.href)
       const ref = encodeURIComponent(window.location.origin)
       window.location.href = `https://solflare.com/ul/v1/browse/${url}?ref=${ref}`
@@ -47,13 +50,13 @@ class SolflareDeepLinkAdapter extends SolflareWalletAdapter {
 class BackpackDeepLinkAdapter extends BackpackWalletAdapter {
   constructor() {
     super()
-    if (isAndroidWithoutWallet(() => !!(window as any).backpack)) {
+    if (isAndroidNoBrowserWallet()) {
       ;(this as any)._readyState = WalletReadyState.Loadable
       this.emit('readyStateChange', WalletReadyState.Loadable)
     }
   }
   async connect(): Promise<void> {
-    if (isAndroidWithoutWallet(() => !!(window as any).backpack)) {
+    if (isAndroidNoBrowserWallet()) {
       const url = encodeURIComponent(window.location.href)
       const ref = encodeURIComponent(window.location.origin)
       window.location.href = `https://backpack.app/ul/v1/browse/${url}?ref=${ref}`

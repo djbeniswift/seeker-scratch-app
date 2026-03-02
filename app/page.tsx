@@ -133,7 +133,21 @@ export default function Home() {
   const handleBuyCard = async (cardType: string) => {
     if (!wallet.connected) { alert("Please connect your wallet first"); return }
     if (!wallet.publicKey) return
-    
+
+    // On mobile, only injected wallets (inside wallet browser) or MWA can sign.
+    // Deep-link adapters (Phantom/Solflare/Backpack selected from native browser) connect
+    // but can't sign — give a clear actionable error before attempting the tx.
+    if (typeof window !== 'undefined' && /Android|iPhone|iPad/i.test(navigator.userAgent)) {
+      const hasInjected = !!(window as any).phantom?.solana || !!(window as any).solana ||
+        !!(window as any).backpack || !!(window as any).solflare?.isSolflare
+      const isMWA = (wallet as any).wallet?.adapter?.name === 'Mobile Wallet Adapter'
+      if (!hasInjected && !isMWA) {
+        const name = (wallet as any).wallet?.adapter?.name ?? 'your wallet'
+        alert(`To buy cards on mobile, open this site inside ${name}'s browser.\n\nTap the banner above to open in ${name}.`)
+        return
+      }
+    }
+
     setLastResult(null)
     setShowConfetti(false)
     playScratch()

@@ -8,8 +8,10 @@ import { SolanaMobileWalletAdapter, createDefaultAuthorizationResultCache, creat
 import { useMemo } from 'react'
 import '@solana/wallet-adapter-react-ui/styles.css'
 
-function isAndroidWithoutWallet(injected: boolean) {
-  return typeof window !== 'undefined' && /Android/i.test(navigator.userAgent) && !injected
+// Guard: only run on Android browser without the wallet injected
+// Uses a lazy getter fn so window is never accessed during SSR
+function isAndroidWithoutWallet(getInjected: () => boolean) {
+  return typeof window !== 'undefined' && /Android/i.test(navigator.userAgent) && !getInjected()
 }
 
 // Phantom defaults to NotDetected on Android — the library never calls connect() for NotDetected wallets.
@@ -18,7 +20,7 @@ function isAndroidWithoutWallet(injected: boolean) {
 class PhantomDeepLinkAdapter extends PhantomWalletAdapter {
   constructor() {
     super()
-    if (isAndroidWithoutWallet(!!(window as any).phantom?.solana)) {
+    if (isAndroidWithoutWallet(() => !!(window as any).phantom?.solana)) {
       ;(this as any)._readyState = WalletReadyState.Loadable
       this.emit('readyStateChange', WalletReadyState.Loadable)
     }
@@ -29,7 +31,7 @@ class PhantomDeepLinkAdapter extends PhantomWalletAdapter {
 // Its built-in Loadable redirect only fires on iOS though, so we override connect() for Android.
 class SolflareDeepLinkAdapter extends SolflareWalletAdapter {
   async connect(): Promise<void> {
-    if (isAndroidWithoutWallet(!!(window as any).solflare)) {
+    if (isAndroidWithoutWallet(() => !!(window as any).solflare)) {
       const url = encodeURIComponent(window.location.href)
       const ref = encodeURIComponent(window.location.origin)
       window.location.href = `https://solflare.com/ul/v1/browse/${url}?ref=${ref}`
@@ -44,13 +46,13 @@ class SolflareDeepLinkAdapter extends SolflareWalletAdapter {
 class BackpackDeepLinkAdapter extends BackpackWalletAdapter {
   constructor() {
     super()
-    if (isAndroidWithoutWallet(!!(window as any).backpack)) {
+    if (isAndroidWithoutWallet(() => !!(window as any).backpack)) {
       ;(this as any)._readyState = WalletReadyState.Loadable
       this.emit('readyStateChange', WalletReadyState.Loadable)
     }
   }
   async connect(): Promise<void> {
-    if (isAndroidWithoutWallet(!!(window as any).backpack)) {
+    if (isAndroidWithoutWallet(() => !!(window as any).backpack)) {
       const url = encodeURIComponent(window.location.href)
       const ref = encodeURIComponent(window.location.origin)
       window.location.href = `https://backpack.app/browse?url=${url}&ref=${ref}`

@@ -195,9 +195,19 @@ export function useScratchProgram() {
       try {
         const profileData = await (program.account as any).playerProfile.fetch(profilePda)
         if (profileData.hasBeenReferred) {
-          referrerProfilePda = getProfilePda(profileData.referredBy)
+          const candidatePda = getProfilePda(profileData.referredBy)
+          // Verify the referrer's PlayerProfile actually exists on-chain.
+          // If it doesn't, buyAndScratch will fail (can't mutate an uninitialised account).
+          // Fall back to admin profile in that case.
+          try {
+            await (program.account as any).playerProfile.fetch(candidatePda)
+            referrerProfilePda = candidatePda
+            console.log('Referrer profile found:', profileData.referredBy.toBase58())
+          } catch {
+            console.log('Referrer profile NOT found on-chain — falling back to admin profile')
+            // referrerProfilePda stays as admin profile (default set above)
+          }
           if (!profileData.referralBonusPaid) {
-            // Referral registered but bonus not yet paid — bundle creditReferrer in this tx
             shouldCreditReferrer = true
             creditReferrerKey = profileData.referredBy
           }

@@ -1,8 +1,19 @@
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { Program, AnchorProvider } from '@coral-xyz/anchor'
 import { PublicKey, LAMPORTS_PER_SOL, SystemProgram, Transaction } from '@solana/web3.js'
-import bs58 from 'bs58'
 import { useCallback, useState, useEffect } from 'react'
+
+// Pure-JS base64 → base58 conversion for MWA signatures (no external dep needed)
+const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+function base64ToBase58(b64: string): string {
+  const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0))
+  let num = BigInt('0x' + Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(''))
+  let result = ''
+  const base = 58n
+  while (num > 0n) { result = BASE58_ALPHABET[Number(num % base)] + result; num /= base }
+  for (const b of bytes) { if (b !== 0) break; result = '1' + result }
+  return result
+}
 import { PROGRAM_ID, TREASURY_SEED, PROFILE_SEED, IDL } from '../lib/constants'
 
 export function useScratchProgram() {
@@ -277,10 +288,9 @@ export function useScratchProgram() {
         let rawSig = await wallet.sendTransaction(tx, connection, { skipPreflight: true, maxRetries: 5 })
         console.log('Raw MWA sig:', rawSig)
 
-        // MWA always returns base64 — always attempt conversion to base58
+        // MWA always returns base64 — convert to base58 for confirmTransaction
         try {
-          const sigBytes = Uint8Array.from(atob(rawSig), c => c.charCodeAt(0))
-          rawSig = bs58.encode(sigBytes)
+          rawSig = base64ToBase58(rawSig)
           console.log('Converted base64→base58:', rawSig)
         } catch (e) {
           console.log('Already base58 or conversion failed:', e)

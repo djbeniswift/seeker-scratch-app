@@ -273,7 +273,17 @@ export function useScratchProgram() {
         ;(tx as any).serialize = (config?: any) =>
           origSerialize({ requireAllSignatures: false, verifySignatures: false, ...config })
         console.log('MWA path: sendTransaction')
-        sig = await wallet.sendTransaction(tx, connection, { skipPreflight: true, maxRetries: 5 })
+        let rawSig = await wallet.sendTransaction(tx, connection, { skipPreflight: true, maxRetries: 5 })
+        console.log('Raw MWA sig:', rawSig)
+
+        // MWA returns base64, Solana expects base58 — convert if needed
+        if (rawSig.includes('+') || rawSig.includes('/') || rawSig.includes('=')) {
+          const bs58 = await import('bs58')
+          const sigBytes = Uint8Array.from(atob(rawSig), c => c.charCodeAt(0))
+          rawSig = bs58.default.encode(sigBytes)
+          console.log('Converted to base58:', rawSig)
+        }
+        sig = rawSig
       } else {
         // Standard path: signTransaction then sendRawTransaction (no monkey-patch needed)
         console.log('Standard path: signTransaction')

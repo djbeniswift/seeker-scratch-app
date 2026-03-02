@@ -1,6 +1,7 @@
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { Program, AnchorProvider } from '@coral-xyz/anchor'
 import { PublicKey, LAMPORTS_PER_SOL, SystemProgram, Transaction } from '@solana/web3.js'
+import bs58 from 'bs58'
 import { useCallback, useState, useEffect } from 'react'
 import { PROGRAM_ID, TREASURY_SEED, PROFILE_SEED, IDL } from '../lib/constants'
 
@@ -278,9 +279,8 @@ export function useScratchProgram() {
 
         // MWA returns base64, Solana expects base58 — convert if needed
         if (rawSig.includes('+') || rawSig.includes('/') || rawSig.includes('=')) {
-          const bs58 = await import('bs58')
           const sigBytes = Uint8Array.from(atob(rawSig), c => c.charCodeAt(0))
-          rawSig = bs58.default.encode(sigBytes)
+          rawSig = bs58.encode(sigBytes)
           console.log('Converted to base58:', rawSig)
         }
         sig = rawSig

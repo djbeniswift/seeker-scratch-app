@@ -134,6 +134,20 @@ export default function Home() {
     if (!wallet.connected) { alert("Please connect your wallet first"); return }
     if (!wallet.publicKey) return
 
+    // On mobile, only MWA or injected-wallet browsers can sign transactions.
+    // Extension wallets (Phantom/Backpack/Solflare) connected from native Chrome
+    // have no injected provider and fail with -32603 on both sign and send.
+    if (typeof window !== 'undefined' && /Android|iPhone|iPad/i.test(navigator.userAgent)) {
+      const isMWA = (wallet as any).wallet?.adapter?.name === 'Mobile Wallet Adapter'
+      const hasInjected = !!(window as any).phantom?.solana || !!(window as any).solana ||
+        !!(window as any).backpack || !!(window as any).solflare?.isSolflare
+      if (!isMWA && !hasInjected) {
+        const name = (wallet as any).wallet?.adapter?.name ?? 'your wallet'
+        alert(`To buy cards on mobile, open this site inside ${name}'s in-app browser.\n\nTap the banner at the top of the page to open in ${name}.`)
+        return
+      }
+    }
+
     setLastResult(null)
     setShowConfetti(false)
     playScratch()

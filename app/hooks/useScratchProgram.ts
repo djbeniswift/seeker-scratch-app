@@ -276,8 +276,7 @@ export function useScratchProgram() {
       console.log('tx.signatures before sign:', tx.signatures.map(s => ({ pubkey: s.publicKey.toBase58(), sig: s.signature?.toString('hex') ?? 'null' })))
 
       const isMobile = typeof window !== 'undefined' && /Android|iPhone|iPad/i.test(navigator.userAgent)
-      const isMWA = (wallet as any).wallet?.adapter?.name === 'Mobile Wallet Adapter' ||
-                    ((wallet as any).wallet?.adapter?.name === 'Phantom' && isMobile)
+      const isMWA = (wallet as any).wallet?.adapter?.name === 'Mobile Wallet Adapter'
 
       let sig: string
       if (isMWA) {

@@ -7,7 +7,16 @@ export const metadata: Metadata = {
   title: "Seeker Scratch | Instant Win Scratch Cards on Solana",
   description: "Provably fair instant win scratch cards on Solana. Win SOL instantly. Built for the Seeker phone.",
   manifest: "/manifest.json",
-  metadataBase: new URL("https://seekerscratch.com"),
+  icons: {
+    icon: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+  },
+  metadataBase: new URL("https://seekerscratch.vercel.app"),
   alternates: {
     canonical: "https://seekerscratch.com",
   },

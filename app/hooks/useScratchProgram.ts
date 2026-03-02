@@ -280,36 +280,29 @@ export function useScratchProgram() {
 
       let sig: string
       if (isMWA) {
-        console.log('MWA/PhantomMobile path: sendTransaction')
-        console.log('isMobile:', isMobile, 'adapterName:', (wallet as any).wallet?.adapter?.name)
+        // MWA (Seeker/Saga): needs serialize monkey-patch so the adapter can
+        // package the unsigned tx without requireAllSignatures failing.
+        // Returns base64 — convert to base58 for confirmTransaction.
+        console.log('MWA path: sendTransaction with serialize patch')
         const origSerialize = (tx as any).serialize.bind(tx)
         ;(tx as any).serialize = (config?: any) =>
           origSerialize({ requireAllSignatures: false, verifySignatures: false, ...config })
+        let rawSig = await wallet.sendTransaction(tx, connection, { skipPreflight: true, maxRetries: 5 })
+        console.log('Raw MWA sig:', rawSig)
         try {
-          let rawSig = await wallet.sendTransaction(tx, connection, { skipPreflight: true, maxRetries: 5 })
-          console.log('Raw sig from sendTransaction:', rawSig)
-          console.log('Sig type check — includes +:', rawSig.includes('+'), '/:', rawSig.includes('/'), '=:', rawSig.includes('='))
-          try {
-            rawSig = base64ToBase58(rawSig)
-            console.log('Converted base64→base58:', rawSig)
-          } catch (e) {
-            console.log('base64ToBase58 failed (may already be base58):', e)
-          }
-          sig = rawSig
-        } catch (mwaErr: any) {
-          console.error('MWA sendTransaction failed:')
-          console.error('mwaErr.name:', mwaErr?.name)
-          console.error('mwaErr.message:', mwaErr?.message)
-          console.error('mwaErr.error:', JSON.stringify(mwaErr?.error))
-          console.error('mwaErr.code:', mwaErr?.code)
-          throw mwaErr
+          rawSig = base64ToBase58(rawSig)
+          console.log('Converted base64→base58:', rawSig)
+        } catch (e) {
+          console.log('base64ToBase58 failed (may already be base58):', e)
         }
+        sig = rawSig
       } else {
-        // Standard path: signTransaction then sendRawTransaction (no monkey-patch needed)
-        console.log('Standard path: signTransaction')
-        const signedTx = await wallet.signTransaction!(tx)
-        const serialized = signedTx.serialize({ requireAllSignatures: false, verifySignatures: false })
-        sig = await connection.sendRawTransaction(serialized, { skipPreflight: false, maxRetries: 5 })
+        // All other wallets (Phantom, Backpack, Solflare in-browser):
+        // sendTransaction WITHOUT the monkey-patch — this is what worked
+        // historically before the signTransaction split was introduced.
+        // signTransaction + sendRawTransaction was breaking Phantom.
+        console.log('Standard path: sendTransaction (no serialize patch)')
+        sig = await wallet.sendTransaction(tx, connection, { skipPreflight: true, maxRetries: 5 })
       }
       console.log('Transaction sent, signature:', sig)
 

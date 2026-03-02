@@ -32,10 +32,8 @@ export default function RanksTab({ connection, wallet, publicKey }: any) {
       try {
         const accounts = await (program.account as any).playerProfile.all()
         for (const acc of accounts) {
-          const ownerStr = acc.account.owner.toBase58()
-          if (ownerStr === '11111111111111111111111111111111') continue
           profiles.push({
-            wallet: ownerStr,
+            wallet: acc.publicKey.toBase58(),
             displayName: acc.account.displayName || null,
             pfpUrl: acc.account.pfpUrl || null,
             pointsThisMonth: acc.account.pointsThisMonth.toNumber(),
@@ -52,7 +50,7 @@ export default function RanksTab({ connection, wallet, publicKey }: any) {
             const pda = getProfilePda(new PublicKey(w))
             const data = await (program.account as any).playerProfile.fetch(pda)
             profiles.push({
-              wallet: w,
+              wallet: pda.toBase58(),
               displayName: data.displayName || null,
               pfpUrl: data.pfpUrl || null,
               pointsThisMonth: data.pointsThisMonth.toNumber(),
@@ -84,7 +82,7 @@ export default function RanksTab({ connection, wallet, publicKey }: any) {
   )
 
   const medals = ['🥇', '🥈', '🥉']
-  const myWallet = publicKey?.toBase58()
+  const myPda = publicKey ? getProfilePda(publicKey).toBase58() : null
 
   return (
     <div style={{ paddingBottom: 16 }}>
@@ -148,7 +146,7 @@ export default function RanksTab({ connection, wallet, publicKey }: any) {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {sorted.map((player, i) => {
-            const isMe = player.wallet === myWallet
+            const isMe = player.wallet === myPda
             const points = period === 'month' ? player.pointsThisMonth : player.pointsAllTime
             const shortWallet = `${player.wallet.slice(0, 6)}...${player.wallet.slice(-5)}`
 

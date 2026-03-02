@@ -9,8 +9,9 @@ function base64ToBase58(b64: string): string {
   const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0))
   let num = BigInt('0x' + Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(''))
   let result = ''
-  const base = 58n
-  while (num > 0n) { result = BASE58_ALPHABET[Number(num % base)] + result; num /= base }
+  const base = BigInt(58)
+  const zero = BigInt(0)
+  while (num > zero) { result = BASE58_ALPHABET[Number(num % base)] + result; num /= base }
   for (const b of bytes) { if (b !== 0) break; result = '1' + result }
   return result
 }

@@ -115,9 +115,10 @@ export default function Home() {
   useEffect(() => {
     setMounted(true)
     fetchTreasury()
-    // Read ?ref= param once on mount — no transaction, just store it
+    // Read ?ref= param once on mount — validate it's a plausible base58 pubkey
+    // (wallet deep links append their own ?ref= with a URL, not a pubkey)
     const ref = new URLSearchParams(window.location.search).get('ref')
-    if (ref) setPendingReferrer(ref)
+    if (ref && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(ref)) setPendingReferrer(ref)
   }, [])
 
   useEffect(() => {

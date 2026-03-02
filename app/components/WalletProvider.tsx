@@ -96,9 +96,10 @@ export function WalletProviders({ children }: { children: React.ReactNode }) {
       new SolflareDeepLinkAdapter(),
       new BackpackDeepLinkAdapter(),
     ]
-    // Always add MWA on Android — even inside a wallet's in-app browser the user may want
-    // to switch to the native Seeker wallet. Skip only if MWA itself is the injected wallet.
-    if (isAndroid) {
+    // Add MWA on Android only when no wallet app is already injected.
+    // Inside Phantom/Solflare/Backpack's browser the wallet IS injected — adding MWA there
+    // causes it to fire solana-wallet:// URI scheme requests that those browsers can't handle.
+    if (isAndroid && !hasInjectedWallet) {
       const appUri = typeof window !== 'undefined'
         ? window.location.origin
         : 'https://seekerscratch.com'

@@ -277,11 +277,13 @@ export function useScratchProgram() {
         let rawSig = await wallet.sendTransaction(tx, connection, { skipPreflight: true, maxRetries: 5 })
         console.log('Raw MWA sig:', rawSig)
 
-        // MWA returns base64, Solana expects base58 — convert if needed
-        if (rawSig.includes('+') || rawSig.includes('/') || rawSig.includes('=')) {
+        // MWA always returns base64 — always attempt conversion to base58
+        try {
           const sigBytes = Uint8Array.from(atob(rawSig), c => c.charCodeAt(0))
           rawSig = bs58.encode(sigBytes)
-          console.log('Converted to base58:', rawSig)
+          console.log('Converted base64→base58:', rawSig)
+        } catch (e) {
+          console.log('Already base58 or conversion failed:', e)
         }
         sig = rawSig
       } else {

@@ -94,25 +94,6 @@ export default function Home() {
   const [pendingReferrer, setPendingReferrer] = useState<string | null>(null)
   const { muted, toggleMute, playScratch, playSmallWin, playBigWin, playLoss } = useSound()
 
-  // Debug log capture — intercepts console.log/error/warn and displays on screen
-  const [debugLogs, setDebugLogs] = useState<string[]>([])
-  const [showDebug, setShowDebug] = useState(false)
-
-  useEffect(() => {
-    const orig = { log: console.log, error: console.error, warn: console.warn }
-    const capture = (level: string) => (...args: any[]) => {
-      orig[level as 'log'](...args)
-      const line = `[${level}] ` + args.map(a => {
-        try { return typeof a === 'object' ? JSON.stringify(a) : String(a) } catch { return String(a) }
-      }).join(' ')
-      setDebugLogs(prev => [...prev.slice(-100), line])
-    }
-    console.log = capture('log')
-    console.error = capture('error')
-    console.warn = capture('warn')
-    return () => { console.log = orig.log; console.error = orig.error; console.warn = orig.warn }
-  }, [])
-
   useEffect(() => {
     setMounted(true)
     fetchTreasury()
@@ -249,23 +230,6 @@ export default function Home() {
 
   return (
     <>
-      {/* Debug Panel Toggle */}
-      <button
-        onClick={() => setShowDebug(p => !p)}
-        style={{ position: 'fixed', top: 10, right: 10, zIndex: 9999, background: 'red', color: 'white', padding: '4px 8px', fontSize: 10, borderRadius: 4, border: 'none', cursor: 'pointer' }}
-      >
-        DEBUG
-      </button>
-
-      {showDebug && (
-        <div style={{ position: 'fixed', top: 30, left: 0, right: 0, bottom: 60, zIndex: 9998, background: 'rgba(0,0,0,0.95)', overflow: 'auto', padding: 8, fontSize: 9, color: '#0f0', fontFamily: 'monospace' }}>
-          <button onClick={() => setDebugLogs([])} style={{ background: '#333', color: 'white', marginBottom: 8, padding: '2px 6px', border: 'none', cursor: 'pointer' }}>CLEAR</button>
-          {debugLogs.map((l, i) => (
-            <div key={i} style={{ borderBottom: '1px solid #111', padding: '2px 0', color: l.startsWith('[error]') ? '#f66' : '#0f0', wordBreak: 'break-all' }}>{l}</div>
-          ))}
-        </div>
-      )}
-
       <div className="app">
         <header>
           <div className="logo">

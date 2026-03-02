@@ -11,10 +11,20 @@ import '@solana/wallet-adapter-react-ui/styles.css'
 // True only in Android native browser with NO wallet injected at all.
 // If any wallet is injected (e.g. we're inside Phantom's browser) we must NOT
 // deep-link to other wallets — they would just open a download page in Phantom's browser.
+function hasAnyInjectedWallet() {
+  return !!(
+    (window as any).phantom?.solana ||
+    (window as any).solana ||
+    (window as any).backpack ||
+    (window as any).solflare?.isSolflare ||  // Solflare in-app browser
+    (window as any).SolflareApp               // Solflare legacy injection
+  )
+}
+
 function isAndroidNoBrowserWallet() {
   if (typeof window === 'undefined') return false
   if (!/Android/i.test(navigator.userAgent)) return false
-  return !((window as any).phantom?.solana || (window as any).solana || (window as any).backpack)
+  return !hasAnyInjectedWallet()
 }
 
 // Phantom defaults to NotDetected on Android — the library never calls connect() for NotDetected wallets.
@@ -91,9 +101,7 @@ export function WalletProviders({ children }: { children: React.ReactNode }) {
 
   const wallets = useMemo(() => {
     const isAndroid = typeof window !== 'undefined' && /Android/i.test(navigator.userAgent)
-    const hasInjectedWallet = typeof window !== 'undefined' && !!(
-      (window as any).phantom?.solana || (window as any).solana || (window as any).backpack
-    )
+    const hasInjectedWallet = typeof window !== 'undefined' && hasAnyInjectedWallet()
     const list: any[] = [
       new PhantomDeepLinkAdapter(),
       new SolflareDeepLinkAdapter(),

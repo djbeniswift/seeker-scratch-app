@@ -155,7 +155,18 @@ export default function Home() {
     const balanceBefore = await connection.getBalance(wallet.publicKey)
     console.log('Balance before:', balanceBefore)
     try { await buyCard(cardType, pendingReferrer ?? undefined) } catch (err: any) {
-      alert(formatBuyError(err))
+      const msg = err?.message || ''
+      if (msg.includes('insufficient lamports') || msg.includes('Insufficient funds') || msg.includes('0x1')) {
+        alert('❌ Not enough SOL in your wallet. Please add funds and try again.')
+      } else if (msg.includes('GamePaused') || msg.includes('6000')) {
+        alert('⏸ The game is temporarily paused. Please try again soon.')
+      } else if (msg.includes('TreasuryTooLow') || msg.includes('6003')) {
+        alert('⚠️ Prize pool is refilling. Please try again in a moment.')
+      } else if (/user rejected|rejected the request|cancelled/i.test(msg)) {
+        // Silent — user cancelled, no alert needed
+      } else {
+        alert(formatBuyError(err))
+      }
       return
     }
     

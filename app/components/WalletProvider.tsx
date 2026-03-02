@@ -1,6 +1,6 @@
 'use client'
-import { WalletAdapterNetwork, WalletName, WalletReadyState } from '@solana/wallet-adapter-base'
-import { ConnectionProvider, WalletProvider, useWallet } from '@solana/wallet-adapter-react'
+import { WalletAdapterNetwork, WalletReadyState } from '@solana/wallet-adapter-base'
+import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react'
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui'
 import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets'
 import { BackpackWalletAdapter } from '@solana/wallet-adapter-backpack'
@@ -76,39 +76,30 @@ class BackpackDeepLinkAdapter extends BackpackWalletAdapter {
   }
 }
 
-// Placed inside WalletProvider tree so it can use useWallet().
-// When inside a wallet's in-app browser, detects which wallet is injected,
-// selects it, and connects — bypassing the "Connect a wallet" modal entirely.
-function InjectedWalletAutoConnect() {
-  const { select, connect, wallet, connected, connecting } = useWallet()
-
-  // On mount: select the injected wallet
-  useEffect(() => {
-    if (typeof window === 'undefined' || connected || connecting) return
-    if (!hasAnyInjectedWallet()) return
-
-    let name: WalletName | null = null
-    if ((window as any).phantom?.solana)                          name = 'Phantom' as WalletName
-    else if ((window as any).backpack)                            name = 'Backpack' as WalletName
-    else if ((window as any).solflare?.isSolflare || (window as any).SolflareApp) name = 'Solflare' as WalletName
-    else if ((window as any).solana)                              name = 'Phantom' as WalletName
-
-    if (name) select(name)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // After wallet is selected, connect it
-  useEffect(() => {
-    if (!wallet || connected || connecting) return
-    if (!hasAnyInjectedWallet()) return
-    connect().catch(() => {})
-  }, [wallet?.adapter.name]) // eslint-disable-line react-hooks/exhaustive-deps
-
+// Detect which wallet is injected and return its adapter name.
+function detectInjectedWalletName(): string | null {
+  if (typeof window === 'undefined') return null
+  if ((window as any).phantom?.solana) return 'Phantom'
+  if ((window as any).backpack) return 'Backpack'
+  if ((window as any).solflare?.isSolflare || (window as any).SolflareApp) return 'Solflare'
+  if ((window as any).solana) return 'Phantom'
   return null
 }
 
 export function WalletProviders({ children }: { children: React.ReactNode }) {
   const network = WalletAdapterNetwork.Mainnet
   const endpoint = 'https://mainnet.helius-rpc.com/?api-key=e74081ed-6624-4d7b-9b49-9732a61b29ba'
+
+  // When inside a wallet's in-app browser, preset walletName in localStorage
+  // BEFORE WalletProvider mounts so autoConnect picks it up automatically.
+  // This avoids showing the "Connect a wallet" picker modal.
+  if (typeof window !== 'undefined' && hasAnyInjectedWallet()) {
+    const stored = localStorage.getItem('walletName')
+    if (!stored) {
+      const name = detectInjectedWalletName()
+      if (name) localStorage.setItem('walletName', JSON.stringify(name))
+    }
+  }
 
   // If the stored wallet name points to an adapter that can't connect in this browser context
   // (e.g. user previously connected via Phantom's in-app browser but now in native Chrome),
@@ -176,7 +167,6 @@ export function WalletProviders({ children }: { children: React.ReactNode }) {
   return (
     <ConnectionProvider endpoint={endpoint}>
       <WalletProvider wallets={wallets} autoConnect localStorageKey="walletName">
-        <InjectedWalletAutoConnect />
         <WalletModalProvider>{children}</WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>

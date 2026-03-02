@@ -32,8 +32,10 @@ export default function RanksTab({ connection, wallet, publicKey }: any) {
       try {
         const accounts = await (program.account as any).playerProfile.all()
         for (const acc of accounts) {
+          const ownerStr = acc.account.owner.toBase58()
+          if (ownerStr === '11111111111111111111111111111111') continue
           profiles.push({
-            wallet: acc.account.owner.toBase58(),
+            wallet: ownerStr,
             displayName: acc.account.displayName || null,
             pfpUrl: acc.account.pfpUrl || null,
             pointsThisMonth: acc.account.pointsThisMonth.toNumber(),

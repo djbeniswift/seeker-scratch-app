@@ -177,15 +177,24 @@ export function useScratchProgram() {
       const ADMIN_PUBKEY = new PublicKey('6RhLQikkjzace4ti4D458iSmKofbPdMGNB7VKHmWwYPP')
       let referrerProfilePda: PublicKey = getProfilePda(ADMIN_PUBKEY)
       let shouldRegisterReferral = false
+      let shouldCreditReferrer = false
+      let creditReferrerKey: PublicKey | null = null
       try {
         const profileData = await (program.account as any).playerProfile.fetch(profilePda)
         if (profileData.hasBeenReferred) {
           referrerProfilePda = getProfilePda(profileData.referredBy)
+          if (!profileData.referralBonusPaid) {
+            // Referral registered but bonus not yet paid — bundle creditReferrer in this tx
+            shouldCreditReferrer = true
+            creditReferrerKey = profileData.referredBy
+          }
         } else if (pendingReferrer) {
           // Profile exists but not yet referred — will register in this tx
           const referrerKey = new PublicKey(pendingReferrer)
           referrerProfilePda = getProfilePda(referrerKey)
           shouldRegisterReferral = true
+          shouldCreditReferrer = true
+          creditReferrerKey = referrerKey
         }
       } catch {
         // Profile doesn't exist yet — if a referrer was passed, register in this tx
@@ -193,6 +202,8 @@ export function useScratchProgram() {
           const referrerKey = new PublicKey(pendingReferrer)
           referrerProfilePda = getProfilePda(referrerKey)
           shouldRegisterReferral = true
+          shouldCreditReferrer = true
+          creditReferrerKey = referrerKey
         }
       }
 
@@ -205,7 +216,7 @@ export function useScratchProgram() {
 
       const instructions = []
 
-      // Bundle referral registration as first instruction if needed — one signature, no second prompt
+      // 1. Bundle referral registration as first instruction if needed — one signature, no second prompt
       if (shouldRegisterReferral && pendingReferrer) {
         const referrerKey = new PublicKey(pendingReferrer)
         const registerIx = await (getReadOnlyProgram().methods as any).registerReferral().accounts({
@@ -218,7 +229,20 @@ export function useScratchProgram() {
         console.log('Bundled registerReferral instruction for referrer:', pendingReferrer)
       }
 
-      // Build buyAndScratch instruction
+      // 2. Bundle creditReferrer BEFORE buyAndScratch so referral_bonus_paid is set
+      //    before the buy instruction runs (prevents any double-credit on-chain)
+      if (shouldCreditReferrer && creditReferrerKey) {
+        const creditIx = await (getReadOnlyProgram().methods as any).creditReferrer().accounts({
+          referrerProfile: referrerProfilePda,
+          referrerKey: creditReferrerKey,
+          callerProfile: profilePda,
+          caller: publicKey,
+        }).instruction()
+        instructions.push(creditIx)
+        console.log('Bundled creditReferrer instruction for referrer:', creditReferrerKey.toBase58())
+      }
+
+      // 3. Build buyAndScratch instruction
       const ix = await (getReadOnlyProgram().methods as any).buyAndScratch(cardTypeArg).accounts({
         treasury: treasuryPda,
         profile: profilePda,
@@ -325,7 +349,7 @@ export function useScratchProgram() {
     } finally {
       setLoading(false)
     }
-  }, [getProgram, getReadOnlyProgram, wallet.publicKey, treasuryPda, getProfilePda, fetchTreasury, fetchProfile, creditReferrer])
+  }, [getProgram, getReadOnlyProgram, wallet.publicKey, treasuryPda, getProfilePda, fetchTreasury, fetchProfile])
 
   return { treasury, profile, loading, fetchTreasury, fetchProfile, buyCard, registerReferral, creditReferrer, getProgram }
 }

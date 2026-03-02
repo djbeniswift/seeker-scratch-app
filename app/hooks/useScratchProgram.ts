@@ -229,20 +229,7 @@ export function useScratchProgram() {
         console.log('Bundled registerReferral instruction for referrer:', pendingReferrer)
       }
 
-      // 2. Bundle creditReferrer BEFORE buyAndScratch so referral_bonus_paid is set
-      //    before the buy instruction runs (prevents any double-credit on-chain)
-      if (shouldCreditReferrer && creditReferrerKey) {
-        const creditIx = await (getReadOnlyProgram().methods as any).creditReferrer().accounts({
-          referrerProfile: referrerProfilePda,
-          referrerKey: creditReferrerKey,
-          callerProfile: profilePda,
-          caller: publicKey,
-        }).instruction()
-        instructions.push(creditIx)
-        console.log('Bundled creditReferrer instruction for referrer:', creditReferrerKey.toBase58())
-      }
-
-      // 3. Build buyAndScratch instruction
+      // 2. Build buyAndScratch instruction
       const ix = await (getReadOnlyProgram().methods as any).buyAndScratch(cardTypeArg).accounts({
         treasury: treasuryPda,
         profile: profilePda,

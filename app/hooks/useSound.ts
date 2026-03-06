@@ -1,16 +1,28 @@
-import { useCallback, useState } from 'react'
-
-function getCtx(): AudioContext | null {
-  try {
-    return new (window.AudioContext || (window as any).webkitAudioContext)()
-  } catch { return null }
-}
+import { useCallback, useRef, useState } from 'react'
 
 export function useSound() {
   const [muted, setMuted] = useState(() => {
     if (typeof window === 'undefined') return false
     return localStorage.getItem('scratch-muted') === 'true'
   })
+
+  // Persistent AudioContext stored in a ref.
+  // iOS only allows AudioContext creation/resume synchronously inside a user gesture.
+  // Call unlockAudio() at the start of the tap handler (before any await), then
+  // win/loss sounds can play freely after the async transaction completes.
+  const ctxRef = useRef<AudioContext | null>(null)
+
+  const unlockAudio = useCallback(() => {
+    if (typeof window === 'undefined') return
+    try {
+      if (!ctxRef.current) {
+        ctxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
+      }
+      if (ctxRef.current.state === 'suspended') {
+        ctxRef.current.resume()
+      }
+    } catch {}
+  }, [])
 
   const toggleMute = useCallback(() => {
     setMuted(m => {
@@ -20,11 +32,10 @@ export function useSound() {
     })
   }, [])
 
-  // Scratch sound: plays /scratch.mp3 from public folder
+  // Scratch sound: plays /scratch.mp3 (HTML Audio, works on iOS from user gesture)
   const playScratch = useCallback(() => {
     if (typeof window === 'undefined') return
-    const m = localStorage.getItem('scratch-muted') === 'true'
-    if (m) return
+    if (localStorage.getItem('scratch-muted') === 'true') return
     try {
       const audio = new Audio('/scratch.mp3')
       audio.volume = 0.15
@@ -35,9 +46,8 @@ export function useSound() {
   // Small win: warm ascending arpeggio
   const playSmallWin = useCallback(() => {
     if (typeof window === 'undefined') return
-    const m = localStorage.getItem('scratch-muted') === 'true'
-    if (m) return
-    const ctx = getCtx()
+    if (localStorage.getItem('scratch-muted') === 'true') return
+    const ctx = ctxRef.current
     if (!ctx) return
 
     const notes = [523, 659, 784, 1047]
@@ -59,12 +69,10 @@ export function useSound() {
   // Big win: fanfare + coin jingle
   const playBigWin = useCallback(() => {
     if (typeof window === 'undefined') return
-    const m = localStorage.getItem('scratch-muted') === 'true'
-    if (m) return
-    const ctx = getCtx()
+    if (localStorage.getItem('scratch-muted') === 'true') return
+    const ctx = ctxRef.current
     if (!ctx) return
 
-    // Rising fanfare
     const fanfare = [392, 523, 659, 784, 1047, 1319, 1568]
     fanfare.forEach((freq, i) => {
       const osc = ctx.createOscillator()
@@ -81,7 +89,6 @@ export function useSound() {
       osc.stop(t + 0.5)
     })
 
-    // Coin jingles after fanfare
     const coins = [1200, 900, 1100, 850, 1050, 1300]
     coins.forEach((freq, i) => {
       const osc = ctx.createOscillator()
@@ -101,9 +108,8 @@ export function useSound() {
   // Loss: descending thud
   const playLoss = useCallback(() => {
     if (typeof window === 'undefined') return
-    const m = localStorage.getItem('scratch-muted') === 'true'
-    if (m) return
-    const ctx = getCtx()
+    if (localStorage.getItem('scratch-muted') === 'true') return
+    const ctx = ctxRef.current
     if (!ctx) return
 
     const osc = ctx.createOscillator()
@@ -119,5 +125,5 @@ export function useSound() {
     osc.stop(ctx.currentTime + 0.45)
   }, [])
 
-  return { muted, toggleMute, playScratch, playSmallWin, playBigWin, playLoss }
+  return { muted, toggleMute, unlockAudio, playScratch, playSmallWin, playBigWin, playLoss }
 }

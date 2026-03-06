@@ -92,7 +92,7 @@ export default function Home() {
   const [walletBalance, setWalletBalance] = useState(0)
   const [showConfetti, setShowConfetti] = useState(false)
   const [pendingReferrer, setPendingReferrer] = useState<string | null>(null)
-  const { muted, toggleMute, playScratch, playSmallWin, playBigWin, playLoss } = useSound()
+  const { muted, toggleMute, unlockAudio, playScratch, playSmallWin, playBigWin, playLoss } = useSound()
 
   useEffect(() => {
     setMounted(true)
@@ -129,6 +129,10 @@ export default function Home() {
         return
       }
     }
+
+    // Unlock AudioContext synchronously inside the user gesture before any await.
+    // iOS blocks AudioContext creation/resume after async work completes.
+    unlockAudio()
 
     setLastResult(null)
     setShowConfetti(false)

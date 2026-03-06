@@ -6,7 +6,7 @@ import { LeaderboardProvider } from './contexts/LeaderboardContext'
 
 export const metadata: Metadata = {
   title: "Seeker Scratch | Instant Win Scratch Cards on Solana",
-  description: "Provably fair instant win scratch cards on Solana. Win SOL instantly. Built for the Seeker phone.",
+  description: "Instant win scratch cards on Solana. Win SOL instantly. All payouts on-chain. Built for the Seeker phone.",
   manifest: "/manifest.json",
   icons: {
     icon: [
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "Seeker Scratch | Instant Win Scratch Cards on Solana",
-    description: "Provably fair instant win scratch cards on Solana. Win SOL instantly. Built for the Seeker phone.",
+    description: "Instant win scratch cards on Solana. Win SOL instantly. All payouts on-chain. Built for the Seeker phone.",
     url: "https://seekerscratch.com",
     siteName: "Seeker Scratch",
     type: "website",

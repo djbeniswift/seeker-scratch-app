@@ -40,7 +40,7 @@ export default function PrivacyPolicy() {
         },
         {
           title: '5. Smart Contract',
-          body: `All game logic runs on a publicly auditable smart contract deployed on the Solana blockchain at program ID: 2oPCsxMuy85Q4tUiEuhJ3zkK8ZurRVjkEEj4CmMdgx1x. Outcomes are determined on-chain and are provably fair. We do not control or manipulate game outcomes.`
+          body: `All game logic runs on a publicly auditable smart contract deployed on the Solana blockchain at program ID: 2oPCsxMuy85Q4tUiEuhJ3zkK8ZurRVjkEEj4CmMdgx1x. Outcomes are determined on-chain by the smart contract. We do not control or manipulate game outcomes.`
         },
         {
           title: '6. Third-Party Services',

@@ -290,7 +290,7 @@ export default function Home() {
           <div className="feature-divider">•</div>
           <div className="feature-item">
             <span className="feature-icon">🎲</span>
-            <span>PROVABLY FAIR</span>
+            <span>ON-CHAIN VERIFIED</span>
           </div>
         </div>
 

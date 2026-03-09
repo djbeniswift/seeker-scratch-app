@@ -40,7 +40,7 @@ export default function PrivacyPolicy() {
         },
         {
           title: '5. Smart Contract',
-          body: `All game logic runs on a publicly auditable smart contract deployed on the Solana blockchain at program ID: 2oPCsxMuy85Q4tUiEuhJ3zkK8ZurRVjkEEj4CmMdgx1x. Outcomes are determined on-chain by the smart contract. We do not control or manipulate game outcomes.`
+          body: `All game logic runs on a publicly auditable smart contract deployed on the Solana blockchain at program ID: 3vt5QCwqtn13ihaYoFk8RV7r7gbQMnbVcqSZdqNL6mKC. Outcomes are determined on-chain by the smart contract. We do not control or manipulate game outcomes.`
         },
         {
           title: '6. Third-Party Services',
@@ -56,7 +56,7 @@ export default function PrivacyPolicy() {
         },
         {
           title: '9. Contact',
-          body: `If you have questions about this privacy policy, please reach out via the Solana Mobile Discord or open an issue on our public repository.`
+          body: `If you have questions about this privacy policy, please email us at seekerscratch@gmail.com`
         },
       ].map(section => (
         <div key={section.title} style={{ marginBottom: 28 }}>

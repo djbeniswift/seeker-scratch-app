@@ -79,7 +79,7 @@ export default function WinsTicker() {
         if (pageWins.length > 0) addWins(pageWins)
 
         const oldest = txs[txs.length - 1]?.timestamp ?? 0
-        if (oldest < cutoff || txs.length < 100) break
+        if (oldest < cutoff) break
         before = txs[txs.length - 1].signature
       }
     }

@@ -1,16 +1,24 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 
 const PROGRAM_ID = '3vt5QCwqtn13ihaYoFk8RV7r7gbQMnbVcqSZdqNL6mKC'
 const HELIUS_RPC = 'https://mainnet.helius-rpc.com/?api-key=e74081ed-6624-4d7b-9b49-9732a61b29ba'
-const BATCH_SIZE = 20
-const THIRTY_DAYS_S = 30 * 24 * 60 * 60
+
+// Prize amounts from the contract (in SOL)
+const PRIZE_AMOUNTS = new Set([
+  0.015, 0.020, 0.030, 0.050, 0.100,  // QuickPick
+  0.060, 0.080, 0.100, 0.200, 0.500,  // Lucky7s
+  0.060, 0.080, 0.150, 0.300, 1.000,  // HotShot
+  0.120, 0.300, 0.750, 1.500, 5.000,  // MegaGold
+])
 
 type Win = {
   wallet: string
   amount: string
+  amountNum: number
   timeAgo: string
   sig: string
+  blockTime: number
 }
 
 function timeAgo(ts: number) {
@@ -34,98 +42,147 @@ async function rpc(method: string, params: any[]) {
   return (await res.json()).result
 }
 
-async function fetchWins30Days(onBatch: (wins: Win[]) => void) {
-  const cutoff = Math.floor(Date.now() / 1000) - THIRTY_DAYS_S
-  let before: string | undefined = undefined
+function isWinAmount(lamports: number): boolean {
+  const sol = Math.round(lamports) / 1e9
+  for (const prize of PRIZE_AMOUNTS) {
+    if (Math.abs(sol - prize) < 0.0001) return true
+  }
+  return false
+}
 
-  while (true) {
-    const sigs: any[] = await rpc('getSignaturesForAddress', [
-      PROGRAM_ID,
-      { limit: 1000, ...(before ? { before } : {}) },
-    ])
-    if (!sigs || sigs.length === 0) break
+async function parseSigsForWins(sigs: any[]): Promise<Win[]> {
+  const valid = sigs.filter(s => !s.err)
+  const wins: Win[] = []
 
-    // null blockTime = unfinalized/recent, treat as within window
-    // Only stop when we find a sig with a confirmed blockTime older than cutoff
-    const withinWindow = sigs.filter(s => !s.err && (s.blockTime === null || s.blockTime >= cutoff))
-    const hitCutoff = sigs.some(s => !s.err && s.blockTime !== null && s.blockTime < cutoff)
+  for (let i = 0; i < valid.length; i += 10) {
+    const chunk = valid.slice(i, i + 10)
+    const txs = await Promise.all(
+      chunk.map(s => rpc('getTransaction', [
+        s.signature,
+        { encoding: 'jsonParsed', maxSupportedTransactionVersion: 0 },
+      ]))
+    )
 
-    for (let i = 0; i < withinWindow.length; i += BATCH_SIZE) {
-      const chunk = withinWindow.slice(i, i + BATCH_SIZE)
-      const txs = await Promise.all(
-        chunk.map(s => rpc('getTransaction', [
-          s.signature,
-          { encoding: 'jsonParsed', maxSupportedTransactionVersion: 0 },
-        ]))
-      )
+    for (const tx of txs) {
+      if (!tx?.meta) continue
 
-      const batchWins: Win[] = []
-      for (const tx of txs) {
-        if (!tx?.meta) continue
-        const diff = ((tx.meta.postBalances?.[0] ?? 0) - (tx.meta.preBalances?.[0] ?? 0)) / 1e9
-        if (diff <= 0) continue
-        const keys = tx.transaction?.message?.accountKeys || []
-        const playerKey = keys[0]?.pubkey ?? keys[0] ?? ''
-        batchWins.push({
+      // Look at inner instructions for a system transfer FROM treasury TO player
+      // Treasury is always the 2nd account (index 1), player is index 0
+      const keys = tx.transaction?.message?.accountKeys || []
+      const playerKey = keys[0]?.pubkey ?? keys[0] ?? ''
+      const treasuryKey = keys[1]?.pubkey ?? keys[1] ?? ''
+
+      let prizeAmount = 0
+
+      // Check inner instructions for the prize transfer
+      const innerIxs = tx.meta?.innerInstructions || []
+      for (const group of innerIxs) {
+        for (const ix of group.instructions || []) {
+          if (
+            ix.parsed?.type === 'transfer' &&
+            ix.parsed?.info?.source === treasuryKey?.toString() &&
+            ix.parsed?.info?.destination === playerKey?.toString()
+          ) {
+            const lamports = ix.parsed.info.lamports
+            if (isWinAmount(lamports)) {
+              prizeAmount = lamports / 1e9
+              break
+            }
+          }
+        }
+        if (prizeAmount > 0) break
+      }
+
+      // Fallback: check if treasury balance went down by a known prize amount
+      if (prizeAmount === 0) {
+        const pre = tx.meta.preBalances?.[0] ?? 0
+        const post = tx.meta.postBalances?.[0] ?? 0
+        const netGain = post - pre
+        if (netGain > 0) {
+          const treasuryPre = tx.meta.preBalances?.[1] ?? 0
+          const treasuryPost = tx.meta.postBalances?.[1] ?? 0
+          const treasuryDiff = treasuryPre - treasuryPost
+          if (treasuryDiff > 0 && isWinAmount(treasuryDiff)) {
+            prizeAmount = treasuryDiff / 1e9
+          } else if (treasuryDiff > 0) {
+            prizeAmount = treasuryDiff / 1e9
+          }
+        }
+      }
+
+      if (prizeAmount > 0) {
+        wins.push({
           wallet: shortWallet(playerKey.toString()),
-          amount: diff.toFixed(3),
+          amount: prizeAmount.toFixed(3),
+          amountNum: prizeAmount,
           timeAgo: timeAgo(tx.blockTime ?? 0),
           sig: tx.transaction?.signatures?.[0] ?? '',
+          blockTime: tx.blockTime ?? 0,
         })
       }
-      if (batchWins.length > 0) onBatch(batchWins)
     }
-
-    if (hitCutoff || sigs.length < 1000) break
-    before = sigs[sigs.length - 1].signature
   }
+
+  return wins
 }
 
 export default function WinsTicker() {
   const [wins, setWins] = useState<Win[]>([])
   const [idx, setIdx] = useState(0)
+  const seenSigs = useRef(new Set<string>())
+  const latestSig = useRef<string | undefined>(undefined)
+
+  function addWins(newWins: Win[]) {
+    const fresh = newWins.filter(w => !seenSigs.current.has(w.sig))
+    if (fresh.length === 0) return
+    fresh.forEach(w => seenSigs.current.add(w.sig))
+    setWins(prev => {
+      const merged = [...fresh, ...prev]
+      merged.sort((a, b) => b.blockTime - a.blockTime)
+      return merged
+    })
+  }
 
   useEffect(() => {
-    fetchWins30Days(batch => {
-      setWins(prev => {
-        const seen = new Set(prev.map(w => w.sig))
-        const fresh = batch.filter(w => !seen.has(w.sig))
-        return fresh.length > 0 ? [...prev, ...fresh] : prev
-      })
-    }).catch(e => console.error('WinsTicker:', e))
+    async function loadHistory() {
+      const THIRTY_DAYS = 30 * 24 * 60 * 60
+      const cutoff = Math.floor(Date.now() / 1000) - THIRTY_DAYS
+      let before: string | undefined = undefined
 
-    // Poll every 5s — only fetch tx details for sigs we haven't seen
-    const seenSigs = new Set<string>()
+      while (true) {
+        const sigs: any[] = await rpc('getSignaturesForAddress', [
+          PROGRAM_ID,
+          { limit: 1000, ...(before ? { before } : {}) },
+        ])
+        if (!sigs || sigs.length === 0) break
+
+        if (!latestSig.current && sigs[0]?.signature) {
+          latestSig.current = sigs[0].signature
+        }
+
+        const oldest = sigs[sigs.length - 1]?.blockTime ?? Infinity
+        const inWindow = sigs.filter(s => !s.err && (s.blockTime === null || s.blockTime >= cutoff))
+
+        const batchWins = await parseSigsForWins(inWindow)
+        if (batchWins.length > 0) addWins(batchWins)
+
+        if (oldest < cutoff || sigs.length < 1000) break
+        before = sigs[sigs.length - 1].signature
+      }
+    }
+
+    loadHistory().catch(e => console.error('WinsTicker history:', e))
+
+    // Poll every 5s for new wins only
     const interval = setInterval(async () => {
       try {
-        const sigs: any[] = await rpc('getSignaturesForAddress', [PROGRAM_ID, { limit: 20 }])
-        if (!sigs) return
-        const newSigs = sigs.filter(s => !s.err && !seenSigs.has(s.signature))
-        if (newSigs.length === 0) return
-        newSigs.forEach(s => seenSigs.add(s.signature))
-        const txs = await Promise.all(
-          newSigs.map(s => rpc('getTransaction', [
-            s.signature,
-            { encoding: 'jsonParsed', maxSupportedTransactionVersion: 0 },
-          ]))
-        )
-        const fresh: Win[] = []
-        for (const tx of txs) {
-          if (!tx?.meta) continue
-          const diff = ((tx.meta.postBalances?.[0] ?? 0) - (tx.meta.preBalances?.[0] ?? 0)) / 1e9
-          if (diff <= 0) continue
-          const keys = tx.transaction?.message?.accountKeys || []
-          const playerKey = keys[0]?.pubkey ?? keys[0] ?? ''
-          fresh.push({
-            wallet: shortWallet(playerKey.toString()),
-            amount: diff.toFixed(3),
-            timeAgo: timeAgo(tx.blockTime ?? 0),
-            sig: tx.transaction?.signatures?.[0] ?? '',
-          })
-        }
-        if (fresh.length > 0) {
-          setWins(prev => [...fresh, ...prev])
-        }
+        const params: any = { limit: 20 }
+        if (latestSig.current) params.until = latestSig.current
+        const sigs: any[] = await rpc('getSignaturesForAddress', [PROGRAM_ID, params])
+        if (!sigs || sigs.length === 0) return
+        if (sigs[0]?.signature) latestSig.current = sigs[0].signature
+        const newWins = await parseSigsForWins(sigs)
+        if (newWins.length > 0) addWins(newWins)
       } catch {}
     }, 5000)
 

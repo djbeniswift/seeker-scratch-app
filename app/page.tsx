@@ -61,7 +61,6 @@ import { useScratchProgram } from './hooks/useScratchProgram'
 import { LAMPORTS_PER_SOL } from '@solana/web3.js'
 import { useLeaderboard } from './contexts/LeaderboardContext'
 import AdminPanel from './components/AdminPanel'
-import WinsTicker from './components/WinsTicker'
 import ReferTab from './components/ReferTab'
 import ProfileTab from './components/ProfileTab'
 import WinnerBanner from './components/WinnerBanner'
@@ -308,8 +307,6 @@ export default function Home() {
             <div className="stat-label">Prize Pool</div>
           </div>
         </div>
-
-        <WinsTicker />
 
         {profile && (
           <div style={{ marginBottom: 20, padding: 16, background: 'var(--surface)', border: '1px solid rgba(0,212,255,0.3)', borderRadius: 12 }}>

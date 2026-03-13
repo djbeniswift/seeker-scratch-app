@@ -284,6 +284,12 @@ export default function ProfileTab({ wallet, publicKey, connection }: any) {
         ))}
       </div>
 
+      <div style={{ textAlign: 'center', paddingTop: 24, paddingBottom: 8, fontSize: 12, color: '#ffffff33', fontFamily: 'monospace' }}>
+        Questions or issues?{' '}
+        <a href="mailto:seekerscratch@gmail.com" style={{ color: '#ffffff55', textDecoration: 'underline' }}>
+          seekerscratch@gmail.com
+        </a>
+      </div>
     </div>
   )
 }

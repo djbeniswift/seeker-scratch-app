@@ -30,6 +30,8 @@ function txToWin(tx: any): Win | null {
   const feePayer = tx.feePayer
   if (!feePayer) return null
 
+  const blockTime = tx.timestamp ?? Math.floor(Date.now() / 1000)
+
   // accountData[0] is always the fee payer — more reliable than find()
   const playerData = tx.accountData?.[0]
   if (playerData && playerData.nativeBalanceChange > 0) {
@@ -37,7 +39,7 @@ function txToWin(tx: any): Win | null {
       wallet: shortWallet(feePayer),
       amount: (playerData.nativeBalanceChange / 1e9).toFixed(3),
       sig: tx.signature,
-      blockTime: tx.timestamp,
+      blockTime,
     }
   }
 
@@ -50,7 +52,7 @@ function txToWin(tx: any): Win | null {
       wallet: shortWallet(feePayer),
       amount: (prize.amount / 1e9).toFixed(3),
       sig: tx.signature,
-      blockTime: tx.timestamp,
+      blockTime,
     }
   }
 
@@ -91,7 +93,7 @@ export default function WinsTicker() {
         }
 
         const pageWins = txs
-          .filter(tx => tx.timestamp >= cutoff)
+          .filter(tx => tx.timestamp === null || tx.timestamp >= cutoff)
           .map(txToWin)
           .filter(Boolean) as Win[]
 

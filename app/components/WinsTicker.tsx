@@ -28,14 +28,33 @@ function shortWallet(pk: string) {
 function txToWin(tx: any): Win | null {
   if (tx.transactionError) return null
   const feePayer = tx.feePayer
-  const playerData = tx.accountData?.find((d: any) => d.account === feePayer)
-  if (!playerData || playerData.nativeBalanceChange <= 0) return null
-  return {
-    wallet: shortWallet(feePayer),
-    amount: (playerData.nativeBalanceChange / 1e9).toFixed(3),
-    sig: tx.signature,
-    blockTime: tx.timestamp,
+  if (!feePayer) return null
+
+  // accountData[0] is always the fee payer — more reliable than find()
+  const playerData = tx.accountData?.[0]
+  if (playerData && playerData.nativeBalanceChange > 0) {
+    return {
+      wallet: shortWallet(feePayer),
+      amount: (playerData.nativeBalanceChange / 1e9).toFixed(3),
+      sig: tx.signature,
+      blockTime: tx.timestamp,
+    }
   }
+
+  // Fallback: look for any native transfer TO the feePayer >= 0.01 SOL (prize)
+  const prize = (tx.nativeTransfers ?? []).find(
+    (t: any) => t.toUserAccount === feePayer && t.amount >= 10_000_000
+  )
+  if (prize) {
+    return {
+      wallet: shortWallet(feePayer),
+      amount: (prize.amount / 1e9).toFixed(3),
+      sig: tx.signature,
+      blockTime: tx.timestamp,
+    }
+  }
+
+  return null
 }
 
 export default function WinsTicker() {
@@ -78,7 +97,9 @@ export default function WinsTicker() {
 
         if (pageWins.length > 0) addWins(pageWins)
 
-        const oldest = txs[txs.length - 1]?.timestamp ?? 0
+        // Use the oldest confirmed timestamp; null timestamps mean recent/unfinalized so skip them
+        const confirmedTimestamps = txs.map(t => t.timestamp).filter(Boolean)
+        const oldest = confirmedTimestamps.length > 0 ? Math.min(...confirmedTimestamps) : Date.now() / 1000
         if (oldest < cutoff) break
         before = txs[txs.length - 1].signature
       }

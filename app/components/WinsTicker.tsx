@@ -4,11 +4,11 @@ import { useEffect, useState, useRef } from 'react'
 const PROGRAM_ID = '3vt5QCwqtn13ihaYoFk8RV7r7gbQMnbVcqSZdqNL6mKC'
 const HELIUS_KEY = 'e74081ed-6624-4d7b-9b49-9732a61b29ba'
 const HELIUS_TXS = `https://api.helius.xyz/v0/addresses/${PROGRAM_ID}/transactions?api-key=${HELIUS_KEY}`
+const THIRTY_DAYS_S = 30 * 24 * 60 * 60
 
 type Win = {
   wallet: string
   amount: string
-  timeAgo: string
   sig: string
   blockTime: number
 }
@@ -25,42 +25,26 @@ function shortWallet(pk: string) {
   return `${pk.slice(0, 4)}...${pk.slice(-4)}`
 }
 
-// Helius enhanced API — returns parsed txs with nativeBalanceChange per account
-// Much better history coverage than getTransaction RPC
-async function fetchWinsPage(before?: string): Promise<{ wins: Win[], lastSig: string | null }> {
-  let url = HELIUS_TXS + '&limit=100'
-  if (before) url += `&before=${before}`
-
-  const res = await fetch(url)
-  const txs: any[] = await res.json()
-  if (!Array.isArray(txs) || txs.length === 0) return { wins: [], lastSig: null }
-
-  const wins: Win[] = []
-  for (const tx of txs) {
-    if (tx.transactionError) continue
-    const feePayer = tx.feePayer
-    const playerData = tx.accountData?.find((d: any) => d.account === feePayer)
-    if (!playerData || playerData.nativeBalanceChange <= 0) continue
-    wins.push({
-      wallet: shortWallet(feePayer),
-      amount: (playerData.nativeBalanceChange / 1e9).toFixed(3),
-      timeAgo: timeAgo(tx.timestamp),
-      sig: tx.signature,
-      blockTime: tx.timestamp,
-    })
+function txToWin(tx: any): Win | null {
+  if (tx.transactionError) return null
+  const feePayer = tx.feePayer
+  const playerData = tx.accountData?.find((d: any) => d.account === feePayer)
+  if (!playerData || playerData.nativeBalanceChange <= 0) return null
+  return {
+    wallet: shortWallet(feePayer),
+    amount: (playerData.nativeBalanceChange / 1e9).toFixed(3),
+    sig: tx.signature,
+    blockTime: tx.timestamp,
   }
-
-  return { wins, lastSig: txs[txs.length - 1]?.signature ?? null }
 }
 
 export default function WinsTicker() {
   const [wins, setWins] = useState<Win[]>([])
-  const [idx, setIdx] = useState(0)
   const seenSigs = useRef(new Set<string>())
   const newestSig = useRef<string | undefined>(undefined)
 
-  function addWins(newWins: Win[]) {
-    const fresh = newWins.filter(w => !seenSigs.current.has(w.sig))
+  function addWins(incoming: Win[]) {
+    const fresh = incoming.filter(w => !seenSigs.current.has(w.sig))
     if (fresh.length === 0) return
     fresh.forEach(w => seenSigs.current.add(w.sig))
     setWins(prev => {
@@ -71,74 +55,52 @@ export default function WinsTicker() {
   }
 
   useEffect(() => {
-    // Load all history by paginating back through pages
-    async function loadHistory() {
+    const cutoff = Math.floor(Date.now() / 1000) - THIRTY_DAYS_S
+
+    async function loadAll() {
       let before: string | undefined = undefined
-      let pages = 0
-      while (pages < 20) { // max 20 pages = 2000 txs
-        const { wins: pageWins, lastSig } = await fetchWinsPage(before)
+
+      while (true) {
+        const url = `${HELIUS_TXS}&limit=100${before ? `&before=${before}` : ''}`
+        const res = await fetch(url)
+        const txs: any[] = await res.json()
+        if (!Array.isArray(txs) || txs.length === 0) break
+
+        // Capture newest sig from first page for poll cursor
+        if (!newestSig.current && txs[0]?.signature) {
+          newestSig.current = txs[0].signature
+        }
+
+        const pageWins = txs
+          .filter(tx => tx.timestamp >= cutoff)
+          .map(txToWin)
+          .filter(Boolean) as Win[]
+
         if (pageWins.length > 0) addWins(pageWins)
-        // Capture newest sig from first page for polling
-        if (pages === 0 && pageWins.length === 0 && lastSig) {
-          newestSig.current = lastSig
-        }
-        if (!lastSig) break
-        if (pages === 0) {
-          // Store the newest sig from first page for the poll cursor
-          const { wins: firstPageCheck } = await fetchWinsPage(undefined)
-          newestSig.current = firstPageCheck.length > 0 ? firstPageCheck[0]?.sig : lastSig
-        }
-        before = lastSig
-        pages++
-        if (pageWins.length === 0 && pages > 1) break
+
+        const oldest = txs[txs.length - 1]?.timestamp ?? 0
+        if (oldest < cutoff || txs.length < 100) break
+        before = txs[txs.length - 1].signature
       }
     }
 
-    // Separately grab newest sig for poll cursor, then load history
-    fetchWinsPage(undefined).then(({ wins: firstWins, lastSig }) => {
-      if (firstWins.length > 0) {
-        newestSig.current = firstWins[0].sig
-        addWins(firstWins)
-      }
-    }).catch(() => {})
+    loadAll().catch(e => console.error('WinsTicker:', e))
 
-    loadHistory().catch(e => console.error('WinsTicker history:', e))
-
-    // Poll every 5s for new wins using `until` to only fetch new sigs
+    // Poll every 5s for wins newer than our cursor
     const interval = setInterval(async () => {
       try {
-        let url = HELIUS_TXS + '&limit=20'
-        if (newestSig.current) url += `&until=${newestSig.current}`
+        const url = `${HELIUS_TXS}&limit=20${newestSig.current ? `&until=${newestSig.current}` : ''}`
         const res = await fetch(url)
         const txs: any[] = await res.json()
         if (!Array.isArray(txs) || txs.length === 0) return
         if (txs[0]?.signature) newestSig.current = txs[0].signature
-        const fresh: Win[] = []
-        for (const tx of txs) {
-          if (tx.transactionError) continue
-          const feePayer = tx.feePayer
-          const playerData = tx.accountData?.find((d: any) => d.account === feePayer)
-          if (!playerData || playerData.nativeBalanceChange <= 0) continue
-          fresh.push({
-            wallet: shortWallet(feePayer),
-            amount: (playerData.nativeBalanceChange / 1e9).toFixed(3),
-            timeAgo: timeAgo(tx.timestamp),
-            sig: tx.signature,
-            blockTime: tx.timestamp,
-          })
-        }
+        const fresh = txs.map(txToWin).filter(Boolean) as Win[]
         if (fresh.length > 0) addWins(fresh)
       } catch {}
     }, 5000)
 
     return () => clearInterval(interval)
   }, [])
-
-  useEffect(() => {
-    if (wins.length === 0) return
-    const t = setInterval(() => setIdx(i => (i + 1) % wins.length), 3000)
-    return () => clearInterval(t)
-  }, [wins.length])
 
   if (wins.length === 0) {
     return (
@@ -149,42 +111,64 @@ export default function WinsTicker() {
         borderRadius: '8px',
         padding: '10px 16px',
         marginBottom: '16px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
         fontSize: '13px',
         color: '#ffffff44',
         fontFamily: 'monospace',
       }}>
-        <span>🎰</span>
-        <span>Loading recent wins...</span>
+        🎰 Loading recent wins...
       </div>
     )
   }
 
-  const win = wins[idx]
+  // Duplicate for seamless loop; speed = ~5s per win item
+  const items = [...wins, ...wins]
+  const duration = wins.length * 5
 
   return (
-    <div style={{
-      width: '100%',
-      background: 'rgba(0, 255, 136, 0.05)',
-      border: '1px solid rgba(0, 255, 136, 0.2)',
-      borderRadius: '8px',
-      padding: '10px 16px',
-      marginBottom: '16px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      fontSize: '13px',
-      color: '#00ff88',
-      fontFamily: 'monospace',
-    }}>
-      <span style={{ fontSize: '16px' }}>🎉</span>
-      <span style={{ color: '#ffffff99' }}>{win.wallet}</span>
-      <span>won</span>
-      <span style={{ fontWeight: 'bold', color: '#00ff88' }}>+{win.amount} SOL</span>
-      <span style={{ color: '#ffffff44' }}>·</span>
-      <span style={{ color: '#ffffff55' }}>{win.timeAgo}</span>
-    </div>
+    <>
+      <style>{`
+        @keyframes tickerScroll {
+          from { transform: translateX(0); }
+          to { transform: translateX(-50%); }
+        }
+        .ticker-track {
+          display: inline-flex;
+          animation: tickerScroll ${duration}s linear infinite;
+          white-space: nowrap;
+        }
+        .ticker-track:hover {
+          animation-play-state: paused;
+        }
+      `}</style>
+      <div style={{
+        width: '100%',
+        background: 'rgba(0, 255, 136, 0.05)',
+        border: '1px solid rgba(0, 255, 136, 0.2)',
+        borderRadius: '8px',
+        padding: '10px 0',
+        marginBottom: '16px',
+        overflow: 'hidden',
+        fontFamily: 'monospace',
+        fontSize: '13px',
+      }}>
+        <div className="ticker-track">
+          {items.map((win, i) => (
+            <span key={`${win.sig}-${i}`} style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              marginRight: '40px',
+            }}>
+              <span style={{ fontSize: '15px' }}>🎉</span>
+              <span style={{ color: '#ffffff99' }}>{win.wallet}</span>
+              <span style={{ color: '#ffffff88' }}>won</span>
+              <span style={{ fontWeight: 'bold', color: '#00ff88' }}>+{win.amount} SOL</span>
+              <span style={{ color: '#ffffff33' }}>·</span>
+              <span style={{ color: '#ffffff55' }}>{timeAgo(win.blockTime)}</span>
+            </span>
+          ))}
+        </div>
+      </div>
+    </>
   )
 }

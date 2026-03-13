@@ -59,10 +59,6 @@ export default function WinsTicker() {
           const { result: tx } = await txRes.json()
           if (!tx) continue
 
-          const logs: string[] = tx.meta?.logMessages || []
-          const wonLog = logs.find((l: string) => l.includes('won'))
-          if (!wonLog) continue
-
           const keys = tx.transaction?.message?.accountKeys || []
           const playerKey = keys[0]?.pubkey || keys[0] || ''
 

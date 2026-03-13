@@ -45,9 +45,10 @@ async function fetchWins30Days(onBatch: (wins: Win[]) => void) {
     ])
     if (!sigs || sigs.length === 0) break
 
-    // Trim any sigs older than 30 days (blockTime comes back on sig objects)
-    const withinWindow = sigs.filter(s => !s.err && (s.blockTime ?? 0) >= cutoff)
-    const hitCutoff = withinWindow.length < sigs.filter(s => !s.err).length
+    // null blockTime = unfinalized/recent, treat as within window
+    // Only stop when we find a sig with a confirmed blockTime older than cutoff
+    const withinWindow = sigs.filter(s => !s.err && (s.blockTime === null || s.blockTime >= cutoff))
+    const hitCutoff = sigs.some(s => !s.err && s.blockTime !== null && s.blockTime < cutoff)
 
     for (let i = 0; i < withinWindow.length; i += BATCH_SIZE) {
       const chunk = withinWindow.slice(i, i + BATCH_SIZE)
@@ -93,13 +94,17 @@ export default function WinsTicker() {
       })
     }).catch(e => console.error('WinsTicker:', e))
 
-    // Refresh recent 50 every 30s for new wins
+    // Poll every 5s — only fetch tx details for sigs we haven't seen
+    const seenSigs = new Set<string>()
     const interval = setInterval(async () => {
       try {
-        const sigs: any[] = await rpc('getSignaturesForAddress', [PROGRAM_ID, { limit: 50 }])
+        const sigs: any[] = await rpc('getSignaturesForAddress', [PROGRAM_ID, { limit: 20 }])
         if (!sigs) return
+        const newSigs = sigs.filter(s => !s.err && !seenSigs.has(s.signature))
+        if (newSigs.length === 0) return
+        newSigs.forEach(s => seenSigs.add(s.signature))
         const txs = await Promise.all(
-          sigs.filter(s => !s.err).map(s => rpc('getTransaction', [
+          newSigs.map(s => rpc('getTransaction', [
             s.signature,
             { encoding: 'jsonParsed', maxSupportedTransactionVersion: 0 },
           ]))
@@ -119,14 +124,10 @@ export default function WinsTicker() {
           })
         }
         if (fresh.length > 0) {
-          setWins(prev => {
-            const seen = new Set(prev.map(w => w.sig))
-            const newWins = fresh.filter(w => !seen.has(w.sig))
-            return newWins.length > 0 ? [...newWins, ...prev] : prev
-          })
+          setWins(prev => [...fresh, ...prev])
         }
       } catch {}
-    }, 30000)
+    }, 5000)
 
     return () => clearInterval(interval)
   }, [])

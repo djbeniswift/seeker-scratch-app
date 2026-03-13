@@ -62,7 +62,7 @@ async function fetchWins30Days(onBatch: (wins: Win[]) => void) {
       for (const tx of txs) {
         if (!tx?.meta) continue
         const diff = ((tx.meta.postBalances?.[0] ?? 0) - (tx.meta.preBalances?.[0] ?? 0)) / 1e9
-        if (diff < 0.005) continue
+        if (diff <= 0) continue
         const keys = tx.transaction?.message?.accountKeys || []
         const playerKey = keys[0]?.pubkey ?? keys[0] ?? ''
         batchWins.push({
@@ -108,7 +108,7 @@ export default function WinsTicker() {
         for (const tx of txs) {
           if (!tx?.meta) continue
           const diff = ((tx.meta.postBalances?.[0] ?? 0) - (tx.meta.preBalances?.[0] ?? 0)) / 1e9
-          if (diff < 0.005) continue
+          if (diff <= 0) continue
           const keys = tx.transaction?.message?.accountKeys || []
           const playerKey = keys[0]?.pubkey ?? keys[0] ?? ''
           fresh.push({

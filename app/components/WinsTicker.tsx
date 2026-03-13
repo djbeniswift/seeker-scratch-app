@@ -33,21 +33,32 @@ async function rpc(method: string, params: any[]) {
   return json.result
 }
 
-async function fetchRecentWins(): Promise<Win[]> {
-  const sigs: any[] = await rpc('getSignaturesForAddress', [
-    PROGRAM_ID,
-    { limit: 100 },
-  ])
-  if (!sigs || sigs.length === 0) return []
+const BIG_WIN_THRESHOLD = 0.5 // SOL — shown in ticker
 
-  const validSigs = sigs.filter(s => !s.err)
+async function fetchRecentWins(): Promise<Win[]> {
+  // Fetch up to 500 sigs to cover enough history for big wins
+  const allSigs: any[] = []
+  let before: string | undefined = undefined
+
+  while (allSigs.length < 500) {
+    const batch: any[] = await rpc('getSignaturesForAddress', [
+      PROGRAM_ID,
+      { limit: 100, ...(before ? { before } : {}) },
+    ])
+    if (!batch || batch.length === 0) break
+    allSigs.push(...batch)
+    if (batch.length < 100) break
+    before = batch[batch.length - 1].signature
+  }
+
+  const validSigs = allSigs.filter(s => !s.err)
   const wins: Win[] = []
 
   // Fetch in batches of 10
   for (let i = 0; i < validSigs.length; i += 10) {
-    const batch = validSigs.slice(i, i + 10)
+    const chunk = validSigs.slice(i, i + 10)
     const txs = await Promise.all(
-      batch.map(s => rpc('getTransaction', [
+      chunk.map(s => rpc('getTransaction', [
         s.signature,
         { encoding: 'jsonParsed', maxSupportedTransactionVersion: 0 },
       ]))
@@ -56,14 +67,12 @@ async function fetchRecentWins(): Promise<Win[]> {
     for (const tx of txs) {
       if (!tx || !tx.meta) continue
 
-      // A win = player balance INCREASED (they received SOL back)
-      // Player is always index 0 in accountKeys
       const pre = tx.meta.preBalances?.[0] ?? 0
       const post = tx.meta.postBalances?.[0] ?? 0
       const diff = (post - pre) / 1e9
 
-      // Only count if they gained more than tx fee (i.e. actual prize)
-      if (diff < 0.005) continue
+      // Only show wins >= 0.5 SOL
+      if (diff < BIG_WIN_THRESHOLD) continue
 
       const keys = tx.transaction?.message?.accountKeys || []
       const playerKey = keys[0]?.pubkey ?? keys[0] ?? ''
@@ -77,6 +86,7 @@ async function fetchRecentWins(): Promise<Win[]> {
     }
   }
 
+  // Most recent first
   return wins
 }
 

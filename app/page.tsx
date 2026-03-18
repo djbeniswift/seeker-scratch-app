@@ -57,6 +57,7 @@ function formatBuyError(err: any): string {
   return lines.join('\n')
 }
 import WalletButton from './components/WalletButton'
+import ScratchReveal from './components/ScratchReveal'
 import { useScratchProgram } from './hooks/useScratchProgram'
 import { LAMPORTS_PER_SOL } from '@solana/web3.js'
 import { useLeaderboard } from './contexts/LeaderboardContext'
@@ -88,7 +89,7 @@ export default function Home() {
   const { treasury, profile, loading, fetchTreasury, fetchProfile, buyCard, registerReferral, creditReferrer } = useScratchProgram()
   const [mounted, setMounted] = useState(false)
   const [activeNav, setActiveNav] = useState('scratch')
-  const [lastResult, setLastResult] = useState<{ won: boolean; prize: number } | null>(null)
+  const [scratchState, setScratchState] = useState<{ won: boolean; prize: number; scratched: boolean } | null>(null)
   const [walletBalance, setWalletBalance] = useState(0)
   const [showConfetti, setShowConfetti] = useState(false)
   const [pendingReferrer, setPendingReferrer] = useState<string | null>(null)
@@ -134,7 +135,7 @@ export default function Home() {
     // iOS blocks AudioContext creation/resume after async work completes.
     unlockAudio()
 
-    setLastResult(null)
+    setScratchState(null)
     setShowConfetti(false)
     playScratch()
 
@@ -187,23 +188,26 @@ export default function Home() {
     
     const won = prize > 0 && netDiff > 5000 // ignore dust
     console.log('Final result - won:', won, 'prize:', prize)
-    setLastResult({ won, prize })
+    setScratchState({ won, prize, scratched: false })
     setWalletBalance(balanceAfter / LAMPORTS_PER_SOL)
     // Referral was bundled into this tx — clear it so it doesn't re-register on subsequent buys
     if (pendingReferrer) setPendingReferrer(null)
+  }
 
-    if (won) {
-      const isBigWin = prize >= 0.5
-      if (isBigWin) {
-        playBigWin()
+  const handleRevealed = () => {
+    setScratchState(prev => {
+      if (!prev) return null
+      if (prev.won) {
+        const isBigWin = prev.prize >= 0.5
+        if (isBigWin) playBigWin()
+        else playSmallWin()
+        setShowConfetti(true)
+        setTimeout(() => setShowConfetti(false), 5000)
       } else {
-        playSmallWin()
+        playLoss()
       }
-      setShowConfetti(true)
-      setTimeout(() => setShowConfetti(false), 5000)
-    } else {
-      playLoss()
-    }
+      return { ...prev, scratched: true }
+    })
   }
 
   const getActualMaxPrize = (cardMaxPrize: number) => {
@@ -332,21 +336,34 @@ export default function Home() {
         {/* SCRATCH TAB */}
         {activeNav === 'scratch' && (
           <>
-            {lastResult && (
+            {/* Scratch card — shown while unscratched */}
+            {scratchState && !scratchState.scratched && (
+              <div style={{
+                position: 'relative',
+                marginBottom: 20,
+                height: 140,
+                borderRadius: 16,
+                overflow: 'hidden',
+              }}>
+                <ScratchReveal onRevealed={handleRevealed} />
+              </div>
+            )}
+
+            {/* Result — shown after scratching */}
+            {scratchState && scratchState.scratched && (
               <div
-                className={`result-container ${lastResult.won ? 'result-win' : 'result-loss'}`}
+                className={`result-container ${scratchState.won ? 'result-win' : 'result-loss'}`}
                 style={{
                   marginBottom: 20,
                   padding: 24,
-                  background: lastResult.won ? 'rgba(0,255,136,0.08)' : 'rgba(255,68,68,0.08)',
-                  border: `2px solid ${lastResult.won ? 'var(--green)' : 'var(--red)'}`,
+                  background: scratchState.won ? 'rgba(0,255,136,0.08)' : 'rgba(255,68,68,0.08)',
+                  border: `2px solid ${scratchState.won ? 'var(--green)' : 'var(--red)'}`,
                   borderRadius: 16,
                   textAlign: 'center',
                 }}
               >
-                {lastResult.won ? (
+                {scratchState.won ? (
                   <>
-                    {/* Coin rain */}
                     {['🪙','💰','✨','🪙','💫','🪙'].map((emoji, i) => (
                       <span key={i} className="coin" style={{
                         left: `${10 + i * 16}%`,
@@ -358,7 +375,7 @@ export default function Home() {
                       🎉 YOU WON! 🎉
                     </div>
                     <div className="result-prize" style={{ fontSize: 48, color: 'var(--green)', fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 2 }}>
-                      +{lastResult.prize.toFixed(3)}
+                      +{scratchState.prize.toFixed(3)}
                     </div>
                     <div style={{ fontSize: 16, color: 'var(--green)', opacity: 0.7, fontFamily: 'monospace' }}>SOL</div>
                   </>

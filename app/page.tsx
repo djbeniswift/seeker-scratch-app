@@ -345,6 +345,20 @@ export default function Home() {
                 borderRadius: 16,
                 overflow: 'hidden',
               }}>
+                {/* Background revealed as coating is scratched */}
+                <div style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: 'linear-gradient(135deg, #0d1b2a 0%, #1a1040 50%, #0d1b2a 100%)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 10,
+                }}>
+                  <div style={{ fontSize: 28, letterSpacing: 12, opacity: 0.85 }}>🎰 🎰 🎰</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', fontFamily: 'monospace', letterSpacing: 2 }}>YOUR RESULT IS HIDDEN</div>
+                </div>
                 <ScratchReveal onRevealed={handleRevealed} />
               </div>
             )}

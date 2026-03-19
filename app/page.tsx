@@ -478,95 +478,9 @@ export default function Home() {
 
             {wallet.connected ? (
               <>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                  <h2 style={{ fontSize: 14, color: 'var(--muted)', fontFamily: 'monospace', margin: 0 }}>CHOOSE YOUR CARD</h2>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--green)', fontFamily: 'monospace' }}>
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--green)', display: 'inline-block', animation: 'pulse 2s infinite' }} />
-                    LIVE
-                  </div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {CARD_TYPES.map(card => {
-                    const actualMaxPrize = getActualMaxPrize(card.maxPrize)
-                    const enabledKey = card.id === 'QuickPick' ? 'quickpickEnabled' : card.id === 'HotShot' ? 'hotshotEnabled' : 'megagoldEnabled'
-                    const isDisabled = masterConfig !== null && masterConfig[enabledKey] === false
-                    return (
-                      <div
-                        key={card.id}
-                        onClick={() => !isDisabled && handleBuyCard(card.id)}
-                        style={{
-                          position: 'relative',
-                          padding: '20px 24px',
-                          background: `linear-gradient(135deg, ${card.color}18 0%, var(--surface) 60%)`,
-                          border: `1px solid ${card.color}44`,
-                          borderLeft: `4px solid ${card.color}`,
-                          borderRadius: 16,
-                          cursor: loading || isDisabled ? 'not-allowed' : 'pointer',
-                          opacity: loading || isDisabled ? 0.5 : 1,
-                          transition: 'all 0.2s',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!loading) {
-                            e.currentTarget.style.transform = 'translateX(4px)'
-                            e.currentTarget.style.borderColor = card.color
-                            e.currentTarget.style.borderLeftColor = card.color
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.transform = 'translateX(0)'
-                          e.currentTarget.style.borderColor = `${card.color}44`
-                          e.currentTarget.style.borderLeftColor = card.color
-                        }}
-                      >
-                        {/* Left: tag + name + hook + tiers */}
-                        <div>
-                          <div style={{ fontSize: 13, color: card.color, marginBottom: 6, fontFamily: 'monospace', letterSpacing: 1 }}>{card.tag}</div>
-                          <div style={{ fontSize: 26, color: card.color, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 2, lineHeight: 1, marginBottom: 4 }}>{card.name}</div>
-                          <div style={{ fontSize: 11, color: card.color, opacity: 0.8, fontFamily: 'monospace' }}>{card.hook}</div>
-                        </div>
-                        {/* Right: UP TO + cost button */}
-                        <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontSize: 13, color: 'var(--muted)', fontFamily: 'monospace', marginBottom: 4 }}>UP TO</div>
-                          <div style={{ fontSize: 42, color: card.color, fontFamily: "'Bebas Neue', sans-serif", lineHeight: 1, marginBottom: 2 }}>
-                            {actualMaxPrize >= 1 ? actualMaxPrize.toFixed(0) : actualMaxPrize.toFixed(2)}
-                          </div>
-                          <div style={{ fontSize: 13, color: card.color, fontFamily: 'monospace', opacity: 0.7, marginBottom: 12 }}>SOL</div>
-                          <div style={{
-                            padding: '8px 20px',
-                            background: `${card.color}22`,
-                            border: `1px solid ${card.color}`,
-                            borderRadius: 8,
-                            color: card.color,
-                            fontSize: 14,
-                            fontFamily: 'monospace',
-                            fontWeight: 'bold',
-                          }}>
-                            {card.cost} SOL
-                          </div>
-                        </div>
-                        {/* Coming Soon overlay when disabled */}
-                        {isDisabled && (
-                          <div style={{
-                            position: 'absolute', inset: 0, borderRadius: 16,
-                            background: 'rgba(0,0,0,0.6)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          }}>
-                            <span style={{ color: '#aaa', fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 2 }}>
-                              COMING SOON
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-
                 {/* ── Free Play Card ── */}
                 {wallet.connected && (
-                  <div style={{ marginTop: 16 }}>
+                  <div style={{ marginBottom: 16 }}>
                     {/* Free scratch reveal animation */}
                     {freeScratchState && !freeScratchState.scratched && (
                       <div style={{ position: 'relative', marginBottom: 12, height: 120, borderRadius: 16, overflow: 'hidden' }}>
@@ -654,6 +568,92 @@ export default function Home() {
                     </div>
                   </div>
                 )}
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <h2 style={{ fontSize: 14, color: 'var(--muted)', fontFamily: 'monospace', margin: 0 }}>CHOOSE YOUR CARD</h2>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--green)', fontFamily: 'monospace' }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--green)', display: 'inline-block', animation: 'pulse 2s infinite' }} />
+                    LIVE
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {CARD_TYPES.map(card => {
+                    const actualMaxPrize = getActualMaxPrize(card.maxPrize)
+                    const enabledKey = card.id === 'QuickPick' ? 'quickpickEnabled' : card.id === 'HotShot' ? 'hotshotEnabled' : 'megagoldEnabled'
+                    const isDisabled = masterConfig !== null && masterConfig[enabledKey] === false
+                    return (
+                      <div
+                        key={card.id}
+                        onClick={() => !isDisabled && handleBuyCard(card.id)}
+                        style={{
+                          position: 'relative',
+                          padding: '20px 24px',
+                          background: `linear-gradient(135deg, ${card.color}18 0%, var(--surface) 60%)`,
+                          border: `1px solid ${card.color}44`,
+                          borderLeft: `4px solid ${card.color}`,
+                          borderRadius: 16,
+                          cursor: loading || isDisabled ? 'not-allowed' : 'pointer',
+                          opacity: loading || isDisabled ? 0.5 : 1,
+                          transition: 'all 0.2s',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!loading) {
+                            e.currentTarget.style.transform = 'translateX(4px)'
+                            e.currentTarget.style.borderColor = card.color
+                            e.currentTarget.style.borderLeftColor = card.color
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'translateX(0)'
+                          e.currentTarget.style.borderColor = `${card.color}44`
+                          e.currentTarget.style.borderLeftColor = card.color
+                        }}
+                      >
+                        {/* Left: tag + name + hook + tiers */}
+                        <div>
+                          <div style={{ fontSize: 13, color: card.color, marginBottom: 6, fontFamily: 'monospace', letterSpacing: 1 }}>{card.tag}</div>
+                          <div style={{ fontSize: 26, color: card.color, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 2, lineHeight: 1, marginBottom: 4 }}>{card.name}</div>
+                          <div style={{ fontSize: 11, color: card.color, opacity: 0.8, fontFamily: 'monospace' }}>{card.hook}</div>
+                        </div>
+                        {/* Right: UP TO + cost button */}
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: 13, color: 'var(--muted)', fontFamily: 'monospace', marginBottom: 4 }}>UP TO</div>
+                          <div style={{ fontSize: 42, color: card.color, fontFamily: "'Bebas Neue', sans-serif", lineHeight: 1, marginBottom: 2 }}>
+                            {actualMaxPrize >= 1 ? actualMaxPrize.toFixed(0) : actualMaxPrize.toFixed(2)}
+                          </div>
+                          <div style={{ fontSize: 13, color: card.color, fontFamily: 'monospace', opacity: 0.7, marginBottom: 12 }}>SOL</div>
+                          <div style={{
+                            padding: '8px 20px',
+                            background: `${card.color}22`,
+                            border: `1px solid ${card.color}`,
+                            borderRadius: 8,
+                            color: card.color,
+                            fontSize: 14,
+                            fontFamily: 'monospace',
+                            fontWeight: 'bold',
+                          }}>
+                            {card.cost} SOL
+                          </div>
+                        </div>
+                        {/* Coming Soon overlay when disabled */}
+                        {isDisabled && (
+                          <div style={{
+                            position: 'absolute', inset: 0, borderRadius: 16,
+                            background: 'rgba(0,0,0,0.6)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          }}>
+                            <span style={{ color: '#aaa', fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 2 }}>
+                              COMING SOON
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
 
               </>
             ) : (

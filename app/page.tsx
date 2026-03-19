@@ -190,15 +190,15 @@ export default function Home() {
       MegaGold: 100_000_000,
     }
     const cost = costs[cardType] || 0
-    console.log('Cost:', cost, 'Balance diff:', balanceAfter - balanceBefore)
-    
-    // Player pays cost, gets prize back if they win
-    // netDiff = balanceAfter - balanceBefore should be negative if they lost (paid cost)
-    // or positive if they won (prize > cost)
     const netDiff = balanceAfter - balanceBefore
-    const prize = netDiff > 0 ? netDiff / LAMPORTS_PER_SOL : 0
-    
-    const won = prize > 0 && netDiff > 5000 // ignore dust
+    console.log('Cost:', cost, 'Balance diff:', netDiff)
+
+    // netDiff is negative on a loss (paid cost, no return) or negative-but-smaller on a win.
+    // Add back the card cost to recover the actual prize amount paid out by the program.
+    // e.g. paid 0.01 SOL, won 0.08 SOL → netDiff = +0.07 SOL → prize = 0.07 + 0.01 = 0.08 SOL
+    const cardCostSol = cost / LAMPORTS_PER_SOL
+    const won = netDiff > 5000 // positive balance change (ignoring dust) means a win
+    const prize = won ? (netDiff / LAMPORTS_PER_SOL) + cardCostSol : 0
     console.log('Final result - won:', won, 'prize:', prize)
     setScratchState({ won, prize, scratched: false })
     setWalletBalance(balanceAfter / LAMPORTS_PER_SOL)

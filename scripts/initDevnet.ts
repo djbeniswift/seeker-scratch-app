@@ -112,10 +112,9 @@ function isAlreadyInUse(e: any): boolean {
 }
 
 async function main() {
-  // Load admin keypair — override with ADMIN_KEYPAIR env var if set
-  const keypairPath = process.env.ADMIN_KEYPAIR
-    ? process.env.ADMIN_KEYPAIR.replace('~', os.homedir())
-    : `${os.homedir()}/.config/solana/id.json`
+  // Load admin keypair — override with ADMIN_KEYPAIR env var if set, defaults to playground keypair
+  const keypairPath = (process.env.ADMIN_KEYPAIR || '~/playground-keypair.json')
+    .replace('~', os.homedir())
   const admin = Keypair.fromSecretKey(
     Uint8Array.from(JSON.parse(fs.readFileSync(keypairPath, 'utf-8')))
   )
@@ -157,11 +156,11 @@ async function main() {
     }
   }
 
-  // ── Step 2: Fund treasury with 2 SOL ─────────────────────────────────────
-  console.log('\n2. Funding treasury with 2 SOL...')
+  // ── Step 2: Fund treasury with 1 SOL ─────────────────────────────────────
+  console.log('\n2. Funding treasury with 1 SOL...')
   try {
     const tx = await (program.methods as any)
-      .fundTreasury(new BN(2 * LAMPORTS_PER_SOL))
+      .fundTreasury(new BN(1 * LAMPORTS_PER_SOL))
       .accounts({
         treasury: treasuryPda,
         admin: admin.publicKey,
@@ -170,9 +169,9 @@ async function main() {
       .rpc({ commitment: 'confirmed' })
     console.log('   ✅ Funded:', tx)
   } catch (e: any) {
-    console.error('   ❌ fundTreasury failed:', e?.message)
-    console.error('   Logs:', e?.logs?.join('\n   ') ?? '(none)')
-    process.exit(1)
+    console.warn('   ⚠️  fundTreasury failed (continuing):', e?.message?.split('\n')[0])
+    const logs: string[] = e?.logs ?? []
+    if (logs.length) console.warn('   Logs:', logs.slice(0, 4).join('\n   '))
   }
 
   // ── Step 3: Initialize MasterConfig ──────────────────────────────────────

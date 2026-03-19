@@ -15,7 +15,7 @@ function base64ToBase58(b64: string): string {
   for (const b of bytes) { if (b !== 0) break; result = '1' + result }
   return result
 }
-import { PROGRAM_ID, TREASURY_SEED, PROFILE_SEED, IDL } from '../lib/constants'
+import { PROGRAM_ID, TREASURY_SEED, PROFILE_SEED, GAME_CONFIG_SEED, IDL } from '../lib/constants'
 
 export function useScratchProgram() {
   const { connection } = useConnection()
@@ -58,6 +58,7 @@ export function useScratchProgram() {
   }, [getProvider])
 
   const [treasuryPda] = PublicKey.findProgramAddressSync([TREASURY_SEED], PROGRAM_ID)
+  const [gameConfigPda] = PublicKey.findProgramAddressSync([GAME_CONFIG_SEED], PROGRAM_ID)
 
   const getProfilePda = useCallback((owner: PublicKey) => {
     const [pda] = PublicKey.findProgramAddressSync(
@@ -257,6 +258,7 @@ export function useScratchProgram() {
         treasury: treasuryPda,
         profile: profilePda,
         referrerProfile: referrerProfilePda,
+        gameConfig: gameConfigPda,
         houseWallet: new PublicKey("DBH2VpbjWLdrJnau4RjdpYBTcLy9pMGa1qQr4U9dDgER"),
         player: publicKey,
         systemProgram: SystemProgram.programId,

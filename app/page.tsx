@@ -71,9 +71,21 @@ import Confetti from './components/Confetti'
 import { useSound } from './hooks/useSound'
 
 const CARD_TYPES = [
-  { id: 'QuickPick', name: 'QUICK PICK', cost: 0.01, maxPrize: 0.1, color: '#00d4ff', tag: '⚡ STARTER' },
-  { id: 'HotShot', name: 'HOT SHOT', cost: 0.05, maxPrize: 1, color: '#ff006e', tag: '🔥 HIGH RISK' },
-  { id: 'MegaGold', name: 'MEGA GOLD', cost: 0.1, maxPrize: 5, color: '#f5c842', tag: '✦ FEATURED' },
+  {
+    id: 'QuickPick', name: 'QUICK PICK', cost: 0.01, maxPrize: 0.15, color: '#00d4ff', tag: '⚡ STARTER',
+    hook: 'Win up to 150x your bet!',
+    tiers: ['0.012', '0.020', '0.040', '0.080', '0.150'],
+  },
+  {
+    id: 'HotShot', name: 'HOT SHOT', cost: 0.05, maxPrize: 2, color: '#ff006e', tag: '🔥 HIGH RISK',
+    hook: 'Win up to 2 SOL!',
+    tiers: ['0.100', '0.200', '0.500', '1.000', '2.000'],
+  },
+  {
+    id: 'MegaGold', name: 'MEGA GOLD', cost: 0.1, maxPrize: 5, color: '#f5c842', tag: '✦ FEATURED',
+    hook: 'Win up to 5 SOL!',
+    tiers: ['0.200', '0.500', '1.000', '2.500', '5.000'],
+  },
 ]
 
 const MONTHLY_REWARDS = [
@@ -446,17 +458,18 @@ export default function Home() {
                           e.currentTarget.style.borderLeftColor = card.color
                         }}
                       >
-                        {/* Left: tag + name + odds */}
+                        {/* Left: tag + name + hook + tiers */}
                         <div>
                           <div style={{ fontSize: 13, color: card.color, marginBottom: 6, fontFamily: 'monospace', letterSpacing: 1 }}>{card.tag}</div>
-                          <div style={{ fontSize: 26, color: card.color, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 2, lineHeight: 1, marginBottom: 8 }}>{card.name}</div>
-
+                          <div style={{ fontSize: 26, color: card.color, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 2, lineHeight: 1, marginBottom: 4 }}>{card.name}</div>
+                          <div style={{ fontSize: 11, color: card.color, opacity: 0.8, fontFamily: 'monospace', marginBottom: 4 }}>{card.hook}</div>
+                          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', fontFamily: 'monospace' }}>{card.tiers.join(' · ')}</div>
                         </div>
                         {/* Right: UP TO + cost button */}
                         <div style={{ textAlign: 'right' }}>
                           <div style={{ fontSize: 13, color: 'var(--muted)', fontFamily: 'monospace', marginBottom: 4 }}>UP TO</div>
                           <div style={{ fontSize: 42, color: card.color, fontFamily: "'Bebas Neue', sans-serif", lineHeight: 1, marginBottom: 2 }}>
-                            {actualMaxPrize >= 1 ? actualMaxPrize.toFixed(0) : actualMaxPrize.toFixed(1)}
+                            {actualMaxPrize >= 1 ? actualMaxPrize.toFixed(0) : actualMaxPrize.toFixed(2)}
                           </div>
                           <div style={{ fontSize: 13, color: card.color, fontFamily: 'monospace', opacity: 0.7, marginBottom: 12 }}>SOL</div>
                           <div style={{

@@ -4,6 +4,7 @@ export const PROGRAM_ID = new PublicKey('3vt5QCwqtn13ihaYoFk8RV7r7gbQMnbVcqSZdqN
 export const TREASURY_SEED = Buffer.from('scratch_treasury_v2')
 export const MONTHLY_PRIZE_SEED = Buffer.from('monthly_prize')
 export const PROFILE_SEED = Buffer.from('scratch_profile')
+export const GAME_CONFIG_SEED = Buffer.from('game_config')
 
 export const IDL = {
   version: "0.1.0",
@@ -43,6 +44,7 @@ export const IDL = {
         { name: "treasury", isMut: true, isSigner: false },
         { name: "profile", isMut: true, isSigner: false },
         { name: "referrerProfile", isMut: true, isSigner: false },
+        { name: "gameConfig", isMut: false, isSigner: false },
         { name: "houseWallet", isMut: true, isSigner: false },
         { name: "player", isMut: true, isSigner: true },
         { name: "systemProgram", isMut: false, isSigner: false }
@@ -108,9 +110,35 @@ export const IDL = {
         { name: "claimant", isMut: true, isSigner: true }
       ],
       args: []
+    },
+    {
+      name: "updateWinThresholds",
+      accounts: [
+        { name: "gameConfig", isMut: true, isSigner: false },
+        { name: "treasury", isMut: false, isSigner: false },
+        { name: "admin", isMut: true, isSigner: true },
+        { name: "systemProgram", isMut: false, isSigner: false }
+      ],
+      args: [
+        { name: "quickpick", type: "u16" },
+        { name: "hotshot", type: "u16" },
+        { name: "megagold", type: "u16" }
+      ]
     }
   ],
   accounts: [
+    {
+      name: "GameConfig",
+      type: {
+        kind: "struct",
+        fields: [
+          { name: "winThresholdQuickpick", type: "u16" },
+          { name: "winThresholdHotshot", type: "u16" },
+          { name: "winThresholdMegagold", type: "u16" },
+          { name: "bump", type: "u8" }
+        ]
+      }
+    },
     {
       name: "Treasury",
       type: {
@@ -159,7 +187,8 @@ export const IDL = {
           { name: "hasBeenReferred", type: "bool" },
           { name: "referredBy", type: "publicKey" },
           { name: "referralBonusPaid", type: "bool" },
-          { name: "referralsCount", type: "u32" }
+          { name: "referralsCount", type: "u32" },
+          { name: "lastWinSlot", type: "u64" }
         ]
       }
     }

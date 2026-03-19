@@ -112,32 +112,48 @@ pub mod seeker_scratch {
         treasury.balance = treasury.balance.checked_add(treasury_amount).ok_or(ScratchError::Overflow)?;
         treasury.total_cards_sold = treasury.total_cards_sold.checked_add(1).ok_or(ScratchError::Overflow)?;
 
-        let now = Clock::get()?.unix_timestamp;
+        let clock = Clock::get()?;
+        let now = clock.unix_timestamp;
         if now - treasury.day_start_time >= 86400 {
             treasury.daily_paid_out = 0;
             treasury.day_start_time = now;
         }
 
-        let seed = now
-            .checked_add(ctx.accounts.player.key().to_bytes()[0] as i64)
-            .ok_or(ScratchError::Overflow)?
-            .checked_add(treasury.total_cards_sold as i64)
-            .ok_or(ScratchError::Overflow)?;
+        // Improved randomness: LCG mix + slot + two pubkey bytes
+        let seed = (now as u64)
+            .wrapping_add(ctx.accounts.player.key().to_bytes()[0] as u64)
+            .wrapping_add(ctx.accounts.player.key().to_bytes()[31] as u64)
+            .wrapping_add(treasury.total_cards_sold as u64)
+            .wrapping_add(clock.slot)
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
 
-        let random = pseudo_random(seed as u64);
+        let random = pseudo_random(seed);
+
+        // Read win thresholds from GameConfig if initialized, else use hardcoded defaults
+        let game_config_info = ctx.accounts.game_config.to_account_info();
+        let (win_threshold_qp, win_threshold_hs, win_threshold_mg) =
+            if let Ok(gc) = Account::<GameConfig>::try_from(&game_config_info) {
+                (gc.win_threshold_quickpick as u64, gc.win_threshold_hotshot as u64, gc.win_threshold_megagold as u64)
+            } else {
+                (3500u64, 1500u64, 1200u64)
+            };
 
         let (win_threshold, max_payout) = match card_type {
-            CardType::QuickPick => (1430, 100_000_000),
-            CardType::Lucky7s => (2000, 500_000_000),
-            CardType::HotShot => (1670, 1_000_000_000),
-            CardType::MegaGold => (2000, 5_000_000_000),
+            CardType::QuickPick => (win_threshold_qp, 150_000_000u64),
+            CardType::Lucky7s  => (2000u64,           500_000_000u64),
+            CardType::HotShot  => (win_threshold_hs, 2_000_000_000u64),
+            CardType::MegaGold => (win_threshold_mg, 5_000_000_000u64),
         };
 
         let win_value = random % 10000;
-        let won = win_value < win_threshold;
+        // Cooldown: if player won within the last 50 slots, force a silent loss
+        let cooldown_active = profile.last_win_slot > 0
+            && clock.slot.saturating_sub(profile.last_win_slot) < 50;
+        let won = win_value < win_threshold && !cooldown_active;
 
         if won {
-            let prize_random = pseudo_random(seed.wrapping_add(12345) as u64);
+            let prize_random = pseudo_random(seed.wrapping_add(12345));
             let prize = calculate_prize(&card_type, prize_random, max_payout);
 
             let available_for_payout = if treasury.balance > MIN_TREASURY {
@@ -149,17 +165,18 @@ pub mod seeker_scratch {
             let remaining_daily_cap = DAILY_PAYOUT_CAP.saturating_sub(treasury.daily_paid_out);
             let can_pay = available_for_payout.min(remaining_daily_cap);
 
-            if prize <= can_pay {
-                **treasury_info.try_borrow_mut_lamports()? -= prize;
-                **ctx.accounts.player.to_account_info().try_borrow_mut_lamports()? += prize;
+            require!(prize <= can_pay, ScratchError::TreasuryTooLow);
 
-                treasury.balance = treasury.balance.checked_sub(prize).ok_or(ScratchError::Overflow)?;
-                treasury.total_paid_out = treasury.total_paid_out.checked_add(prize).ok_or(ScratchError::Overflow)?;
-                treasury.daily_paid_out = treasury.daily_paid_out.checked_add(prize).ok_or(ScratchError::Overflow)?;
+            **treasury_info.try_borrow_mut_lamports()? -= prize;
+            **ctx.accounts.player.to_account_info().try_borrow_mut_lamports()? += prize;
 
-                profile.total_won = profile.total_won.checked_add(prize).ok_or(ScratchError::Overflow)?;
-                profile.wins = profile.wins.checked_add(1).ok_or(ScratchError::Overflow)?;
-            }
+            treasury.balance = treasury.balance.checked_sub(prize).ok_or(ScratchError::Overflow)?;
+            treasury.total_paid_out = treasury.total_paid_out.checked_add(prize).ok_or(ScratchError::Overflow)?;
+            treasury.daily_paid_out = treasury.daily_paid_out.checked_add(prize).ok_or(ScratchError::Overflow)?;
+
+            profile.total_won = profile.total_won.checked_add(prize).ok_or(ScratchError::Overflow)?;
+            profile.wins = profile.wins.checked_add(1).ok_or(ScratchError::Overflow)?;
+            profile.last_win_slot = clock.slot;
         } else {
             treasury.total_profit = treasury.total_profit.checked_add(treasury_amount).ok_or(ScratchError::Overflow)?;
         }
@@ -185,6 +202,15 @@ pub mod seeker_scratch {
             profile.points_all_time = profile.points_all_time.saturating_add(REFEREE_POINTS);
         }
 
+        Ok(())
+    }
+
+    pub fn update_win_thresholds(ctx: Context<UpdateWinThresholds>, quickpick: u16, hotshot: u16, megagold: u16) -> Result<()> {
+        let gc = &mut ctx.accounts.game_config;
+        gc.win_threshold_quickpick = quickpick;
+        gc.win_threshold_hotshot = hotshot;
+        gc.win_threshold_megagold = megagold;
+        gc.bump = ctx.bumps.game_config;
         Ok(())
     }
 
@@ -279,11 +305,12 @@ fn calculate_prize(card_type: &CardType, random: u64, max_payout: u64) -> u64 {
     let value = random % 10000;
     match card_type {
         CardType::QuickPick => {
-            if value < 5000 { 15_000_000 }
-            else if value < 7500 { 20_000_000 }
-            else if value < 9000 { 30_000_000 }
-            else if value < 9800 { 50_000_000 }
-            else { 100_000_000 }
+            // 60% / 25% / 10% / 4% / 1%
+            if value < 6000 { 12_000_000 }
+            else if value < 8500 { 20_000_000 }
+            else if value < 9500 { 40_000_000 }
+            else if value < 9900 { 80_000_000 }
+            else { 150_000_000 }
         },
         CardType::Lucky7s => {
             if value < 5000 { 60_000_000 }
@@ -293,17 +320,19 @@ fn calculate_prize(card_type: &CardType, random: u64, max_payout: u64) -> u64 {
             else { 500_000_000 }
         },
         CardType::HotShot => {
-            if value < 5000 { 60_000_000 }
-            else if value < 7500 { 80_000_000 }
-            else if value < 9000 { 150_000_000 }
-            else if value < 9800 { 300_000_000 }
-            else { 1_000_000_000 }
+            // 50% / 25% / 15% / 8% / 2%
+            if value < 5000 { 100_000_000 }
+            else if value < 7500 { 200_000_000 }
+            else if value < 9000 { 500_000_000 }
+            else if value < 9800 { 1_000_000_000 }
+            else { 2_000_000_000 }
         },
         CardType::MegaGold => {
-            if value < 5000 { 120_000_000 }
-            else if value < 7500 { 300_000_000 }
-            else if value < 9000 { 750_000_000 }
-            else if value < 9800 { 1_500_000_000 }
+            // 50% / 25% / 15% / 8% / 2%
+            if value < 5000 { 200_000_000 }
+            else if value < 7500 { 500_000_000 }
+            else if value < 9000 { 1_000_000_000 }
+            else if value < 9800 { 2_500_000_000 }
             else { 5_000_000_000 }
         },
     }.min(max_payout)
@@ -340,6 +369,15 @@ pub struct PlayerProfile {
     pub referred_by: Pubkey,
     pub referral_bonus_paid: bool,
     pub referrals_count: u32,
+    pub last_win_slot: u64,
+}
+
+#[account]
+pub struct GameConfig {
+    pub win_threshold_quickpick: u16,  // 2
+    pub win_threshold_hotshot: u16,    // 2
+    pub win_threshold_megagold: u16,   // 2
+    pub bump: u8,                      // 1
 }
 
 #[account]
@@ -415,6 +453,8 @@ pub struct BuyAndScratch<'info> {
     /// CHECK: May be uninitialized if player has no referrer
     #[account(mut)]
     pub referrer_profile: UncheckedAccount<'info>,
+    /// CHECK: GameConfig PDA — may be uninitialized; fallback to hardcoded defaults if absent
+    pub game_config: UncheckedAccount<'info>,
     /// CHECK: House wallet receives 3% fee
     #[account(mut, address = HOUSE.parse::<Pubkey>().unwrap())]
     pub house_wallet: AccountInfo<'info>,
@@ -479,6 +519,23 @@ pub struct ClaimMonthlyPrize<'info> {
     pub treasury: Account<'info, Treasury>,
     #[account(mut)]
     pub claimant: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct UpdateWinThresholds<'info> {
+    #[account(
+        init_if_needed,
+        payer = admin,
+        space = 8 + 2 + 2 + 2 + 1,
+        seeds = [b"game_config"],
+        bump
+    )]
+    pub game_config: Account<'info, GameConfig>,
+    #[account(seeds = [b"scratch_treasury_v2"], bump = treasury.bump)]
+    pub treasury: Account<'info, Treasury>,
+    #[account(mut, address = treasury.admin)]
+    pub admin: Signer<'info>,
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]

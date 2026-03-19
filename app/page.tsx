@@ -462,8 +462,7 @@ export default function Home() {
                         <div>
                           <div style={{ fontSize: 13, color: card.color, marginBottom: 6, fontFamily: 'monospace', letterSpacing: 1 }}>{card.tag}</div>
                           <div style={{ fontSize: 26, color: card.color, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 2, lineHeight: 1, marginBottom: 4 }}>{card.name}</div>
-                          <div style={{ fontSize: 11, color: card.color, opacity: 0.8, fontFamily: 'monospace', marginBottom: 4 }}>{card.hook}</div>
-                          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', fontFamily: 'monospace' }}>{card.tiers.join(' · ')}</div>
+                          <div style={{ fontSize: 11, color: card.color, opacity: 0.8, fontFamily: 'monospace' }}>{card.hook}</div>
                         </div>
                         {/* Right: UP TO + cost button */}
                         <div style={{ textAlign: 'right' }}>

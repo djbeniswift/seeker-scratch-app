@@ -127,6 +127,26 @@ export default function ProfileTab({ wallet, publicKey, connection }: any) {
   return (
     <div style={{ paddingBottom: 16 }}>
 
+      {/* Profile completion incentive banner */}
+      {profile !== null && (!profile.displayName || !profile.pfpUrl) && (
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(245,200,66,0.12) 0%, rgba(0,212,255,0.08) 100%)',
+          border: '1px solid rgba(245,200,66,0.4)',
+          borderRadius: 12, padding: '14px 16px', marginBottom: 16,
+          display: 'flex', alignItems: 'flex-start', gap: 12,
+        }}>
+          <div style={{ fontSize: 28, flexShrink: 0 }}>🎁</div>
+          <div>
+            <div style={{ color: 'var(--gold)', fontSize: 14, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1, marginBottom: 2 }}>
+              SET YOUR USERNAME + AVATAR — EARN 5 FREE POINTS!
+            </div>
+            <div style={{ color: '#a0aec0', fontSize: 12 }}>
+              Complete your profile and get 5 bonus points instantly. Shows on the leaderboard too 👑
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Profile Card */}
       <div style={{
         background: 'var(--card-bg)', border: '1px solid var(--border)',
@@ -184,7 +204,12 @@ export default function ProfileTab({ wallet, publicKey, connection }: any) {
         }}>
           <div style={{ color: 'var(--gold)', fontSize: 13, letterSpacing: 2, marginBottom: 12 }}>EDIT PROFILE</div>
           <div style={{ marginBottom: 10 }}>
-            <div style={{ color: '#aaa', fontSize: 13, marginBottom: 4 }}>USERNAME (max 16 chars)</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+              <div style={{ color: '#aaa', fontSize: 13 }}>USERNAME</div>
+              <div style={{ fontSize: 11, color: name.length >= 14 ? (name.length >= 16 ? '#f87171' : 'var(--gold)') : '#555', fontFamily: 'monospace' }}>
+                {16 - name.length} left
+              </div>
+            </div>
             <input
               value={name}
               onChange={e => setName(e.target.value.slice(0, 16))}

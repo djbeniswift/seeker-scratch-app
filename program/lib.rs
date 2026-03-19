@@ -390,6 +390,15 @@ pub mod seeker_scratch {
             require!(url.len() <= 128, ScratchError::PfpTooLong);
             profile.pfp_url = url;
         }
+        // One-time profile completion bonus: 5 points for setting both name + pfp
+        if !profile.profile_bonus_claimed
+            && !profile.display_name.is_empty()
+            && !profile.pfp_url.is_empty()
+        {
+            profile.profile_bonus_claimed = true;
+            profile.points_this_month = profile.points_this_month.saturating_add(5);
+            profile.points_all_time = profile.points_all_time.saturating_add(5);
+        }
         Ok(())
     }
 
@@ -541,7 +550,8 @@ pub struct PlayerProfile {
     pub sweep_points_all_time: u64,     // 8
     pub free_plays_used: u32,           // 4
     pub free_play_wins: u32,            // 4
-    // Total data: 302 bytes + 8 discriminator = 310 bytes
+    pub profile_bonus_claimed: bool,    // 1
+    // Total data: 303 bytes + 8 discriminator = 311 bytes — space = 320
 }
 
 #[account]
@@ -662,9 +672,12 @@ pub struct RegisterReferral<'info> {
     #[account(
         init_if_needed,
         payer = referee,
-        space = 310,
+        space = 320,
         seeds = [b"scratch_profile", referee.key().as_ref()],
-        bump
+        bump,
+        realloc = 320,
+        realloc::payer = referee,
+        realloc::zero = false,
     )]
     pub referee_profile: Account<'info, PlayerProfile>,
     #[account(mut)]
@@ -715,9 +728,12 @@ pub struct BuyAndScratch<'info> {
     #[account(
         init_if_needed,
         payer = player,
-        space = 310,
+        space = 320,
         seeds = [b"scratch_profile", player.key().as_ref()],
-        bump
+        bump,
+        realloc = 320,
+        realloc::payer = player,
+        realloc::zero = false,
     )]
     pub profile: Account<'info, PlayerProfile>,
     /// CHECK: May be uninitialized if player has no referrer
@@ -742,9 +758,12 @@ pub struct FreeScratch<'info> {
     #[account(
         init_if_needed,
         payer = player,
-        space = 310,
+        space = 320,
         seeds = [b"scratch_profile", player.key().as_ref()],
-        bump
+        bump,
+        realloc = 320,
+        realloc::payer = player,
+        realloc::zero = false,
     )]
     pub profile: Account<'info, PlayerProfile>,
     /// CHECK: MasterConfig PDA — may be uninitialized
@@ -756,7 +775,14 @@ pub struct FreeScratch<'info> {
 
 #[derive(Accounts)]
 pub struct UpdateProfile<'info> {
-    #[account(mut, seeds = [b"scratch_profile", player.key().as_ref()], bump)]
+    #[account(
+        mut,
+        seeds = [b"scratch_profile", player.key().as_ref()],
+        bump,
+        realloc = 320,
+        realloc::payer = player,
+        realloc::zero = false,
+    )]
     pub profile: Account<'info, PlayerProfile>,
     #[account(mut)]
     pub player: Signer<'info>,

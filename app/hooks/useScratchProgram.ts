@@ -1,5 +1,5 @@
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
-import { Program, AnchorProvider } from '@coral-xyz/anchor'
+import { Program, AnchorProvider, BorshAccountsCoder } from '@coral-xyz/anchor'
 import { PublicKey, LAMPORTS_PER_SOL, SystemProgram, Transaction, TransactionMessage, VersionedTransaction } from '@solana/web3.js'
 import { useCallback, useState, useEffect } from 'react'
 
@@ -37,6 +37,7 @@ export function useScratchProgram() {
   const [treasury, setTreasury] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
   const [masterConfig, setMasterConfig] = useState<any>(null)
+  const [walletBalance, setWalletBalance] = useState<number>(0)
   const [loading, setLoading] = useState(false)
 
   const getProvider = useCallback(() => {
@@ -224,13 +225,109 @@ export function useScratchProgram() {
     }
   }, [getProgram, wallet.publicKey, getProfilePda, fetchProfile])
 
+  // Single batched fetch — replaces 4+ separate RPC calls with one getMultipleAccountsInfo
+  const fetchAll = useCallback(async () => {
+    try {
+      const coder = new BorshAccountsCoder(IDL as any)
+      const pks: PublicKey[] = [treasuryPda, masterConfigPda]
+      const profilePk = wallet.publicKey ? getProfilePda(wallet.publicKey) : null
+      if (profilePk) pks.push(profilePk)
+      if (wallet.publicKey) pks.push(wallet.publicKey)
+
+      const infos = await connection.getMultipleAccountsInfo(pks, 'confirmed')
+
+      // Treasury
+      const tInfo = infos[0]
+      if (tInfo) {
+        try {
+          const t = coder.decode('Treasury', tInfo.data)
+          setTreasury({
+            balance: tInfo.lamports / LAMPORTS_PER_SOL,
+            totalCardsSold: t.totalCardsSold.toNumber(),
+            totalWins: Math.floor(t.totalCardsSold.toNumber() * 0.18),
+            paused: t.paused,
+          })
+        } catch {}
+      }
+
+      // MasterConfig
+      const mcInfo = infos[1]
+      if (mcInfo && mcInfo.data.length >= 8) {
+        try {
+          const mc = coder.decode('MasterConfig', mcInfo.data)
+          setMasterConfig({
+            costQuickpick: mc.costQuickpick.toNumber() / LAMPORTS_PER_SOL,
+            costHotshot: mc.costHotshot.toNumber() / LAMPORTS_PER_SOL,
+            costMegagold: mc.costMegagold.toNumber() / LAMPORTS_PER_SOL,
+            thresholdQuickpick: mc.thresholdQuickpick,
+            thresholdHotshot: mc.thresholdHotshot,
+            thresholdMegagold: mc.thresholdMegagold,
+            houseFeeBps: mc.houseFeeBps.toNumber(),
+            minTreasury: mc.minTreasury.toNumber() / LAMPORTS_PER_SOL,
+            dailyPayoutCap: mc.dailyPayoutCap.toNumber() / LAMPORTS_PER_SOL,
+            prize1stSol: mc.prize1stSol.toNumber() / LAMPORTS_PER_SOL,
+            prize2ndSol: mc.prize2ndSol.toNumber() / LAMPORTS_PER_SOL,
+            prize3rdSol: mc.prize3rdSol.toNumber() / LAMPORTS_PER_SOL,
+            prize1stSkr: mc.prize1stSkr.toNumber(),
+            prize2ndSkr: mc.prize2ndSkr.toNumber(),
+            prize3rdSkr: mc.prize3rdSkr.toNumber(),
+            sweep1stSkr: mc.sweep1stSkr.toNumber(),
+            sweep2ndSkr: mc.sweep2ndSkr.toNumber(),
+            sweep3rdSkr: mc.sweep3rdSkr.toNumber(),
+            freePlayCooldownSeconds: mc.freePlayCooldownSeconds.toNumber(),
+            quickpickEnabled: mc.quickpickEnabled,
+            hotshotEnabled: mc.hotshotEnabled,
+            megagoldEnabled: mc.megagoldEnabled,
+            doublePointsActive: mc.doublePointsActive,
+            bannerText: mc.bannerText,
+            bannerActive: mc.bannerActive,
+          })
+        } catch { setMasterConfig(null) }
+      } else {
+        setMasterConfig(null)
+      }
+
+      // Profile + wallet balance
+      if (profilePk) {
+        const pInfo = infos[2]
+        if (pInfo) {
+          try {
+            const p = coder.decode('PlayerProfile', pInfo.data)
+            setProfile({
+              pointsThisMonth: p.pointsThisMonth.toNumber(),
+              pointsAllTime: p.pointsAllTime.toNumber(),
+              cardsScratched: p.cardsScratched,
+              totalSpent: p.totalSpent.toNumber() / LAMPORTS_PER_SOL,
+              totalWon: p.totalWon.toNumber() / LAMPORTS_PER_SOL,
+              wins: p.wins,
+              hasBeenReferred: p.hasBeenReferred,
+              referredBy: p.referredBy?.toBase58(),
+              referralBonusPaid: p.referralBonusPaid,
+              referralsCount: p.referralsCount,
+              lastFreePlayTimestamp: p.lastFreePlayTimestamp?.toNumber() ?? 0,
+              sweepPointsThisMonth: p.sweepPointsThisMonth?.toNumber() ?? 0,
+              sweepPointsAllTime: p.sweepPointsAllTime?.toNumber() ?? 0,
+              freePlaysUsed: p.freePlaysUsed ?? 0,
+              freePlayWins: p.freePlayWins ?? 0,
+            })
+          } catch { setProfile(null) }
+        } else {
+          setProfile(null)
+        }
+        const wInfo = infos[3]
+        if (wInfo) setWalletBalance(wInfo.lamports / LAMPORTS_PER_SOL)
+      }
+    } catch (err) {
+      console.error('fetchAll failed, falling back to individual fetches:', err)
+      fetchTreasury()
+      fetchMasterConfig()
+      if (wallet.publicKey) fetchProfile()
+    }
+  }, [connection, wallet.publicKey, treasuryPda, masterConfigPda, getProfilePda, fetchTreasury, fetchMasterConfig, fetchProfile])
+
   // Auto-fetch when wallet connects or changes
   useEffect(() => {
-    fetchTreasury()
-    fetchMasterConfig()
-    if (wallet.publicKey) {
-      fetchProfile()
-    }
+    fetchAll()
   }, [wallet.publicKey])
 
   const freeScratch = useCallback(async (): Promise<{ won: boolean; sweepPoints: number }> => {
@@ -298,8 +395,7 @@ export function useScratchProgram() {
       sweepAfter = after.sweepPointsThisMonth?.toNumber() ?? sweepBefore
     } catch {}
 
-    await fetchProfile()
-    await fetchMasterConfig()
+    await fetchAll()
 
     const gained = sweepAfter - sweepBefore
     return { won: gained > 1, sweepPoints: Math.max(gained, 1) }
@@ -478,8 +574,7 @@ export function useScratchProgram() {
       const confirmed = await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed')
       console.log('Transaction confirmed:', confirmed)
 
-      await fetchTreasury()
-      await fetchProfile()
+      await fetchAll()
 
       // Note: creditReferrer is NOT called here — buyAndScratch already credits
       // the referrer on-chain via referrerProfile: isMut. Calling it again would
@@ -521,5 +616,5 @@ export function useScratchProgram() {
     }
   }, [getProgram, getReadOnlyProgram, wallet.publicKey, treasuryPda, getProfilePda, fetchTreasury, fetchProfile, creditReferrer])
 
-  return { treasury, profile, masterConfig, loading, fetchTreasury, fetchProfile, fetchMasterConfig, buyCard, freeScratch, registerReferral, creditReferrer, getProgram }
+  return { treasury, profile, masterConfig, walletBalance, loading, fetchTreasury, fetchProfile, fetchMasterConfig, fetchAll, buyCard, freeScratch, registerReferral, creditReferrer, getProgram }
 }

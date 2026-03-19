@@ -98,13 +98,12 @@ export default function Home() {
   const wallet = useWallet()
   const { connection } = useConnection()
   const { leaderboard, isLoading: leaderboardLoading, getUserRank } = useLeaderboard()
-  const { treasury, profile, masterConfig, loading, fetchTreasury, fetchProfile, buyCard, freeScratch, registerReferral, creditReferrer } = useScratchProgram()
+  const { treasury, profile, masterConfig, walletBalance, loading, fetchTreasury, fetchProfile, fetchAll, buyCard, freeScratch, registerReferral, creditReferrer } = useScratchProgram()
   const [mounted, setMounted] = useState(false)
   const [activeNav, setActiveNav] = useState('scratch')
   const [scratchState, setScratchState] = useState<{ won: boolean; prize: number; scratched: boolean } | null>(null)
   const [freeScratchState, setFreeScratchState] = useState<{ won: boolean; sweepPoints: number; scratched: boolean } | null>(null)
   const [freePlayTimeLeft, setFreePlayTimeLeft] = useState(0)
-  const [walletBalance, setWalletBalance] = useState(0)
   const [showConfetti, setShowConfetti] = useState(false)
   const [pendingReferrer, setPendingReferrer] = useState<string | null>(null)
   const { muted, toggleMute, unlockAudio, playScratch, playSmallWin, playBigWin, playLoss } = useSound()
@@ -116,14 +115,6 @@ export default function Home() {
     const ref = new URLSearchParams(window.location.search).get('ref')
     if (ref && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(ref)) setPendingReferrer(ref)
   }, [])
-
-  useEffect(() => {
-    if (wallet.publicKey) {
-      connection.getBalance(wallet.publicKey).then(bal => {
-        setWalletBalance(bal / LAMPORTS_PER_SOL)
-      })
-    }
-  }, [wallet.publicKey, connection])
 
   // Countdown to next free play
   useEffect(() => {

@@ -378,6 +378,9 @@ const [masterConfigPda] = PublicKey.findProgramAddressSync([MASTER_CONFIG_SEED],
             {activeSection === 'settings' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <div style={sectionHdr()}>GAME SETTINGS</div>
+                <button onClick={initMasterConfig} style={{ ...btn('#333', '#aaa'), width: '100%', fontSize: 11 }}>
+                  🔄 Init MasterConfig (first-time setup only)
+                </button>
 
                 <div style={{ fontSize: 11, color: '#888', marginBottom: 2 }}>Card Costs (SOL)</div>
                 <div style={{ display: 'flex', gap: 4 }}>

@@ -4,7 +4,7 @@ import * as fs from 'fs'
 import * as os from 'os'
 
 const PROGRAM_ID = new PublicKey(
-  process.env.PROGRAM_ID || '3vt5QCwqtn13ihaYoFk8RV7r7gbQMnbVcqSZdqNL6mKC'
+  process.env.PROGRAM_ID || 'F7yfkyhLRirVAJYN6V6swLJNtuSwwj4TNgbLMo6msWJo'
 )
 const TREASURY_SEED = Buffer.from('scratch_treasury_v2')
 const MASTER_CONFIG_SEED = Buffer.from('master_config')

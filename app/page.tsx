@@ -98,10 +98,12 @@ export default function Home() {
   const wallet = useWallet()
   const { connection } = useConnection()
   const { leaderboard, isLoading: leaderboardLoading, getUserRank } = useLeaderboard()
-  const { treasury, profile, loading, fetchTreasury, fetchProfile, buyCard, registerReferral, creditReferrer } = useScratchProgram()
+  const { treasury, profile, masterConfig, loading, fetchTreasury, fetchProfile, buyCard, freeScratch, registerReferral, creditReferrer } = useScratchProgram()
   const [mounted, setMounted] = useState(false)
   const [activeNav, setActiveNav] = useState('scratch')
   const [scratchState, setScratchState] = useState<{ won: boolean; prize: number; scratched: boolean } | null>(null)
+  const [freeScratchState, setFreeScratchState] = useState<{ won: boolean; sweepPoints: number; scratched: boolean } | null>(null)
+  const [freePlayTimeLeft, setFreePlayTimeLeft] = useState(0)
   const [walletBalance, setWalletBalance] = useState(0)
   const [showConfetti, setShowConfetti] = useState(false)
   const [pendingReferrer, setPendingReferrer] = useState<string | null>(null)
@@ -123,6 +125,19 @@ export default function Home() {
       })
     }
   }, [wallet.publicKey, connection])
+
+  // Countdown to next free play
+  useEffect(() => {
+    const update = () => {
+      const lastPlay = profile?.lastFreePlayTimestamp ?? 0
+      const cooldown = masterConfig?.freePlayCooldownSeconds ?? 86400
+      const remaining = Math.max(0, (lastPlay + cooldown) - Math.floor(Date.now() / 1000))
+      setFreePlayTimeLeft(remaining)
+    }
+    update()
+    const id = setInterval(update, 1000)
+    return () => clearInterval(id)
+  }, [profile?.lastFreePlayTimestamp, masterConfig?.freePlayCooldownSeconds])
 
 
   const handleBuyCard = async (cardType: string) => {
@@ -222,6 +237,40 @@ export default function Home() {
     })
   }
 
+  const handleFreeScratch = async () => {
+    if (!wallet.connected) { alert('Please connect your wallet first'); return }
+    unlockAudio()
+    setFreeScratchState(null)
+    playScratch()
+    try {
+      const result = await freeScratch()
+      setFreeScratchState({ ...result, scratched: false })
+    } catch (err: any) {
+      const msg = err?.message || ''
+      if (msg.includes('FreePlayNotReady') || msg.includes('6014')) {
+        alert('⏰ Free play not ready yet! Come back later.')
+      } else if (/user rejected|rejected the request|cancelled/i.test(msg)) {
+        // silent
+      } else {
+        alert(msg.slice(0, 120))
+      }
+    }
+  }
+
+  const handleFreeRevealed = () => {
+    setFreeScratchState(prev => {
+      if (!prev) return null
+      if (prev.won) {
+        playSmallWin()
+        setShowConfetti(true)
+        setTimeout(() => setShowConfetti(false), 3000)
+      } else {
+        playLoss()
+      }
+      return { ...prev, scratched: true }
+    })
+  }
+
   const getActualMaxPrize = (cardMaxPrize: number) => {
     return cardMaxPrize
   }
@@ -251,6 +300,17 @@ export default function Home() {
   return (
     <>
       <div className="app">
+        {/* Announcement Banner */}
+        {masterConfig?.bannerActive && masterConfig?.bannerText && (
+          <div style={{
+            background: '#ffd700', color: '#0a0a0f',
+            padding: '10px 16px', textAlign: 'center',
+            fontSize: 13, fontWeight: 'bold', fontFamily: 'monospace',
+            letterSpacing: 0.5, lineHeight: 1.4,
+          }}>
+            📢 {masterConfig.bannerText}
+          </div>
+        )}
         <header>
           <div className="logo">
             <div className="logo-icon">🎰</div>
@@ -428,18 +488,21 @@ export default function Home() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {CARD_TYPES.map(card => {
                     const actualMaxPrize = getActualMaxPrize(card.maxPrize)
+                    const enabledKey = card.id === 'QuickPick' ? 'quickpickEnabled' : card.id === 'HotShot' ? 'hotshotEnabled' : 'megagoldEnabled'
+                    const isDisabled = masterConfig !== null && masterConfig[enabledKey] === false
                     return (
                       <div
                         key={card.id}
-                        onClick={() => handleBuyCard(card.id)}
+                        onClick={() => !isDisabled && handleBuyCard(card.id)}
                         style={{
+                          position: 'relative',
                           padding: '20px 24px',
                           background: `linear-gradient(135deg, ${card.color}18 0%, var(--surface) 60%)`,
                           border: `1px solid ${card.color}44`,
                           borderLeft: `4px solid ${card.color}`,
                           borderRadius: 16,
-                          cursor: loading ? 'not-allowed' : 'pointer',
-                          opacity: loading ? 0.5 : 1,
+                          cursor: loading || isDisabled ? 'not-allowed' : 'pointer',
+                          opacity: loading || isDisabled ? 0.5 : 1,
                           transition: 'all 0.2s',
                           display: 'flex',
                           alignItems: 'center',
@@ -484,12 +547,113 @@ export default function Home() {
                             {card.cost} SOL
                           </div>
                         </div>
+                        {/* Coming Soon overlay when disabled */}
+                        {isDisabled && (
+                          <div style={{
+                            position: 'absolute', inset: 0, borderRadius: 16,
+                            background: 'rgba(0,0,0,0.6)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          }}>
+                            <span style={{ color: '#aaa', fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 2 }}>
+                              COMING SOON
+                            </span>
+                          </div>
+                        )}
                       </div>
                     )
                   })}
                 </div>
-              
 
+                {/* ── Free Play Card ── */}
+                {wallet.connected && (
+                  <div style={{ marginTop: 16 }}>
+                    {/* Free scratch reveal animation */}
+                    {freeScratchState && !freeScratchState.scratched && (
+                      <div style={{ position: 'relative', marginBottom: 12, height: 120, borderRadius: 16, overflow: 'hidden' }}>
+                        <div style={{
+                          position: 'absolute', inset: 0,
+                          background: 'linear-gradient(135deg, #0d1b2a 0%, #102040 50%, #0d1b2a 100%)',
+                          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8,
+                        }}>
+                          <div style={{ fontSize: 24, opacity: 0.7 }}>🎟️ 🎟️ 🎟️</div>
+                          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace', letterSpacing: 2 }}>SCRATCH TO REVEAL</div>
+                        </div>
+                        <ScratchReveal onRevealed={handleFreeRevealed} />
+                      </div>
+                    )}
+
+                    {/* Free scratch result */}
+                    {freeScratchState && freeScratchState.scratched && (
+                      <div style={{
+                        marginBottom: 12, padding: 16, borderRadius: 16, textAlign: 'center',
+                        background: freeScratchState.won ? 'rgba(0,212,255,0.08)' : 'rgba(100,100,100,0.08)',
+                        border: `2px solid ${freeScratchState.won ? '#00d4ff' : '#333'}`,
+                      }}>
+                        {freeScratchState.won ? (
+                          <>
+                            <div style={{ fontSize: 22, color: '#00d4ff', fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 2, marginBottom: 4 }}>
+                              🎉 YOU WON!
+                            </div>
+                            <div style={{ fontSize: 36, color: '#00d4ff', fontFamily: "'Bebas Neue', sans-serif" }}>
+                              +{freeScratchState.sweepPoints} SWEEP POINTS
+                            </div>
+                            <div style={{ fontSize: 12, color: '#a0aec0', marginTop: 4 }}>Keep climbing the leaderboard!</div>
+                          </>
+                        ) : (
+                          <>
+                            <div style={{ fontSize: 18, color: '#888', fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1 }}>
+                              Better luck tomorrow!
+                            </div>
+                            <div style={{ fontSize: 13, color: '#00d4ff', marginTop: 4 }}>
+                              +{freeScratchState.sweepPoints} SWEEP POINT for playing
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Free play card button or countdown */}
+                    <div style={{
+                      padding: '16px 20px',
+                      background: 'linear-gradient(135deg, rgba(0,212,255,0.06) 0%, var(--surface) 60%)',
+                      border: '1px solid rgba(0,212,255,0.3)',
+                      borderLeft: '4px solid #00d4ff',
+                      borderRadius: 16,
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div>
+                          <div style={{ fontSize: 13, color: '#00d4ff', marginBottom: 4, fontFamily: 'monospace', letterSpacing: 1 }}>🎟️ FREE DAILY PLAY</div>
+                          <div style={{ fontSize: 11, color: '#a0aec0', fontFamily: 'monospace' }}>
+                            {freePlayTimeLeft === 0 ? 'Scratch free, win Sweep Points' : 'Come back tomorrow!'}
+                          </div>
+                        </div>
+                        {freePlayTimeLeft === 0 ? (
+                          <button
+                            onClick={handleFreeScratch}
+                            disabled={loading}
+                            style={{
+                              padding: '10px 16px', border: '1px solid #00d4ff',
+                              borderRadius: 8, background: 'rgba(0,212,255,0.15)',
+                              color: '#00d4ff', fontFamily: 'monospace', fontWeight: 'bold',
+                              fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap',
+                            }}
+                          >
+                            CLAIM FREE PLAY
+                          </button>
+                        ) : (
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontSize: 11, color: '#555', fontFamily: 'monospace' }}>NEXT FREE PLAY IN</div>
+                            <div style={{ fontSize: 16, color: '#00d4ff', fontFamily: 'monospace' }}>
+                              {String(Math.floor(freePlayTimeLeft / 3600)).padStart(2,'0')}:
+                              {String(Math.floor((freePlayTimeLeft % 3600) / 60)).padStart(2,'0')}:
+                              {String(freePlayTimeLeft % 60).padStart(2,'0')}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
               </>
             ) : (
@@ -506,7 +670,7 @@ export default function Home() {
         )}
         {/* PRIZES TAB */}
         {activeNav === 'prizes' && (
-          <PrizesTab />
+          <PrizesTab connection={connection} />
         )}
         {/* REFER TAB */}
         {activeNav === 'refer' && (
@@ -557,6 +721,13 @@ export default function Home() {
             <span style={{ fontSize: 13, fontFamily: 'monospace' }}>{nav.label}</span>
           </div>
         ))}
+      </div>
+      <div style={{
+        textAlign: 'center', padding: '8px 16px 72px',
+        fontSize: 11, color: 'rgba(255,255,255,0.2)', fontFamily: 'monospace', lineHeight: 1.6,
+      }}>
+        Free daily play available. No purchase necessary.<br />
+        Seeker Scratch is a sweepstakes game. 18+ only. Void where prohibited by law.
       </div>
       <AdminPanel />
       <Confetti active={showConfetti} />

@@ -73,6 +73,9 @@ export default function ProfileTab({ wallet, publicKey, connection }: any) {
         referralsCount: data.referralsCount,
         hasBeenReferred: data.hasBeenReferred,
         referralBonusPaid: data.referralBonusPaid,
+        freePlaysUsed: data.freePlaysUsed ?? 0,
+        sweepPointsThisMonth: data.sweepPointsThisMonth?.toNumber() ?? 0,
+        sweepPointsAllTime: data.sweepPointsAllTime?.toNumber() ?? 0,
       }
       setProfile(p)
       setName(p.displayName || '')
@@ -280,6 +283,27 @@ export default function ProfileTab({ wallet, publicKey, connection }: any) {
           }}>
             <span style={{ color: '#a0aec0', fontSize: 13 }}>{label}</span>
             <span style={{ color: 'var(--gold)', fontSize: 13, fontWeight: 'bold' }}>{value}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Sweep Stats */}
+      <div style={{
+        background: 'var(--card-bg)', border: '1px solid rgba(0,212,255,0.2)',
+        borderRadius: 12, padding: 16, marginBottom: 16
+      }}>
+        <div style={{ color: '#00d4ff', fontSize: 13, letterSpacing: 2, marginBottom: 12 }}>🎟️ FREE PLAY STATS</div>
+        {[
+          { label: 'Free Plays Used', value: profile?.freePlaysUsed || 0 },
+          { label: 'Sweep Points This Month', value: profile?.sweepPointsThisMonth || 0 },
+          { label: 'Sweep Points All Time', value: profile?.sweepPointsAllTime || 0 },
+        ].map(({ label, value }) => (
+          <div key={label} style={{
+            display: 'flex', justifyContent: 'space-between',
+            padding: '8px 0', borderBottom: '1px solid #111'
+          }}>
+            <span style={{ color: '#a0aec0', fontSize: 13 }}>{label}</span>
+            <span style={{ color: '#00d4ff', fontSize: 13, fontWeight: 'bold' }}>{value}</span>
           </div>
         ))}
       </div>

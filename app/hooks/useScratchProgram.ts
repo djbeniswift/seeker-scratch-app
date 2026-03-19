@@ -15,13 +15,14 @@ function base64ToBase58(b64: string): string {
   for (const b of bytes) { if (b !== 0) break; result = '1' + result }
   return result
 }
-import { PROGRAM_ID, TREASURY_SEED, PROFILE_SEED, GAME_CONFIG_SEED, IDL } from '../lib/constants'
+import { PROGRAM_ID, TREASURY_SEED, PROFILE_SEED, GAME_CONFIG_SEED, MASTER_CONFIG_SEED, IDL } from '../lib/constants'
 
 export function useScratchProgram() {
   const { connection } = useConnection()
   const wallet = useWallet()
   const [treasury, setTreasury] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
+  const [masterConfig, setMasterConfig] = useState<any>(null)
   const [loading, setLoading] = useState(false)
 
   const getProvider = useCallback(() => {
@@ -59,6 +60,7 @@ export function useScratchProgram() {
 
   const [treasuryPda] = PublicKey.findProgramAddressSync([TREASURY_SEED], PROGRAM_ID)
   const [gameConfigPda] = PublicKey.findProgramAddressSync([GAME_CONFIG_SEED], PROGRAM_ID)
+  const [masterConfigPda] = PublicKey.findProgramAddressSync([MASTER_CONFIG_SEED], PROGRAM_ID)
 
   const getProfilePda = useCallback((owner: PublicKey) => {
     const [pda] = PublicKey.findProgramAddressSync(
@@ -92,6 +94,43 @@ export function useScratchProgram() {
     }
   }, [getProgram, treasuryPda, connection])
 
+  const fetchMasterConfig = useCallback(async () => {
+    try {
+      const readProvider = new AnchorProvider(connection, {} as any, { commitment: 'confirmed' })
+      const readProgram = new Program(IDL as any, PROGRAM_ID, readProvider)
+      const data = await (readProgram.account as any).masterConfig.fetch(masterConfigPda)
+      setMasterConfig({
+        costQuickpick: data.costQuickpick.toNumber() / LAMPORTS_PER_SOL,
+        costHotshot: data.costHotshot.toNumber() / LAMPORTS_PER_SOL,
+        costMegagold: data.costMegagold.toNumber() / LAMPORTS_PER_SOL,
+        thresholdQuickpick: data.thresholdQuickpick,
+        thresholdHotshot: data.thresholdHotshot,
+        thresholdMegagold: data.thresholdMegagold,
+        houseFeeBps: data.houseFeeBps.toNumber(),
+        minTreasury: data.minTreasury.toNumber() / LAMPORTS_PER_SOL,
+        dailyPayoutCap: data.dailyPayoutCap.toNumber() / LAMPORTS_PER_SOL,
+        prize1stSol: data.prize1stSol.toNumber() / LAMPORTS_PER_SOL,
+        prize2ndSol: data.prize2ndSol.toNumber() / LAMPORTS_PER_SOL,
+        prize3rdSol: data.prize3rdSol.toNumber() / LAMPORTS_PER_SOL,
+        prize1stSkr: data.prize1stSkr.toNumber(),
+        prize2ndSkr: data.prize2ndSkr.toNumber(),
+        prize3rdSkr: data.prize3rdSkr.toNumber(),
+        sweep1stSkr: data.sweep1stSkr.toNumber(),
+        sweep2ndSkr: data.sweep2ndSkr.toNumber(),
+        sweep3rdSkr: data.sweep3rdSkr.toNumber(),
+        freePlayCooldownSeconds: data.freePlayCooldownSeconds.toNumber(),
+        quickpickEnabled: data.quickpickEnabled,
+        hotshotEnabled: data.hotshotEnabled,
+        megagoldEnabled: data.megagoldEnabled,
+        doublePointsActive: data.doublePointsActive,
+        bannerText: data.bannerText,
+        bannerActive: data.bannerActive,
+      })
+    } catch {
+      setMasterConfig(null) // not yet initialized
+    }
+  }, [connection, masterConfigPda])
+
   const fetchProfile = useCallback(async () => {
     if (!wallet.publicKey) return
     const program = getProgram()
@@ -110,6 +149,11 @@ export function useScratchProgram() {
         referredBy: data.referredBy?.toBase58(),
         referralBonusPaid: data.referralBonusPaid,
         referralsCount: data.referralsCount,
+        lastFreePlayTimestamp: data.lastFreePlayTimestamp?.toNumber() ?? 0,
+        sweepPointsThisMonth: data.sweepPointsThisMonth?.toNumber() ?? 0,
+        sweepPointsAllTime: data.sweepPointsAllTime?.toNumber() ?? 0,
+        freePlaysUsed: data.freePlaysUsed ?? 0,
+        freePlayWins: data.freePlayWins ?? 0,
       })
     } catch (err) {
       console.log('Profile not found yet')
@@ -169,10 +213,83 @@ export function useScratchProgram() {
   // Auto-fetch when wallet connects or changes
   useEffect(() => {
     fetchTreasury()
+    fetchMasterConfig()
     if (wallet.publicKey) {
       fetchProfile()
     }
   }, [wallet.publicKey])
+
+  const freeScratch = useCallback(async (): Promise<{ won: boolean; sweepPoints: number }> => {
+    const program = getProgram()
+    const publicKey = wallet.publicKey
+    if (!program || !publicKey) throw new Error('Wallet not connected')
+
+    const profilePda = getProfilePda(publicKey)
+
+    // Read sweep points before tx to compute diff after
+    let sweepBefore = 0
+    try {
+      const before = await (program.account as any).playerProfile.fetch(profilePda)
+      sweepBefore = before.sweepPointsThisMonth?.toNumber() ?? 0
+    } catch {}
+
+    const ix = await (getReadOnlyProgram().methods as any).freeScratch().accounts({
+      treasury: treasuryPda,
+      profile: profilePda,
+      masterConfig: masterConfigPda,
+      player: publicKey,
+      systemProgram: SystemProgram.programId,
+    }).instruction()
+
+    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
+    const isMWA = (wallet as any).wallet?.adapter?.name === 'Mobile Wallet Adapter'
+
+    let sig: string
+    if (isMWA) {
+      const tx = new Transaction()
+      tx.add(ix)
+      tx.feePayer = publicKey
+      tx.recentBlockhash = blockhash
+      const origSerialize = (tx as any).serialize.bind(tx)
+      ;(tx as any).serialize = (config?: any) =>
+        origSerialize({ requireAllSignatures: false, verifySignatures: false, ...config })
+      if (!tx.signatures.find(s => s.publicKey.equals(publicKey))) {
+        tx.signatures.unshift({ publicKey, signature: null })
+      }
+      const signedTx = await wallet.signTransaction!(tx)
+      const serialized = signedTx.serialize({ requireAllSignatures: false, verifySignatures: false })
+      sig = await connection.sendRawTransaction(serialized, { skipPreflight: true, maxRetries: 5 })
+    } else {
+      const message = new TransactionMessage({
+        payerKey: publicKey,
+        recentBlockhash: blockhash,
+        instructions: [ix],
+      }).compileToV0Message()
+      const vtx = new VersionedTransaction(message)
+      if (!wallet.signTransaction) {
+        sig = await wallet.sendTransaction(vtx as any, connection, { skipPreflight: true })
+      } else {
+        const signedVtx = await wallet.signTransaction(vtx as any)
+        sig = await connection.sendRawTransaction((signedVtx as any).serialize(), { skipPreflight: true })
+      }
+    }
+
+    await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed')
+
+    // Wait for RPC to settle then read new sweep points
+    await new Promise(r => setTimeout(r, 800))
+    let sweepAfter = sweepBefore
+    try {
+      const after = await (program.account as any).playerProfile.fetch(profilePda)
+      sweepAfter = after.sweepPointsThisMonth?.toNumber() ?? sweepBefore
+    } catch {}
+
+    await fetchProfile()
+    await fetchMasterConfig()
+
+    const gained = sweepAfter - sweepBefore
+    return { won: gained > 1, sweepPoints: Math.max(gained, 1) }
+  }, [getProgram, getReadOnlyProgram, wallet, connection, treasuryPda, masterConfigPda, getProfilePda, fetchProfile, fetchMasterConfig])
 
   const buyCard = useCallback(async (cardType: string, pendingReferrer?: string) => {
     const program = getProgram()
@@ -259,6 +376,7 @@ export function useScratchProgram() {
         profile: profilePda,
         referrerProfile: referrerProfilePda,
         gameConfig: gameConfigPda,
+        masterConfig: masterConfigPda,
         houseWallet: new PublicKey("DBH2VpbjWLdrJnau4RjdpYBTcLy9pMGa1qQr4U9dDgER"),
         player: publicKey,
         systemProgram: SystemProgram.programId,
@@ -389,5 +507,5 @@ export function useScratchProgram() {
     }
   }, [getProgram, getReadOnlyProgram, wallet.publicKey, treasuryPda, getProfilePda, fetchTreasury, fetchProfile, creditReferrer])
 
-  return { treasury, profile, loading, fetchTreasury, fetchProfile, buyCard, registerReferral, creditReferrer, getProgram }
+  return { treasury, profile, masterConfig, loading, fetchTreasury, fetchProfile, fetchMasterConfig, buyCard, freeScratch, registerReferral, creditReferrer, getProgram }
 }

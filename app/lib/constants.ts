@@ -10,6 +10,7 @@ export const TREASURY_SEED = Buffer.from('scratch_treasury_v2')
 export const MONTHLY_PRIZE_SEED = Buffer.from('monthly_prize')
 export const PROFILE_SEED = Buffer.from('scratch_profile')
 export const GAME_CONFIG_SEED = Buffer.from('game_config')
+export const MASTER_CONFIG_SEED = Buffer.from('master_config')
 
 export const IDL = {
   version: "0.1.0",
@@ -44,17 +45,49 @@ export const IDL = {
       args: []
     },
     {
+      name: "initializeMasterConfig",
+      accounts: [
+        { name: "masterConfig", isMut: true, isSigner: false },
+        { name: "treasury", isMut: false, isSigner: false },
+        { name: "admin", isMut: true, isSigner: true },
+        { name: "systemProgram", isMut: false, isSigner: false }
+      ],
+      args: []
+    },
+    {
+      name: "updateMasterConfig",
+      accounts: [
+        { name: "masterConfig", isMut: true, isSigner: false },
+        { name: "treasury", isMut: false, isSigner: false },
+        { name: "admin", isMut: true, isSigner: true },
+        { name: "systemProgram", isMut: false, isSigner: false }
+      ],
+      args: [{ name: "args", type: { defined: "MasterConfigArgs" } }]
+    },
+    {
       name: "buyAndScratch",
       accounts: [
         { name: "treasury", isMut: true, isSigner: false },
         { name: "profile", isMut: true, isSigner: false },
         { name: "referrerProfile", isMut: true, isSigner: false },
         { name: "gameConfig", isMut: false, isSigner: false },
+        { name: "masterConfig", isMut: false, isSigner: false },
         { name: "houseWallet", isMut: true, isSigner: false },
         { name: "player", isMut: true, isSigner: true },
         { name: "systemProgram", isMut: false, isSigner: false }
       ],
       args: [{ name: "cardType", type: { defined: "CardType" } }]
+    },
+    {
+      name: "freeScratch",
+      accounts: [
+        { name: "treasury", isMut: false, isSigner: false },
+        { name: "profile", isMut: true, isSigner: false },
+        { name: "masterConfig", isMut: false, isSigner: false },
+        { name: "player", isMut: true, isSigner: true },
+        { name: "systemProgram", isMut: false, isSigner: false }
+      ],
+      args: []
     },
     {
       name: "updateProfile",
@@ -193,7 +226,46 @@ export const IDL = {
           { name: "referredBy", type: "publicKey" },
           { name: "referralBonusPaid", type: "bool" },
           { name: "referralsCount", type: "u32" },
-          { name: "lastWinSlot", type: "u64" }
+          { name: "lastWinSlot", type: "u64" },
+          { name: "lastFreePlayTimestamp", type: "i64" },
+          { name: "sweepPointsThisMonth", type: "u64" },
+          { name: "sweepPointsAllTime", type: "u64" },
+          { name: "freePlaysUsed", type: "u32" },
+          { name: "freePlayWins", type: "u32" }
+        ]
+      }
+    },
+    {
+      name: "MasterConfig",
+      type: {
+        kind: "struct",
+        fields: [
+          { name: "costQuickpick", type: "u64" },
+          { name: "costHotshot", type: "u64" },
+          { name: "costMegagold", type: "u64" },
+          { name: "thresholdQuickpick", type: "u16" },
+          { name: "thresholdHotshot", type: "u16" },
+          { name: "thresholdMegagold", type: "u16" },
+          { name: "houseFeeBps", type: "u64" },
+          { name: "minTreasury", type: "u64" },
+          { name: "dailyPayoutCap", type: "u64" },
+          { name: "prize1stSol", type: "u64" },
+          { name: "prize2ndSol", type: "u64" },
+          { name: "prize3rdSol", type: "u64" },
+          { name: "prize1stSkr", type: "u64" },
+          { name: "prize2ndSkr", type: "u64" },
+          { name: "prize3rdSkr", type: "u64" },
+          { name: "sweep1stSkr", type: "u64" },
+          { name: "sweep2ndSkr", type: "u64" },
+          { name: "sweep3rdSkr", type: "u64" },
+          { name: "freePlayCooldownSeconds", type: "i64" },
+          { name: "quickpickEnabled", type: "bool" },
+          { name: "hotshotEnabled", type: "bool" },
+          { name: "megagoldEnabled", type: "bool" },
+          { name: "doublePointsActive", type: "bool" },
+          { name: "bannerText", type: "string" },
+          { name: "bannerActive", type: "bool" },
+          { name: "bump", type: "u8" }
         ]
       }
     }
@@ -208,6 +280,39 @@ export const IDL = {
           { name: "Lucky7s" },
           { name: "HotShot" },
           { name: "MegaGold" }
+        ]
+      }
+    },
+    {
+      name: "MasterConfigArgs",
+      type: {
+        kind: "struct",
+        fields: [
+          { name: "costQuickpick", type: "u64" },
+          { name: "costHotshot", type: "u64" },
+          { name: "costMegagold", type: "u64" },
+          { name: "thresholdQuickpick", type: "u16" },
+          { name: "thresholdHotshot", type: "u16" },
+          { name: "thresholdMegagold", type: "u16" },
+          { name: "houseFeeBps", type: "u64" },
+          { name: "minTreasury", type: "u64" },
+          { name: "dailyPayoutCap", type: "u64" },
+          { name: "prize1stSol", type: "u64" },
+          { name: "prize2ndSol", type: "u64" },
+          { name: "prize3rdSol", type: "u64" },
+          { name: "prize1stSkr", type: "u64" },
+          { name: "prize2ndSkr", type: "u64" },
+          { name: "prize3rdSkr", type: "u64" },
+          { name: "sweep1stSkr", type: "u64" },
+          { name: "sweep2ndSkr", type: "u64" },
+          { name: "sweep3rdSkr", type: "u64" },
+          { name: "freePlayCooldownSeconds", type: "i64" },
+          { name: "quickpickEnabled", type: "bool" },
+          { name: "hotshotEnabled", type: "bool" },
+          { name: "megagoldEnabled", type: "bool" },
+          { name: "doublePointsActive", type: "bool" },
+          { name: "bannerText", type: "string" },
+          { name: "bannerActive", type: "bool" }
         ]
       }
     }
@@ -225,6 +330,8 @@ export const IDL = {
     { code: 6009, name: "InvalidReferral", msg: "Invalid referral credit attempt" },
     { code: 6010, name: "InvalidInput", msg: "Invalid input" },
     { code: 6011, name: "NotAWinner", msg: "Not a monthly winner" },
-    { code: 6012, name: "AlreadyClaimed", msg: "Prize already claimed" }
+    { code: 6012, name: "AlreadyClaimed", msg: "Prize already claimed" },
+    { code: 6013, name: "CardDisabled", msg: "This card type is currently disabled" },
+    { code: 6014, name: "FreePlayNotReady", msg: "Free play not available yet, come back later" }
   ]
 }

@@ -63,28 +63,108 @@ pub mod seeker_scratch {
         Ok(())
     }
 
+    pub fn initialize_master_config(ctx: Context<InitializeMasterConfig>) -> Result<()> {
+        let mc = &mut ctx.accounts.master_config;
+        mc.cost_quickpick = 10_000_000;
+        mc.cost_hotshot = 50_000_000;
+        mc.cost_megagold = 100_000_000;
+        mc.threshold_quickpick = 3500;
+        mc.threshold_hotshot = 1500;
+        mc.threshold_megagold = 1200;
+        mc.house_fee_bps = 300;
+        mc.min_treasury = 5_000_000_000;
+        mc.daily_payout_cap = 10_000_000_000;
+        mc.prize_1st_sol = 250_000_000;
+        mc.prize_2nd_sol = 150_000_000;
+        mc.prize_3rd_sol = 50_000_000;
+        mc.prize_1st_skr = 250;
+        mc.prize_2nd_skr = 150;
+        mc.prize_3rd_skr = 100;
+        mc.sweep_1st_skr = 500;
+        mc.sweep_2nd_skr = 250;
+        mc.sweep_3rd_skr = 100;
+        mc.free_play_cooldown_seconds = 86400;
+        mc.quickpick_enabled = true;
+        mc.hotshot_enabled = true;
+        mc.megagold_enabled = true;
+        mc.double_points_active = false;
+        mc.banner_text = String::new();
+        mc.banner_active = false;
+        mc.bump = ctx.bumps.master_config;
+        Ok(())
+    }
+
+    pub fn update_master_config(ctx: Context<UpdateMasterConfig>, args: MasterConfigArgs) -> Result<()> {
+        require!(args.banner_text.len() <= 100, ScratchError::InvalidInput);
+        let mc = &mut ctx.accounts.master_config;
+        mc.cost_quickpick = args.cost_quickpick;
+        mc.cost_hotshot = args.cost_hotshot;
+        mc.cost_megagold = args.cost_megagold;
+        mc.threshold_quickpick = args.threshold_quickpick;
+        mc.threshold_hotshot = args.threshold_hotshot;
+        mc.threshold_megagold = args.threshold_megagold;
+        mc.house_fee_bps = args.house_fee_bps;
+        mc.min_treasury = args.min_treasury;
+        mc.daily_payout_cap = args.daily_payout_cap;
+        mc.prize_1st_sol = args.prize_1st_sol;
+        mc.prize_2nd_sol = args.prize_2nd_sol;
+        mc.prize_3rd_sol = args.prize_3rd_sol;
+        mc.prize_1st_skr = args.prize_1st_skr;
+        mc.prize_2nd_skr = args.prize_2nd_skr;
+        mc.prize_3rd_skr = args.prize_3rd_skr;
+        mc.sweep_1st_skr = args.sweep_1st_skr;
+        mc.sweep_2nd_skr = args.sweep_2nd_skr;
+        mc.sweep_3rd_skr = args.sweep_3rd_skr;
+        mc.free_play_cooldown_seconds = args.free_play_cooldown_seconds;
+        mc.quickpick_enabled = args.quickpick_enabled;
+        mc.hotshot_enabled = args.hotshot_enabled;
+        mc.megagold_enabled = args.megagold_enabled;
+        mc.double_points_active = args.double_points_active;
+        mc.banner_text = args.banner_text;
+        mc.banner_active = args.banner_active;
+        Ok(())
+    }
+
     pub fn buy_and_scratch(ctx: Context<BuyAndScratch>, card_type: CardType) -> Result<()> {
         let treasury = &mut ctx.accounts.treasury;
         require!(!treasury.paused, ScratchError::GamePaused);
 
         let profile = &mut ctx.accounts.profile;
 
-        let cost: u64 = match card_type {
-            CardType::QuickPick => 10_000_000,
-            CardType::Lucky7s => 50_000_000,
-            CardType::HotShot => 50_000_000,
-            CardType::MegaGold => 100_000_000,
+        // Read MasterConfig — take priority over GameConfig and hardcoded constants
+        let master_config_info = ctx.accounts.master_config.to_account_info();
+        let mc_opt = Account::<MasterConfig>::try_from(&master_config_info).ok();
+
+        // Card cost + enabled check
+        let (cost, enabled) = match card_type {
+            CardType::QuickPick => (
+                mc_opt.as_ref().map(|mc| mc.cost_quickpick).unwrap_or(10_000_000),
+                mc_opt.as_ref().map(|mc| mc.quickpick_enabled).unwrap_or(true),
+            ),
+            CardType::Lucky7s => (50_000_000u64, true),
+            CardType::HotShot => (
+                mc_opt.as_ref().map(|mc| mc.cost_hotshot).unwrap_or(50_000_000),
+                mc_opt.as_ref().map(|mc| mc.hotshot_enabled).unwrap_or(true),
+            ),
+            CardType::MegaGold => (
+                mc_opt.as_ref().map(|mc| mc.cost_megagold).unwrap_or(100_000_000),
+                mc_opt.as_ref().map(|mc| mc.megagold_enabled).unwrap_or(true),
+            ),
         };
+        require!(enabled, ScratchError::CardDisabled);
+
+        let house_fee_bps = mc_opt.as_ref().map(|mc| mc.house_fee_bps).unwrap_or(HOUSE_FEE_BPS);
+        let min_treasury_amt = mc_opt.as_ref().map(|mc| mc.min_treasury).unwrap_or(MIN_TREASURY);
+        let daily_cap = mc_opt.as_ref().map(|mc| mc.daily_payout_cap).unwrap_or(DAILY_PAYOUT_CAP);
+        let double_points = mc_opt.as_ref().map(|mc| mc.double_points_active).unwrap_or(false);
 
         let actual_balance = treasury.to_account_info().lamports();
-        require!(actual_balance >= MIN_TREASURY, ScratchError::TreasuryTooLow);
+        require!(actual_balance >= min_treasury_amt, ScratchError::TreasuryTooLow);
 
-        // Calculate 3% house fee
-        let house_fee = cost.checked_mul(HOUSE_FEE_BPS).ok_or(ScratchError::Overflow)?
+        let house_fee = cost.checked_mul(house_fee_bps).ok_or(ScratchError::Overflow)?
             .checked_div(10000).ok_or(ScratchError::Overflow)?;
         let treasury_amount = cost.checked_sub(house_fee).ok_or(ScratchError::Overflow)?;
 
-        // Send 3% to house wallet instantly
         system_program::transfer(
             CpiContext::new(
                 ctx.accounts.system_program.to_account_info(),
@@ -96,7 +176,6 @@ pub mod seeker_scratch {
             house_fee,
         )?;
 
-        // Send 97% to treasury
         let treasury_info = treasury.to_account_info();
         system_program::transfer(
             CpiContext::new(
@@ -119,7 +198,6 @@ pub mod seeker_scratch {
             treasury.day_start_time = now;
         }
 
-        // Improved randomness: LCG mix + slot + two pubkey bytes
         let seed = (now as u64)
             .wrapping_add(ctx.accounts.player.key().to_bytes()[0] as u64)
             .wrapping_add(ctx.accounts.player.key().to_bytes()[31] as u64)
@@ -130,10 +208,12 @@ pub mod seeker_scratch {
 
         let random = pseudo_random(seed);
 
-        // Read win thresholds from GameConfig if initialized, else use hardcoded defaults
+        // Win thresholds: MasterConfig > GameConfig > hardcoded
         let game_config_info = ctx.accounts.game_config.to_account_info();
         let (win_threshold_qp, win_threshold_hs, win_threshold_mg) =
-            if let Ok(gc) = Account::<GameConfig>::try_from(&game_config_info) {
+            if let Some(mc) = mc_opt.as_ref() {
+                (mc.threshold_quickpick as u64, mc.threshold_hotshot as u64, mc.threshold_megagold as u64)
+            } else if let Ok(gc) = Account::<GameConfig>::try_from(&game_config_info) {
                 (gc.win_threshold_quickpick as u64, gc.win_threshold_hotshot as u64, gc.win_threshold_megagold as u64)
             } else {
                 (3500u64, 1500u64, 1200u64)
@@ -147,7 +227,6 @@ pub mod seeker_scratch {
         };
 
         let win_value = random % 10000;
-        // Cooldown: if player won within the last 50 slots, force a silent loss
         let cooldown_active = profile.last_win_slot > 0
             && clock.slot.saturating_sub(profile.last_win_slot) < 50;
         let won = win_value < win_threshold && !cooldown_active;
@@ -156,13 +235,13 @@ pub mod seeker_scratch {
             let prize_random = pseudo_random(seed.wrapping_add(12345));
             let prize = calculate_prize(&card_type, prize_random, max_payout);
 
-            let available_for_payout = if treasury.balance > MIN_TREASURY {
-                treasury.balance - MIN_TREASURY
+            let available_for_payout = if treasury.balance > min_treasury_amt {
+                treasury.balance - min_treasury_amt
             } else {
                 0
             };
 
-            let remaining_daily_cap = DAILY_PAYOUT_CAP.saturating_sub(treasury.daily_paid_out);
+            let remaining_daily_cap = daily_cap.saturating_sub(treasury.daily_paid_out);
             let can_pay = available_for_payout.min(remaining_daily_cap);
 
             require!(prize <= can_pay, ScratchError::TreasuryTooLow);
@@ -184,14 +263,15 @@ pub mod seeker_scratch {
         profile.cards_scratched = profile.cards_scratched.checked_add(1).ok_or(ScratchError::Overflow)?;
         profile.total_spent = profile.total_spent.checked_add(cost).ok_or(ScratchError::Overflow)?;
 
-        let base_points = match card_type {
+        let base_points: u64 = match card_type {
             CardType::QuickPick => 1,
             CardType::Lucky7s => 3,
             CardType::HotShot => 5,
             CardType::MegaGold => 10,
         };
-        profile.points_this_month = profile.points_this_month.saturating_add(base_points);
-        profile.points_all_time = profile.points_all_time.saturating_add(base_points);
+        let final_points = if double_points { base_points.saturating_mul(2) } else { base_points };
+        profile.points_this_month = profile.points_this_month.saturating_add(final_points);
+        profile.points_all_time = profile.points_all_time.saturating_add(final_points);
 
         if profile.has_been_referred
             && !profile.referral_bonus_paid
@@ -201,6 +281,70 @@ pub mod seeker_scratch {
             profile.points_this_month = profile.points_this_month.saturating_add(REFEREE_POINTS);
             profile.points_all_time = profile.points_all_time.saturating_add(REFEREE_POINTS);
         }
+
+        Ok(())
+    }
+
+    pub fn free_scratch(ctx: Context<FreeScratch>) -> Result<()> {
+        let treasury = &ctx.accounts.treasury;
+        require!(!treasury.paused, ScratchError::GamePaused);
+
+        let profile = &mut ctx.accounts.profile;
+        let clock = Clock::get()?;
+        let now = clock.unix_timestamp;
+
+        // Read MasterConfig for cooldown + threshold + double points
+        let master_config_info = ctx.accounts.master_config.to_account_info();
+        let (cooldown_seconds, win_threshold, double_points) =
+            if let Ok(mc) = Account::<MasterConfig>::try_from(&master_config_info) {
+                (mc.free_play_cooldown_seconds, mc.threshold_quickpick as u64, mc.double_points_active)
+            } else {
+                (86400i64, 3500u64, false)
+            };
+
+        // Enforce cooldown
+        if profile.last_free_play_timestamp > 0 {
+            let elapsed = now.saturating_sub(profile.last_free_play_timestamp);
+            require!(elapsed >= cooldown_seconds, ScratchError::FreePlayNotReady);
+        }
+
+        // Randomness — uses player key + slot + free_plays_used for uniqueness
+        let seed = (now as u64)
+            .wrapping_add(profile.free_plays_used as u64)
+            .wrapping_add(clock.slot)
+            .wrapping_add(ctx.accounts.player.key().to_bytes()[0] as u64)
+            .wrapping_add(ctx.accounts.player.key().to_bytes()[31] as u64)
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
+
+        let random = pseudo_random(seed);
+        let win_value = random % 10000;
+        let won = win_value < win_threshold;
+
+        let mut sweep_points: u64 = if won {
+            let tier_value = pseudo_random(seed.wrapping_add(12345)) % 10000;
+            if tier_value < 6000 { 10 }        // common  — matches 0.012 SOL QP tier
+            else if tier_value < 8500 { 25 }   // uncommon — matches 0.020 SOL tier
+            else if tier_value < 9500 { 50 }   // rare     — matches 0.040 SOL tier
+            else if tier_value < 9900 { 100 }  // epic     — matches 0.080 SOL tier
+            else { 250 }                        // legendary — matches 0.150 SOL tier
+        } else {
+            1 // consolation point for playing
+        };
+
+        if double_points {
+            sweep_points = sweep_points.saturating_mul(2);
+        }
+
+        profile.sweep_points_this_month = profile.sweep_points_this_month.saturating_add(sweep_points);
+        profile.sweep_points_all_time = profile.sweep_points_all_time.saturating_add(sweep_points);
+        profile.free_plays_used = profile.free_plays_used.saturating_add(1);
+        if won {
+            profile.free_play_wins = profile.free_play_wins.saturating_add(1);
+        }
+        profile.last_free_play_timestamp = now;
+
+        msg!("free_scratch: won={} sweep_points={}", won, sweep_points);
 
         Ok(())
     }
@@ -305,7 +449,6 @@ fn calculate_prize(card_type: &CardType, random: u64, max_payout: u64) -> u64 {
     let value = random % 10000;
     match card_type {
         CardType::QuickPick => {
-            // 60% / 25% / 10% / 4% / 1%
             if value < 6000 { 12_000_000 }
             else if value < 8500 { 20_000_000 }
             else if value < 9500 { 40_000_000 }
@@ -320,7 +463,6 @@ fn calculate_prize(card_type: &CardType, random: u64, max_payout: u64) -> u64 {
             else { 500_000_000 }
         },
         CardType::HotShot => {
-            // 50% / 25% / 15% / 8% / 2%
             if value < 5000 { 100_000_000 }
             else if value < 7500 { 200_000_000 }
             else if value < 9000 { 500_000_000 }
@@ -328,7 +470,6 @@ fn calculate_prize(card_type: &CardType, random: u64, max_payout: u64) -> u64 {
             else { 2_000_000_000 }
         },
         CardType::MegaGold => {
-            // 50% / 25% / 15% / 8% / 2%
             if value < 5000 { 200_000_000 }
             else if value < 7500 { 500_000_000 }
             else if value < 9000 { 1_000_000_000 }
@@ -337,6 +478,8 @@ fn calculate_prize(card_type: &CardType, random: u64, max_payout: u64) -> u64 {
         },
     }.min(max_payout)
 }
+
+// ─── Account Structs ───────────────────────────────────────────────────────
 
 #[account]
 pub struct Treasury {
@@ -348,7 +491,7 @@ pub struct Treasury {
     pub daily_paid_out: u64,     // 8
     pub day_start_time: i64,     // 8
     pub paused: bool,            // 1
-    pub month_start: i64,        // 8  — must be present or bump reads wrong offset
+    pub month_start: i64,        // 8  — present to keep bump at correct offset
     pub bump: u8,                // 1
     // Total data: 90 bytes + 8 discriminator = 98 bytes
 }
@@ -356,20 +499,27 @@ pub struct Treasury {
 #[account]
 #[derive(Default)]
 pub struct PlayerProfile {
-    pub owner: Pubkey,
-    pub display_name: String,
-    pub pfp_url: String,
-    pub points_this_month: u64,
-    pub points_all_time: u64,
-    pub cards_scratched: u32,
-    pub total_spent: u64,
-    pub total_won: u64,
-    pub wins: u32,
-    pub has_been_referred: bool,
-    pub referred_by: Pubkey,
-    pub referral_bonus_paid: bool,
-    pub referrals_count: u32,
-    pub last_win_slot: u64,
+    pub owner: Pubkey,              // 32
+    pub display_name: String,       // 4 + 16 = 20
+    pub pfp_url: String,            // 4 + 128 = 132
+    pub points_this_month: u64,     // 8
+    pub points_all_time: u64,       // 8
+    pub cards_scratched: u32,       // 4
+    pub total_spent: u64,           // 8
+    pub total_won: u64,             // 8
+    pub wins: u32,                  // 4
+    pub has_been_referred: bool,    // 1
+    pub referred_by: Pubkey,        // 32
+    pub referral_bonus_paid: bool,  // 1
+    pub referrals_count: u32,       // 4
+    pub last_win_slot: u64,         // 8
+    // ─── Free play + sweep (32 bytes — fits within existing 310-byte allocation) ───
+    pub last_free_play_timestamp: i64,  // 8
+    pub sweep_points_this_month: u64,   // 8
+    pub sweep_points_all_time: u64,     // 8
+    pub free_plays_used: u32,           // 4
+    pub free_play_wins: u32,            // 4
+    // Total data: 302 bytes + 8 discriminator = 310 bytes
 }
 
 #[account]
@@ -378,6 +528,39 @@ pub struct GameConfig {
     pub win_threshold_hotshot: u16,    // 2
     pub win_threshold_megagold: u16,   // 2
     pub bump: u8,                      // 1
+}
+
+// MasterConfig space = 8 disc + 24 costs + 6 thresholds + 8 fee + 8 min_t + 8 daily_cap
+//   + 24 sol prizes + 24 skr prizes + 24 sweep prizes + 8 cooldown
+//   + 4 bools + 104 banner_text + 1 banner_active + 1 bump = 252 → allocate 260
+#[account]
+pub struct MasterConfig {
+    pub cost_quickpick: u64,              // 8
+    pub cost_hotshot: u64,                // 8
+    pub cost_megagold: u64,               // 8
+    pub threshold_quickpick: u16,         // 2
+    pub threshold_hotshot: u16,           // 2
+    pub threshold_megagold: u16,          // 2
+    pub house_fee_bps: u64,               // 8
+    pub min_treasury: u64,                // 8
+    pub daily_payout_cap: u64,            // 8
+    pub prize_1st_sol: u64,               // 8
+    pub prize_2nd_sol: u64,               // 8
+    pub prize_3rd_sol: u64,               // 8
+    pub prize_1st_skr: u64,               // 8
+    pub prize_2nd_skr: u64,               // 8
+    pub prize_3rd_skr: u64,               // 8
+    pub sweep_1st_skr: u64,               // 8
+    pub sweep_2nd_skr: u64,               // 8
+    pub sweep_3rd_skr: u64,               // 8
+    pub free_play_cooldown_seconds: i64,  // 8
+    pub quickpick_enabled: bool,          // 1
+    pub hotshot_enabled: bool,            // 1
+    pub megagold_enabled: bool,           // 1
+    pub double_points_active: bool,       // 1
+    pub banner_text: String,              // 4 + 100 = 104
+    pub banner_active: bool,              // 1
+    pub bump: u8,                         // 1
 }
 
 #[account]
@@ -389,6 +572,35 @@ pub struct MonthlyPrize {
     pub bump: u8,
 }
 
+#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+pub struct MasterConfigArgs {
+    pub cost_quickpick: u64,
+    pub cost_hotshot: u64,
+    pub cost_megagold: u64,
+    pub threshold_quickpick: u16,
+    pub threshold_hotshot: u16,
+    pub threshold_megagold: u16,
+    pub house_fee_bps: u64,
+    pub min_treasury: u64,
+    pub daily_payout_cap: u64,
+    pub prize_1st_sol: u64,
+    pub prize_2nd_sol: u64,
+    pub prize_3rd_sol: u64,
+    pub prize_1st_skr: u64,
+    pub prize_2nd_skr: u64,
+    pub prize_3rd_skr: u64,
+    pub sweep_1st_skr: u64,
+    pub sweep_2nd_skr: u64,
+    pub sweep_3rd_skr: u64,
+    pub free_play_cooldown_seconds: i64,
+    pub quickpick_enabled: bool,
+    pub hotshot_enabled: bool,
+    pub megagold_enabled: bool,
+    pub double_points_active: bool,
+    pub banner_text: String,
+    pub banner_active: bool,
+}
+
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq)]
 pub enum CardType {
     QuickPick,
@@ -396,6 +608,8 @@ pub enum CardType {
     HotShot,
     MegaGold,
 }
+
+// ─── Contexts ──────────────────────────────────────────────────────────────
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
@@ -439,6 +653,40 @@ pub struct RegisterReferral<'info> {
 }
 
 #[derive(Accounts)]
+pub struct InitializeMasterConfig<'info> {
+    #[account(
+        init_if_needed,
+        payer = admin,
+        space = 260,
+        seeds = [b"master_config"],
+        bump
+    )]
+    pub master_config: Account<'info, MasterConfig>,
+    #[account(seeds = [b"scratch_treasury_v2"], bump = treasury.bump)]
+    pub treasury: Account<'info, Treasury>,
+    #[account(mut, address = treasury.admin)]
+    pub admin: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct UpdateMasterConfig<'info> {
+    #[account(
+        init_if_needed,
+        payer = admin,
+        space = 260,
+        seeds = [b"master_config"],
+        bump
+    )]
+    pub master_config: Account<'info, MasterConfig>,
+    #[account(seeds = [b"scratch_treasury_v2"], bump = treasury.bump)]
+    pub treasury: Account<'info, Treasury>,
+    #[account(mut, address = treasury.admin)]
+    pub admin: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
 pub struct BuyAndScratch<'info> {
     #[account(mut, seeds = [b"scratch_treasury_v2"], bump = treasury.bump)]
     pub treasury: Account<'info, Treasury>,
@@ -455,9 +703,30 @@ pub struct BuyAndScratch<'info> {
     pub referrer_profile: UncheckedAccount<'info>,
     /// CHECK: GameConfig PDA — may be uninitialized; fallback to hardcoded defaults if absent
     pub game_config: UncheckedAccount<'info>,
-    /// CHECK: House wallet receives 3% fee
+    /// CHECK: MasterConfig PDA — may be uninitialized; takes priority over GameConfig
+    pub master_config: UncheckedAccount<'info>,
+    /// CHECK: House wallet receives fee
     #[account(mut, address = HOUSE.parse::<Pubkey>().unwrap())]
     pub house_wallet: AccountInfo<'info>,
+    #[account(mut)]
+    pub player: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct FreeScratch<'info> {
+    #[account(seeds = [b"scratch_treasury_v2"], bump = treasury.bump)]
+    pub treasury: Account<'info, Treasury>,
+    #[account(
+        init_if_needed,
+        payer = player,
+        space = 310,
+        seeds = [b"scratch_profile", player.key().as_ref()],
+        bump
+    )]
+    pub profile: Account<'info, PlayerProfile>,
+    /// CHECK: MasterConfig PDA — may be uninitialized
+    pub master_config: UncheckedAccount<'info>,
     #[account(mut)]
     pub player: Signer<'info>,
     pub system_program: Program<'info, System>,
@@ -554,6 +823,8 @@ pub struct WithdrawProfit<'info> {
     pub admin: Signer<'info>,
 }
 
+// ─── Errors ────────────────────────────────────────────────────────────────
+
 #[error_code]
 pub enum ScratchError {
     #[msg("Game is currently paused")]
@@ -582,4 +853,8 @@ pub enum ScratchError {
     NotAWinner,
     #[msg("Prize already claimed")]
     AlreadyClaimed,
+    #[msg("This card type is currently disabled")]
+    CardDisabled,
+    #[msg("Free play not available yet, come back later")]
+    FreePlayNotReady,
 }

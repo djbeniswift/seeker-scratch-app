@@ -8,7 +8,11 @@
       "Bash(cargo-build-sbf --version)",
       "Bash(rustup run 1.75.0 cargo --version)",
       "Bash(rustup run 1.77.2 cargo --version)",
-      "Bash(git commit -m \"Switch scratch sound to public/scratch.mp3 audio file\")"
+      "Bash(git commit -m \"Switch scratch sound to public/scratch.mp3 audio file\")",
+      "Bash(git commit:*)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(git add app/components/WalletProvider.tsx app/page.tsx)",
+      "Bash(git add app/components/WalletProvider.tsx app/components/RanksTab.tsx)"
     ],
     "additionalDirectories": [
       "/Users/beswift/Downloads",

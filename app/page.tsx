@@ -477,8 +477,8 @@ export default function Home() {
 
             {wallet.connected ? (
               <>
-                {/* ── Free Play Card ── */}
-                {wallet.connected && (
+                {/* ── Free Play Card — only shown when masterConfig is live on-chain ── */}
+                {wallet.connected && masterConfig !== null && (
                   <div style={{ marginBottom: 16 }}>
                     {/* Free scratch reveal animation */}
                     {freeScratchState && !freeScratchState.scratched && (

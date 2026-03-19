@@ -390,7 +390,6 @@ export function useScratchProgram() {
         profile: profilePda,
         referrerProfile: referrerProfilePda,
         gameConfig: gameConfigPda,
-        masterConfig: masterConfigPda,
         houseWallet: new PublicKey("DBH2VpbjWLdrJnau4RjdpYBTcLy9pMGa1qQr4U9dDgER"),
         player: publicKey,
         systemProgram: SystemProgram.programId,

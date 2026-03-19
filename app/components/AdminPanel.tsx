@@ -7,6 +7,16 @@ import { PROGRAM_ID, TREASURY_SEED, MASTER_CONFIG_SEED, PROFILE_SEED, IDL } from
 
 const ADMIN = '6RhLQikkjzace4ti4D458iSmKofbPdMGNB7VKHmWwYPP'
 
+async function rpcWithRetry(fn: () => Promise<any>): Promise<any> {
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try { return await fn() } catch (err: any) {
+      const is429 = err?.message?.includes('429') || err?.message?.includes('rate limit')
+      if (!is429 || attempt === 3) throw err
+      await new Promise(r => setTimeout(r, 600 * Math.pow(2, attempt)))
+    }
+  }
+}
+
 const btn = (bg: string, color = '#fff'): React.CSSProperties => ({
   padding: '8px 12px', border: 'none', borderRadius: 8,
   cursor: 'pointer', fontWeight: 'bold', fontSize: 12,
@@ -204,9 +214,9 @@ const [masterConfigPda] = PublicKey.findProgramAddressSync([MASTER_CONFIG_SEED],
     try {
       setS('Initializing master config...')
       const program = getProgram(); if (!program) return setS('❌ No wallet')
-      await (program.methods as any).initializeMasterConfig().accounts({
+      await rpcWithRetry(() => (program.methods as any).initializeMasterConfig().accounts({
         masterConfig: masterConfigPda, treasury: treasuryPda, admin: publicKey, systemProgram: SystemProgram.programId,
-      }).rpc()
+      }).rpc())
       setS('✅ MasterConfig initialized!')
       await loadData()
     } catch (e: any) { setS(`❌ ${e.message?.slice(0, 80)}`) }
@@ -216,9 +226,9 @@ const [masterConfigPda] = PublicKey.findProgramAddressSync([MASTER_CONFIG_SEED],
     try {
       setS('Saving game settings...')
       const program = getProgram(); if (!program) return setS('❌ No wallet')
-      await (program.methods as any).updateMasterConfig(buildMasterConfigArgs()).accounts({
+      await rpcWithRetry(() => (program.methods as any).updateMasterConfig(buildMasterConfigArgs()).accounts({
         masterConfig: masterConfigPda, treasury: treasuryPda, admin: publicKey, systemProgram: SystemProgram.programId,
-      }).rpc()
+      }).rpc())
       setS('✅ Game settings saved!')
     } catch (e: any) { setS(`❌ ${e.message?.slice(0, 80)}`) }
   }
@@ -227,9 +237,9 @@ const [masterConfigPda] = PublicKey.findProgramAddressSync([MASTER_CONFIG_SEED],
     try {
       setS('Funding...')
       const program = getProgram(); if (!program) return setS('❌ No wallet')
-      await (program.methods as any).fundTreasury(new BN(parseFloat(fundAmount) * LAMPORTS_PER_SOL)).accounts({
+      await rpcWithRetry(() => (program.methods as any).fundTreasury(new BN(parseFloat(fundAmount) * LAMPORTS_PER_SOL)).accounts({
         treasury: treasuryPda, admin: publicKey, systemProgram: SystemProgram.programId,
-      }).rpc()
+      }).rpc())
       setS(`✅ Funded ${fundAmount} SOL`)
       await loadData()
     } catch (e: any) { setS(`❌ ${e.message?.slice(0, 80)}`) }
@@ -239,9 +249,9 @@ const [masterConfigPda] = PublicKey.findProgramAddressSync([MASTER_CONFIG_SEED],
     try {
       setS('Withdrawing...')
       const program = getProgram(); if (!program) return setS('❌ No wallet')
-      await (program.methods as any).withdrawProfit(new BN(parseFloat(withdrawAmount) * LAMPORTS_PER_SOL)).accounts({
+      await rpcWithRetry(() => (program.methods as any).withdrawProfit(new BN(parseFloat(withdrawAmount) * LAMPORTS_PER_SOL)).accounts({
         treasury: treasuryPda, admin: publicKey,
-      }).rpc()
+      }).rpc())
       setS(`✅ Withdrew ${withdrawAmount} SOL`)
       await loadData()
     } catch (e: any) { setS(`❌ ${e.message?.slice(0, 80)}`) }
@@ -252,7 +262,7 @@ const [masterConfigPda] = PublicKey.findProgramAddressSync([MASTER_CONFIG_SEED],
       const next = !paused
       setS(next ? 'Pausing...' : 'Unpausing...')
       const program = getProgram(); if (!program) return setS('❌ No wallet')
-      await (program.methods as any).setPaused(next).accounts({ treasury: treasuryPda, admin: publicKey }).rpc()
+      await rpcWithRetry(() => (program.methods as any).setPaused(next).accounts({ treasury: treasuryPda, admin: publicKey }).rpc())
       setPaused(next)
       setS(next ? '✅ Game paused' : '✅ Game unpaused')
     } catch (e: any) { setS(`❌ ${e.message?.slice(0, 80)}`) }

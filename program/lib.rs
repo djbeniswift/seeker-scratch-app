@@ -674,10 +674,7 @@ pub struct RegisterReferral<'info> {
         payer = referee,
         space = 320,
         seeds = [b"scratch_profile", referee.key().as_ref()],
-        bump,
-        realloc = 320,
-        realloc::payer = referee,
-        realloc::zero = false,
+        bump
     )]
     pub referee_profile: Account<'info, PlayerProfile>,
     #[account(mut)]
@@ -730,10 +727,7 @@ pub struct BuyAndScratch<'info> {
         payer = player,
         space = 320,
         seeds = [b"scratch_profile", player.key().as_ref()],
-        bump,
-        realloc = 320,
-        realloc::payer = player,
-        realloc::zero = false,
+        bump
     )]
     pub profile: Account<'info, PlayerProfile>,
     /// CHECK: May be uninitialized if player has no referrer
@@ -760,10 +754,7 @@ pub struct FreeScratch<'info> {
         payer = player,
         space = 320,
         seeds = [b"scratch_profile", player.key().as_ref()],
-        bump,
-        realloc = 320,
-        realloc::payer = player,
-        realloc::zero = false,
+        bump
     )]
     pub profile: Account<'info, PlayerProfile>,
     /// CHECK: MasterConfig PDA — may be uninitialized
@@ -775,14 +766,7 @@ pub struct FreeScratch<'info> {
 
 #[derive(Accounts)]
 pub struct UpdateProfile<'info> {
-    #[account(
-        mut,
-        seeds = [b"scratch_profile", player.key().as_ref()],
-        bump,
-        realloc = 320,
-        realloc::payer = player,
-        realloc::zero = false,
-    )]
+    #[account(mut, seeds = [b"scratch_profile", player.key().as_ref()], bump)]
     pub profile: Account<'info, PlayerProfile>,
     #[account(mut)]
     pub player: Signer<'info>,

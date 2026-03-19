@@ -1,9 +1,9 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
 
-declare_id!("F7yfkyhLRirVAJYN6V6swLJNtuSwwj4TNgbLMo6msWJo");
+declare_id!("3vt5QCwqtn13ihaYoFk8RV7r7gbQMnbVcqSZdqNL6mKC");
 
-const ADMIN: &str = "A6CqGe7oeEqctqqiJJn7ep4H64gKUzipKaARssD4hcFx";
+const ADMIN: &str = "6RhLQikkjzace4ti4D458iSmKofbPdMGNB7VKHmWwYPP";
 const HOUSE: &str = "DBH2VpbjWLdrJnau4RjdpYBTcLy9pMGa1qQr4U9dDgER";
 const MIN_TREASURY: u64 = 5_000_000_000;
 const DAILY_PAYOUT_CAP: u64 = 10_000_000_000;

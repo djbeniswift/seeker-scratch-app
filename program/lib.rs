@@ -132,8 +132,13 @@ pub mod seeker_scratch {
         let profile = &mut ctx.accounts.profile;
 
         // Read MasterConfig — take priority over GameConfig and hardcoded constants
-        let master_config_info = ctx.accounts.master_config.to_account_info();
-        let mc_opt = Account::<MasterConfig>::try_from(&master_config_info).ok();
+        let mc_data = ctx.accounts.master_config.try_borrow_data()?;
+        let mc_opt: Option<MasterConfig> = if mc_data.len() >= 260 {
+            MasterConfig::try_deserialize(&mut &mc_data[..]).ok()
+        } else {
+            None
+        };
+        drop(mc_data);
 
         // Card cost + enabled check
         let (cost, enabled) = match card_type {
@@ -209,14 +214,25 @@ pub mod seeker_scratch {
         let random = pseudo_random(seed);
 
         // Win thresholds: MasterConfig > GameConfig > hardcoded
-        let game_config_info = ctx.accounts.game_config.to_account_info();
         let (win_threshold_qp, win_threshold_hs, win_threshold_mg) =
             if let Some(mc) = mc_opt.as_ref() {
                 (mc.threshold_quickpick as u64, mc.threshold_hotshot as u64, mc.threshold_megagold as u64)
-            } else if let Ok(gc) = Account::<GameConfig>::try_from(&game_config_info) {
-                (gc.win_threshold_quickpick as u64, gc.win_threshold_hotshot as u64, gc.win_threshold_megagold as u64)
             } else {
-                (3500u64, 1500u64, 1200u64)
+                let gc_data = ctx.accounts.game_config.try_borrow_data()?;
+                let result = if gc_data.len() >= 8 + 2 + 2 + 2 + 1 {
+                    let qp = u16::from_le_bytes([gc_data[8], gc_data[9]]) as u64;
+                    let hs = u16::from_le_bytes([gc_data[10], gc_data[11]]) as u64;
+                    let mg = u16::from_le_bytes([gc_data[12], gc_data[13]]) as u64;
+                    if qp > 0 && qp <= 10000 && hs > 0 && hs <= 10000 && mg > 0 && mg <= 10000 {
+                        (qp, hs, mg)
+                    } else {
+                        (3500u64, 1500u64, 1200u64)
+                    }
+                } else {
+                    (3500u64, 1500u64, 1200u64)
+                };
+                drop(gc_data);
+                result
             };
 
         let (win_threshold, max_payout) = match card_type {
@@ -294,13 +310,19 @@ pub mod seeker_scratch {
         let now = clock.unix_timestamp;
 
         // Read MasterConfig for cooldown + threshold + double points
-        let master_config_info = ctx.accounts.master_config.to_account_info();
-        let (cooldown_seconds, win_threshold, double_points) =
-            if let Ok(mc) = Account::<MasterConfig>::try_from(&master_config_info) {
-                (mc.free_play_cooldown_seconds, mc.threshold_quickpick as u64, mc.double_points_active)
+        let (cooldown_seconds, win_threshold, double_points) = {
+            let mc_data = ctx.accounts.master_config.try_borrow_data()?;
+            let result = if mc_data.len() >= 260 {
+                match MasterConfig::try_deserialize(&mut &mc_data[..]) {
+                    Ok(mc) => (mc.free_play_cooldown_seconds, mc.threshold_quickpick as u64, mc.double_points_active),
+                    Err(_) => (86400i64, 3500u64, false),
+                }
             } else {
                 (86400i64, 3500u64, false)
             };
+            drop(mc_data);
+            result
+        };
 
         // Enforce cooldown
         if profile.last_free_play_timestamp > 0 {

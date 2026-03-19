@@ -3,7 +3,7 @@ import { useWallet, useConnection } from '@solana/wallet-adapter-react'
 import { Program, AnchorProvider, BN } from '@coral-xyz/anchor'
 import { PublicKey, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js'
 import { useState, useEffect } from 'react'
-import { PROGRAM_ID, TREASURY_SEED, IDL } from '../lib/constants'
+import { PROGRAM_ID, TREASURY_SEED, GAME_CONFIG_SEED, IDL } from '../lib/constants'
 
 const ADMIN = '6RhLQikkjzace4ti4D458iSmKofbPdMGNB7VKHmWwYPP'
 
@@ -16,10 +16,14 @@ export default function AdminPanel() {
   const [paused, setPaused] = useState(false)
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [qpPct, setQpPct] = useState('35')
+  const [hsPct, setHsPct] = useState('15')
+  const [mgPct, setMgPct] = useState('12')
 
   useEffect(() => { setMounted(true) }, [])
 
   const [treasuryPda] = PublicKey.findProgramAddressSync([TREASURY_SEED], PROGRAM_ID)
+  const [gameConfigPda] = PublicKey.findProgramAddressSync([GAME_CONFIG_SEED], PROGRAM_ID)
 
   const checkAndAlertTreasury = async () => {
     try {
@@ -49,7 +53,7 @@ export default function AdminPanel() {
     return new Program(IDL as any, PROGRAM_ID, provider)
   }
 
-  // Fetch current paused state when panel opens
+  // Fetch current paused state and win thresholds when panel opens
   useEffect(() => {
     if (!open) return
     const readProvider = new AnchorProvider(connection, {} as any, { commitment: 'confirmed' })
@@ -57,7 +61,14 @@ export default function AdminPanel() {
     ;(readProgram.account as any).treasury.fetch(treasuryPda)
       .then((data: any) => setPaused(data.paused))
       .catch(() => {})
-  }, [open, connection, treasuryPda])
+    ;(readProgram.account as any).gameConfig.fetch(gameConfigPda)
+      .then((data: any) => {
+        setQpPct((data.winThresholdQuickpick / 100).toFixed(1))
+        setHsPct((data.winThresholdHotshot / 100).toFixed(1))
+        setMgPct((data.winThresholdMegagold / 100).toFixed(1))
+      })
+      .catch(() => {}) // GameConfig not yet initialized — keep defaults
+  }, [open, connection, treasuryPda, gameConfigPda])
 
   if (!mounted) return null
   if (!publicKey || publicKey.toBase58() !== ADMIN) return null
@@ -107,6 +118,29 @@ export default function AdminPanel() {
       }).rpc()
       setStatus(`✅ Withdrew ${withdrawAmount} SOL!`)
       await checkAndAlertTreasury()
+    } catch (e: any) {
+      setStatus(`❌ ${e.message?.slice(0, 60)}`)
+    }
+  }
+
+  const updateThresholds = async () => {
+    try {
+      setStatus('Updating win %...')
+      const program = getProgram()
+      if (!program) return setStatus('❌ Wallet not connected')
+      const qp = Math.round(parseFloat(qpPct) * 100)
+      const hs = Math.round(parseFloat(hsPct) * 100)
+      const mg = Math.round(parseFloat(mgPct) * 100)
+      if ([qp, hs, mg].some(v => isNaN(v) || v < 1 || v > 9999)) {
+        return setStatus('❌ Values must be 0.01–99.99%')
+      }
+      await (program.methods as any).updateWinThresholds(qp, hs, mg).accounts({
+        gameConfig: gameConfigPda,
+        treasury: treasuryPda,
+        admin: publicKey,
+        systemProgram: SystemProgram.programId,
+      }).rpc()
+      setStatus(`✅ Win % updated: QP ${qpPct}% / HS ${hsPct}% / MG ${mgPct}%`)
     } catch (e: any) {
       setStatus(`❌ ${e.message?.slice(0, 60)}`)
     }
@@ -181,6 +215,30 @@ export default function AdminPanel() {
               placeholder="SOL"
             />
             <button onClick={withdraw} style={{ ...btnBase, background: '#f59e0b', color: '#000' }}>Withdraw</button>
+          </div>
+
+          {/* Win thresholds */}
+          <div style={{ borderTop: '1px solid #333', paddingTop: 8, marginBottom: 8 }}>
+            <div style={{ color: '#aaa', fontSize: 11, marginBottom: 6, fontFamily: 'monospace' }}>WIN % (out of 100)</div>
+            <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
+              {[
+                { label: 'QP', val: qpPct, set: setQpPct },
+                { label: 'HS', val: hsPct, set: setHsPct },
+                { label: 'MG', val: mgPct, set: setMgPct },
+              ].map(({ label, val, set }) => (
+                <div key={label} style={{ flex: 1 }}>
+                  <div style={{ color: '#888', fontSize: 10, marginBottom: 2, fontFamily: 'monospace' }}>{label}</div>
+                  <input
+                    value={val}
+                    onChange={e => set(e.target.value)}
+                    style={{ width: '100%', padding: '6px 4px', background: '#333', color: '#fff', border: '1px solid #555', borderRadius: 6, fontSize: 13, textAlign: 'center' }}
+                  />
+                </div>
+              ))}
+            </div>
+            <button onClick={updateThresholds} style={{ ...btnBase, width: '100%', background: '#7c3aed', color: '#fff' }}>
+              Update Win %
+            </button>
           </div>
 
           {/* Pause toggle */}

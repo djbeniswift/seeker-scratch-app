@@ -34,8 +34,8 @@ export default function PrizesTab({ connection }: any) {
   const p1Sol = mc?.prize1stSol ?? 0.25
   const p2Sol = mc?.prize2ndSol ?? 0.15
   const p3Sol = mc?.prize3rdSol ?? 0.05
-  const p1Skr = mc?.prize1stSkr ?? 250
-  const p2Skr = mc?.prize2ndSkr ?? 150
+  const p1Skr = mc?.prize1stSkr ?? 500
+  const p2Skr = mc?.prize2ndSkr ?? 250
   const p3Skr = mc?.prize3rdSkr ?? 100
   const s1Skr = mc?.sweep1stSkr ?? 500
   const s2Skr = mc?.sweep2ndSkr ?? 250

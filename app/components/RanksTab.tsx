@@ -123,10 +123,15 @@ export default function RanksTab({ connection, wallet, publicKey }: any) {
       {/* Prize info */}
       {leagueTab === 'sol' && period === 'month' && (
         <div style={{ background: 'rgba(245,200,66,0.08)', border: '1px solid rgba(245,200,66,0.2)', borderRadius: 10, padding: 12, marginBottom: 16, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, textAlign: 'center' }}>
-          {[{ place: '🥇 1st', prize: '0.25 SOL' }, { place: '🥈 2nd', prize: '0.15 SOL' }, { place: '🥉 3rd', prize: '0.05 SOL' }].map(({ place, prize }) => (
+          {[
+            { place: '🥇 1st', sol: '0.25 SOL', skr: '500 SKR' },
+            { place: '🥈 2nd', sol: '0.15 SOL', skr: '250 SKR' },
+            { place: '🥉 3rd', sol: '0.05 SOL', skr: '100 SKR' },
+          ].map(({ place, sol, skr }) => (
             <div key={place}>
               <div style={{ color: 'var(--gold)', fontSize: 13, fontFamily: "'Bebas Neue', sans-serif" }}>{place}</div>
-              <div style={{ color: '#fff', fontSize: 13 }}>{prize}</div>
+              <div style={{ color: '#fff', fontSize: 13 }}>{sol}</div>
+              <div style={{ color: '#00d4ff', fontSize: 12 }}>+ {skr}</div>
             </div>
           ))}
         </div>

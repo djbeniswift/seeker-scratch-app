@@ -72,6 +72,7 @@ export default function RanksTab({ connection, wallet, publicKey }: any) {
 
   const myPda = publicKey ? getProfilePda(publicKey).toBase58() : null
   const medals = ['🥇', '🥈', '🥉']
+  const solPrizes = ['0.25 SOL + 500 SKR', '0.15 SOL + 250 SKR', '0.05 SOL + 100 SKR']
   const solSorted = [...players].sort((a, b) =>
     period === 'month' ? b.pointsThisMonth - a.pointsThisMonth : b.pointsAllTime - a.pointsAllTime
   )
@@ -174,6 +175,9 @@ export default function RanksTab({ connection, wallet, publicKey }: any) {
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
                   <div style={{ color: accent, fontSize: 18, fontFamily: "'Bebas Neue', sans-serif" }}>{points.toLocaleString()}</div>
                   <div style={{ color: '#a0aec0', fontSize: 13, letterSpacing: 1 }}>{pointsLabel}</div>
+                  {leagueTab === 'sol' && period === 'month' && i < 3 && (
+                    <div style={{ color: '#00d4ff', fontSize: 11, marginTop: 2 }}>{solPrizes[i]}</div>
+                  )}
                 </div>
               </div>
             )

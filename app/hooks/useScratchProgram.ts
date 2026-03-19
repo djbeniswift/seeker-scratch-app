@@ -17,6 +17,20 @@ function base64ToBase58(b64: string): string {
 }
 import { PROGRAM_ID, TREASURY_SEED, PROFILE_SEED, GAME_CONFIG_SEED, MASTER_CONFIG_SEED, IDL } from '../lib/constants'
 
+// Retry getLatestBlockhash up to 4 times with exponential backoff on 429s
+async function getBlockhashWithRetry(connection: any, commitment: string) {
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try {
+      return await connection.getLatestBlockhash(commitment)
+    } catch (err: any) {
+      const is429 = err?.message?.includes('429') || err?.message?.includes('rate limit')
+      if (!is429 || attempt === 3) throw err
+      await new Promise(r => setTimeout(r, 600 * Math.pow(2, attempt)))
+    }
+  }
+  throw new Error('getLatestBlockhash failed after retries')
+}
+
 export function useScratchProgram() {
   const { connection } = useConnection()
   const wallet = useWallet()
@@ -241,7 +255,7 @@ export function useScratchProgram() {
       systemProgram: SystemProgram.programId,
     }).instruction()
 
-    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
+    const { blockhash, lastValidBlockHeight } = await getBlockhashWithRetry(connection, 'confirmed')
     const isMWA = (wallet as any).wallet?.adapter?.name === 'Mobile Wallet Adapter'
 
     let sig: string
@@ -385,7 +399,7 @@ export function useScratchProgram() {
       console.log('Instructions built:', instructions.length)
 
       // Fetch blockhash last before signing — minimises blockhash staleness window
-      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
+      const { blockhash, lastValidBlockHeight } = await getBlockhashWithRetry(connection, 'confirmed')
 
       const isMobile = typeof window !== 'undefined' && /Android|iPhone|iPad/i.test(navigator.userAgent)
       const isMWA = (wallet as any).wallet?.adapter?.name === 'Mobile Wallet Adapter'

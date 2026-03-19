@@ -111,7 +111,6 @@ export default function Home() {
 
   useEffect(() => {
     setMounted(true)
-    fetchTreasury()
     // Read ?ref= param once on mount — validate it's a plausible base58 pubkey
     // (wallet deep links append their own ?ref= with a URL, not a pubkey)
     const ref = new URLSearchParams(window.location.search).get('ref')
@@ -339,17 +338,17 @@ export default function Home() {
         <div className="balance-bar">
           <div className="balance-item">
             <div className="balance-label">Balance</div>
-            <div className="balance-value gold">{walletBalance.toFixed(3)} SOL</div>
+            <div className="balance-value gold">{wallet.publicKey ? walletBalance.toFixed(3) + ' SOL' : '—'}</div>
           </div>
           <div className="balance-divider" />
           <div className="balance-item">
             <div className="balance-label">Total Won</div>
-            <div className="balance-value green">{(profile?.totalWon || 0).toFixed(3)} SOL</div>
+            <div className="balance-value green">{profile ? (profile.totalWon || 0).toFixed(3) + ' SOL' : wallet.publicKey ? '…' : '—'}</div>
           </div>
           <div className="balance-divider" />
           <div className="balance-item">
             <div className="balance-label">Points</div>
-            <div className="balance-value">{profile?.pointsThisMonth || 0}</div>
+            <div className="balance-value">{profile ? (profile.pointsThisMonth || 0) : wallet.publicKey ? '…' : '—'}</div>
           </div>
         </div>
 
@@ -372,14 +371,14 @@ export default function Home() {
 
         <div className="stats-row">
           <div className="stat-cell">
-            <div className="stat-value text-gold">{treasury?.totalCardsSold || 0}</div>
+            <div className="stat-value text-gold">{treasury ? treasury.totalCardsSold : '…'}</div>
             <div className="stat-label">Cards Sold</div>
           </div>
           <div className="stat-cell">
-            <div className="stat-value text-green">{treasury?.totalWins ?? 0}</div>
+            <div className="stat-value text-green">{treasury ? (treasury.totalWins ?? 0) : '…'}</div>
             <div className="stat-label">Total Winners</div>          </div>
           <div className="stat-cell">
-            <div className="stat-value text-cyan">{treasury?.balance.toFixed(2) || '0.00'}</div>
+            <div className="stat-value text-cyan">{treasury ? treasury.balance.toFixed(2) : '…'}</div>
             <div className="stat-label">Prize Pool</div>
           </div>
         </div>

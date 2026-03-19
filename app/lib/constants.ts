@@ -5,7 +5,9 @@ export const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL
 
 export const IS_DEVNET = process.env.NEXT_PUBLIC_NETWORK === 'devnet'
 
-export const PROGRAM_ID = new PublicKey('3vt5QCwqtn13ihaYoFk8RV7r7gbQMnbVcqSZdqNL6mKC')
+export const PROGRAM_ID = new PublicKey(
+  process.env.NEXT_PUBLIC_PROGRAM_ID || '3vt5QCwqtn13ihaYoFk8RV7r7gbQMnbVcqSZdqNL6mKC'
+)
 export const TREASURY_SEED = Buffer.from('scratch_treasury_v2')
 export const MONTHLY_PRIZE_SEED = Buffer.from('monthly_prize')
 export const PROFILE_SEED = Buffer.from('scratch_profile')

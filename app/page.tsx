@@ -206,7 +206,6 @@ export default function Home() {
     const prize = won ? (netDiff / LAMPORTS_PER_SOL) + cardCostSol : 0
     console.log('Final result - won:', won, 'prize:', prize)
     setScratchState({ won, prize, scratched: false })
-    setWalletBalance(balanceAfter / LAMPORTS_PER_SOL)
     // Referral was bundled into this tx — clear it so it doesn't re-register on subsequent buys
     if (pendingReferrer) setPendingReferrer(null)
   }

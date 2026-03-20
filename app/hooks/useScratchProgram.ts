@@ -385,7 +385,24 @@ export function useScratchProgram() {
       }
     }
 
-    await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed')
+    // Poll for confirmation — avoids TransactionExpiredBlockheightExceededError
+    let freeConfirmed = false
+    const freeDeadline = Date.now() + 60_000
+    while (Date.now() < freeDeadline) {
+      await new Promise(r => setTimeout(r, 2000))
+      const statuses = await connection.getSignatureStatuses([sig])
+      const status = statuses?.value?.[0]
+      if (status) {
+        if (status.err) throw new Error(`Transaction failed on-chain: ${JSON.stringify(status.err)}`)
+        if (status.confirmationStatus === 'confirmed' || status.confirmationStatus === 'finalized') {
+          freeConfirmed = true
+          break
+        }
+      }
+    }
+    if (!freeConfirmed) {
+      throw new Error('Transaction did not confirm in time — please try again.')
+    }
 
     // Wait for RPC to settle then read new sweep points
     await new Promise(r => setTimeout(r, 800))
@@ -494,8 +511,8 @@ export function useScratchProgram() {
       instructions.push(ix)
       console.log('Instructions built:', instructions.length)
 
-      // Fetch blockhash last before signing — minimises blockhash staleness window
-      const { blockhash, lastValidBlockHeight } = await getBlockhashWithRetry(connection, 'confirmed')
+      // Fetch blockhash for simulation; will refresh again right before signing
+      let { blockhash, lastValidBlockHeight } = await getBlockhashWithRetry(connection, 'confirmed')
 
       const isMobile = typeof window !== 'undefined' && /Android|iPhone|iPad/i.test(navigator.userAgent)
       const isMWA = (wallet as any).wallet?.adapter?.name === 'Mobile Wallet Adapter'
@@ -520,6 +537,10 @@ export function useScratchProgram() {
         if (!tx.signatures.find(s => s.publicKey.equals(publicKey))) {
           tx.signatures.unshift({ publicKey, signature: null })
         }
+
+        // Fresh blockhash right before signing
+        ;({ blockhash, lastValidBlockHeight } = await getBlockhashWithRetry(connection, 'confirmed'))
+        tx.recentBlockhash = blockhash
 
         const signedTx = await wallet.signTransaction!(tx)
         console.log('MWA signedTx signatures:', signedTx.signatures.map(s => ({
@@ -557,22 +578,50 @@ export function useScratchProgram() {
         }
         console.log('Simulation passed — submitting')
 
+        // Fresh blockhash right before signing — simulation is async so the earlier
+        // one may be stale by the time we reach here
+        ;({ blockhash, lastValidBlockHeight } = await getBlockhashWithRetry(connection, 'confirmed'))
+        const freshMessage = new TransactionMessage({
+          payerKey: publicKey,
+          recentBlockhash: blockhash,
+          instructions,
+        }).compileToV0Message()
+        const freshVtx = new VersionedTransaction(freshMessage)
+
         // Sign via wallet then submit through Helius directly.
         // Avoids Phantom's signAndSendTransaction which routes via Phantom's own
         // RPC and ignores our skipPreflight — causing -32603 for specific accounts.
         console.log('Standard path: signTransaction → sendRawTransaction via Helius')
         if (!wallet.signTransaction) {
           // Fallback for wallets that don't expose signTransaction separately
-          sig = await wallet.sendTransaction(vtx as any, connection, { skipPreflight: true, maxRetries: 5 })
+          sig = await wallet.sendTransaction(freshVtx as any, connection, { skipPreflight: true, maxRetries: 5 })
         } else {
-          const signedVtx = await wallet.signTransaction(vtx as any)
+          const signedVtx = await wallet.signTransaction(freshVtx as any)
           sig = await connection.sendRawTransaction((signedVtx as any).serialize(), { skipPreflight: true, maxRetries: 5 })
         }
       }
       console.log('Transaction sent, signature:', sig)
 
-      const confirmed = await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed')
-      console.log('Transaction confirmed:', confirmed)
+      // Poll for confirmation — avoids TransactionExpiredBlockheightExceededError
+      // which throws even when the tx never landed (money never taken).
+      let txConfirmed = false
+      const deadline = Date.now() + 60_000
+      while (Date.now() < deadline) {
+        await new Promise(r => setTimeout(r, 2000))
+        const statuses = await connection.getSignatureStatuses([sig])
+        const status = statuses?.value?.[0]
+        if (status) {
+          if (status.err) throw new Error(`Transaction failed on-chain: ${JSON.stringify(status.err)}`)
+          if (status.confirmationStatus === 'confirmed' || status.confirmationStatus === 'finalized') {
+            txConfirmed = true
+            break
+          }
+        }
+      }
+      if (!txConfirmed) {
+        throw new Error('Transaction did not confirm in time. Your SOL was NOT charged — please try again.')
+      }
+      console.log('Transaction confirmed:', sig)
 
       await fetchAll()
 

@@ -116,7 +116,7 @@ export default function ProfileTab({ wallet, publicKey, connection }: any) {
   }
 
   if (!publicKey) return (
-    <div style={{ textAlign: 'center', padding: 40, color: '#aaa' }}>
+    <div style={{ textAlign: 'center', padding: 40, color: '#ffffffdd' }}>
       <div style={{ fontSize: 32, marginBottom: 12 }}>👛</div>
       <div>Connect your wallet to view your profile</div>
     </div>
@@ -140,7 +140,7 @@ export default function ProfileTab({ wallet, publicKey, connection }: any) {
             <div style={{ color: 'var(--gold)', fontSize: 14, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1, marginBottom: 2 }}>
               SET YOUR USERNAME + AVATAR — EARN 5 FREE POINTS!
             </div>
-            <div style={{ color: '#a0aec0', fontSize: 12 }}>
+            <div style={{ color: '#ffffffdd', fontSize: 12 }}>
               Complete your profile and get 5 bonus points instantly. Shows on the leaderboard too 👑
             </div>
           </div>
@@ -179,7 +179,7 @@ export default function ProfileTab({ wallet, publicKey, connection }: any) {
         <div style={{ color: 'var(--gold)', fontSize: 22, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 2, marginBottom: 4 }}>
           {profile?.displayName || 'ANONYMOUS'}
         </div>
-        <div style={{ color: '#555', fontSize: 12, fontFamily: 'monospace', wordBreak: 'break-all', marginBottom: 8 }}>
+        <div style={{ color: '#ffffffdd', fontSize: 12, fontFamily: 'monospace', wordBreak: 'break-all', marginBottom: 8 }}>
           {publicKey?.toBase58()}
         </div>
 
@@ -205,7 +205,7 @@ export default function ProfileTab({ wallet, publicKey, connection }: any) {
           <div style={{ color: 'var(--gold)', fontSize: 13, letterSpacing: 2, marginBottom: 12 }}>EDIT PROFILE</div>
           <div style={{ marginBottom: 10 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
-              <div style={{ color: '#aaa', fontSize: 13 }}>USERNAME</div>
+              <div style={{ color: '#ffffffdd', fontSize: 13 }}>USERNAME</div>
               <div style={{ fontSize: 11, color: name.length >= 14 ? (name.length >= 16 ? '#f87171' : 'var(--gold)') : '#555', fontFamily: 'monospace' }}>
                 {16 - name.length} left
               </div>
@@ -222,7 +222,7 @@ export default function ProfileTab({ wallet, publicKey, connection }: any) {
             />
           </div>
           <div style={{ marginBottom: 12 }}>
-            <div style={{ color: '#aaa', fontSize: 13, marginBottom: 8 }}>PROFILE PICTURE</div>
+            <div style={{ color: '#ffffffdd', fontSize: 13, marginBottom: 8 }}>PROFILE PICTURE</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{
                 width: 64, height: 64, borderRadius: '50%',
@@ -284,7 +284,7 @@ export default function ProfileTab({ wallet, publicKey, connection }: any) {
             borderRadius: 10, padding: '12px', textAlign: 'center'
           }}>
             <div style={{ color, fontSize: 20, fontFamily: "'Bebas Neue', sans-serif" }}>{value}</div>
-            <div style={{ color: '#a0aec0', fontSize: 13, letterSpacing: 1, marginTop: 2 }}>{label}</div>
+            <div style={{ color: '#ffffffdd', fontSize: 13, letterSpacing: 1, marginTop: 2 }}>{label}</div>
           </div>
         ))}
       </div>
@@ -306,7 +306,7 @@ export default function ProfileTab({ wallet, publicKey, connection }: any) {
             display: 'flex', justifyContent: 'space-between',
             padding: '8px 0', borderBottom: '1px solid #111'
           }}>
-            <span style={{ color: '#a0aec0', fontSize: 13 }}>{label}</span>
+            <span style={{ color: '#ffffffdd', fontSize: 13 }}>{label}</span>
             <span style={{ color: 'var(--gold)', fontSize: 13, fontWeight: 'bold' }}>{value}</span>
           </div>
         ))}
@@ -327,15 +327,15 @@ export default function ProfileTab({ wallet, publicKey, connection }: any) {
             display: 'flex', justifyContent: 'space-between',
             padding: '8px 0', borderBottom: '1px solid #111'
           }}>
-            <span style={{ color: '#a0aec0', fontSize: 13 }}>{label}</span>
+            <span style={{ color: '#ffffffdd', fontSize: 13 }}>{label}</span>
             <span style={{ color: '#00d4ff', fontSize: 13, fontWeight: 'bold' }}>{value}</span>
           </div>
         ))}
       </div>
 
-      <div style={{ textAlign: 'center', paddingTop: 24, paddingBottom: 8, fontSize: 12, color: '#ffffff33', fontFamily: 'monospace' }}>
+      <div style={{ textAlign: 'center', paddingTop: 24, paddingBottom: 8, fontSize: 12, color: '#ffffffcc', fontFamily: 'monospace' }}>
         Questions or issues?{' '}
-        <a href="mailto:seekerscratch@gmail.com" style={{ color: '#ffffff55', textDecoration: 'underline' }}>
+        <a href="mailto:seekerscratch@gmail.com" style={{ color: '#ffffffcc', textDecoration: 'underline' }}>
           seekerscratch@gmail.com
         </a>
       </div>

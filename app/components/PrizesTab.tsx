@@ -57,7 +57,7 @@ export default function PrizesTab({ connection }: any) {
       <div style={{ background: 'linear-gradient(135deg, #1a1a3e, #2d1b69)', border: '1px solid var(--gold)', borderRadius: 16, padding: 20, textAlign: 'center', marginBottom: 16 }}>
         <div style={{ fontSize: 36, marginBottom: 6 }}>🏆</div>
         <div style={{ color: 'var(--gold)', fontSize: 26, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 2 }}>MONTHLY PRIZES</div>
-        <div style={{ color: '#a0aec0', fontSize: 14, marginTop: 4 }}>Top 3 players by points each month win SOL + SKR</div>
+        <div style={{ color: '#ffffffdd', fontSize: 14, marginTop: 4 }}>Top 3 players by points each month win SOL + SKR</div>
       </div>
 
       <div style={{ background: '#0a0a1a', border: '1px solid var(--border)', borderRadius: 10, padding: 14, marginBottom: 16 }}>
@@ -69,7 +69,7 @@ export default function PrizesTab({ connection }: any) {
           { card: 'Refer a friend', pts: '+100 pts' },
         ].map(({ card, pts }) => (
           <div key={card} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #111' }}>
-            <span style={{ color: '#aaa', fontSize: 13 }}>{card}</span>
+            <span style={{ color: '#ffffffdd', fontSize: 13 }}>{card}</span>
             <span style={{ color: 'var(--gold)', fontSize: 13, fontWeight: 'bold' }}>{pts}</span>
           </div>
         ))}
@@ -88,7 +88,7 @@ export default function PrizesTab({ connection }: any) {
         ))}
       </div>
 
-      <div style={{ padding: 14, background: 'rgba(245,200,66,0.05)', border: '1px solid rgba(245,200,66,0.2)', borderRadius: 10, color: '#a0aec0', fontSize: 13, textAlign: 'center', lineHeight: 1.6, marginBottom: 20 }}>
+      <div style={{ padding: 14, background: 'rgba(245,200,66,0.05)', border: '1px solid rgba(245,200,66,0.2)', borderRadius: 10, color: '#ffffffdd', fontSize: 13, textAlign: 'center', lineHeight: 1.6, marginBottom: 20 }}>
         🏆 Monthly prizes paid out on the 1st of each month.<br />
         Check the Ranks tab to see your position!
       </div>
@@ -99,7 +99,7 @@ export default function PrizesTab({ connection }: any) {
           <span style={{ fontSize: 20 }}>🎟️</span>
           <div style={{ color: '#00d4ff', fontSize: 18, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 2 }}>SWEEP RANKINGS</div>
         </div>
-        <div style={{ color: '#a0aec0', fontSize: 13, marginBottom: 12 }}>Free daily play • Win SKR each month</div>
+        <div style={{ color: '#ffffffdd', fontSize: 13, marginBottom: 12 }}>Free daily play • Win SKR each month</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {sweepPrizes.map(({ place, skr, icon, color }) => (
             <div key={place} style={{ background: 'var(--card-bg)', border: `1px solid ${color}33`, borderRadius: 12, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -111,7 +111,7 @@ export default function PrizesTab({ connection }: any) {
             </div>
           ))}
         </div>
-        <div style={{ marginTop: 12, padding: 10, background: 'rgba(0,212,255,0.05)', border: '1px solid rgba(0,212,255,0.15)', borderRadius: 8, color: '#a0aec0', fontSize: 12, textAlign: 'center' }}>
+        <div style={{ marginTop: 12, padding: 10, background: 'rgba(0,212,255,0.05)', border: '1px solid rgba(0,212,255,0.15)', borderRadius: 8, color: '#ffffffdd', fontSize: 12, textAlign: 'center' }}>
           🎟️ Use your free daily play to earn sweep points. No purchase necessary.
         </div>
       </div>

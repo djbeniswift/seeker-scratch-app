@@ -88,7 +88,7 @@ export default function RanksTab({ connection, wallet, publicKey }: any) {
       <div style={{ background: 'linear-gradient(135deg, #1a1a3e, #2d1b69)', border: '1px solid var(--gold)', borderRadius: 16, padding: 20, textAlign: 'center', marginBottom: 16 }}>
         <div style={{ fontSize: 36, marginBottom: 6 }}>🏆</div>
         <div style={{ color: 'var(--gold)', fontSize: 24, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 2 }}>LEADERBOARD</div>
-        <div style={{ color: '#a0aec0', fontSize: 14, marginTop: 4 }}>Top players earn prizes each month</div>
+        <div style={{ color: '#ffffffdd', fontSize: 14, marginTop: 4 }}>Top players earn prizes each month</div>
       </div>
 
       {/* League toggle */}
@@ -138,16 +138,16 @@ export default function RanksTab({ connection, wallet, publicKey }: any) {
         </div>
       )}
       {leagueTab === 'sweep' && (
-        <div style={{ background: 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.2)', borderRadius: 10, padding: 12, marginBottom: 16, textAlign: 'center', color: '#a0aec0', fontSize: 13 }}>
+        <div style={{ background: 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.2)', borderRadius: 10, padding: 12, marginBottom: 16, textAlign: 'center', color: '#ffffffdd', fontSize: 13 }}>
           🎟️ Free daily play • Earn sweep points • Win SKR each month
         </div>
       )}
 
       {/* Rows */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: 40, color: '#aaa' }}>Loading ranks...</div>
+        <div style={{ textAlign: 'center', padding: 40, color: '#ffffffdd' }}>Loading ranks...</div>
       ) : sorted.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: 40, color: '#aaa' }}>No players yet</div>
+        <div style={{ textAlign: 'center', padding: 40, color: '#ffffffdd' }}>No players yet</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {sorted.map((player, i) => {
@@ -174,7 +174,7 @@ export default function RanksTab({ connection, wallet, publicKey }: any) {
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
                   <div style={{ color: accent, fontSize: 18, fontFamily: "'Bebas Neue', sans-serif" }}>{points.toLocaleString()}</div>
-                  <div style={{ color: '#a0aec0', fontSize: 13, letterSpacing: 1 }}>{pointsLabel}</div>
+                  <div style={{ color: '#ffffffdd', fontSize: 13, letterSpacing: 1 }}>{pointsLabel}</div>
                   {leagueTab === 'sol' && period === 'month' && i < 3 && (
                     <div style={{ color: '#00d4ff', fontSize: 11, marginTop: 2 }}>{solPrizes[i]}</div>
                   )}

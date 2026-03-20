@@ -73,17 +73,17 @@ import { useSound } from './hooks/useSound'
 const CARD_TYPES = [
   {
     id: 'QuickPick', name: 'QUICK PICK', cost: 0.01, maxPrize: 0.15, color: '#00d4ff', tag: '⚡ STARTER',
-    hook: 'Win up to 150x your bet!',
+    hook: 'Win up to 15x your bet!',
     tiers: ['0.012', '0.020', '0.040', '0.080', '0.150'],
   },
   {
     id: 'HotShot', name: 'HOT SHOT', cost: 0.05, maxPrize: 2, color: '#ff006e', tag: '🔥 HIGH RISK',
-    hook: 'Win up to 2 SOL!',
+    hook: 'Win up to 40x your bet!',
     tiers: ['0.100', '0.200', '0.500', '1.000', '2.000'],
   },
   {
     id: 'MegaGold', name: 'MEGA GOLD', cost: 0.1, maxPrize: 5, color: '#f5c842', tag: '✦ FEATURED',
-    hook: 'Win up to 5 SOL!',
+    hook: 'Win up to 50x your bet!',
     tiers: ['0.200', '0.500', '1.000', '2.500', '5.000'],
   },
 ]
@@ -278,7 +278,7 @@ export default function Home() {
         <div style={{ color: '#ffd700', fontSize: 24, fontWeight: 'bold', fontFamily: 'monospace' }}>
           MAINTENANCE
         </div>
-        <div style={{ color: '#aaa', fontSize: 15, maxWidth: 300, lineHeight: 1.6 }}>
+        <div style={{ color: '#ffffffdd', fontSize: 15, maxWidth: 300, lineHeight: 1.6 }}>
           Seeker Scratch is temporarily down for maintenance. Check back soon!
         </div>
         <AdminPanel />
@@ -378,15 +378,15 @@ export default function Home() {
             <div style={{ fontSize: 13, color: 'var(--cyan)', marginBottom: 12, fontFamily: 'monospace' }}>📊 YOUR STATS</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, textAlign: 'center' }}>
               <div>
-                <div style={{ fontSize: 14, color: '#a0aec0' }}>Scratched</div>
+                <div style={{ fontSize: 14, color: '#ffffffdd' }}>Scratched</div>
                 <div style={{ fontSize: 18, color: 'var(--text)', fontFamily: "'Bebas Neue', sans-serif" }}>{profile.cardsScratched}</div>
               </div>
               <div>
-                <div style={{ fontSize: 14, color: '#a0aec0' }}>Wins</div>
+                <div style={{ fontSize: 14, color: '#ffffffdd' }}>Wins</div>
                 <div style={{ fontSize: 18, color: 'var(--green)', fontFamily: "'Bebas Neue', sans-serif" }}>{profile.wins}</div>
               </div>
               <div>
-                <div style={{ fontSize: 14, color: '#a0aec0' }}>Points</div>
+                <div style={{ fontSize: 14, color: '#ffffffdd' }}>Points</div>
                 <div style={{ fontSize: 18, color: 'var(--gold)', fontFamily: "'Bebas Neue', sans-serif" }}>{profile.pointsThisMonth}</div>
               </div>
             </div>
@@ -418,7 +418,7 @@ export default function Home() {
                   gap: 10,
                 }}>
                   <div style={{ fontSize: 28, letterSpacing: 12, opacity: 0.85 }}>🎰 🎰 🎰</div>
-                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', fontFamily: 'monospace', letterSpacing: 2 }}>YOUR RESULT IS HIDDEN</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', fontFamily: 'monospace', letterSpacing: 2 }}>YOUR RESULT IS HIDDEN</div>
                 </div>
                 <ScratchReveal onRevealed={handleRevealed} />
               </div>
@@ -479,7 +479,7 @@ export default function Home() {
                           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8,
                         }}>
                           <div style={{ fontSize: 24, opacity: 0.7 }}>🎟️ 🎟️ 🎟️</div>
-                          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace', letterSpacing: 2 }}>SCRATCH TO REVEAL</div>
+                          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)', fontFamily: 'monospace', letterSpacing: 2 }}>SCRATCH TO REVEAL</div>
                         </div>
                         <ScratchReveal onRevealed={handleFreeRevealed} />
                       </div>
@@ -500,7 +500,7 @@ export default function Home() {
                             <div style={{ fontSize: 36, color: '#00d4ff', fontFamily: "'Bebas Neue', sans-serif" }}>
                               +{freeScratchState.sweepPoints} SWEEP POINTS
                             </div>
-                            <div style={{ fontSize: 12, color: '#a0aec0', marginTop: 4 }}>Keep climbing the leaderboard!</div>
+                            <div style={{ fontSize: 12, color: '#ffffffdd', marginTop: 4 }}>Keep climbing the leaderboard!</div>
                           </>
                         ) : (
                           <>
@@ -526,7 +526,7 @@ export default function Home() {
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div>
                           <div style={{ fontSize: 13, color: '#00d4ff', marginBottom: 4, fontFamily: 'monospace', letterSpacing: 1 }}>🎟️ FREE DAILY PLAY</div>
-                          <div style={{ fontSize: 11, color: '#a0aec0', fontFamily: 'monospace' }}>
+                          <div style={{ fontSize: 11, color: '#ffffffdd', fontFamily: 'monospace' }}>
                             {freePlayTimeLeft === 0 ? 'Scratch free, win Sweep Points' : 'Come back tomorrow!'}
                           </div>
                         </div>
@@ -545,7 +545,7 @@ export default function Home() {
                           </button>
                         ) : (
                           <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontSize: 11, color: '#555', fontFamily: 'monospace' }}>NEXT FREE PLAY IN</div>
+                            <div style={{ fontSize: 11, color: '#ffffffdd', fontFamily: 'monospace' }}>NEXT FREE PLAY IN</div>
                             <div style={{ fontSize: 16, color: '#00d4ff', fontFamily: 'monospace' }}>
                               {String(Math.floor(freePlayTimeLeft / 3600)).padStart(2,'0')}:
                               {String(Math.floor((freePlayTimeLeft % 3600) / 60)).padStart(2,'0')}:
@@ -605,7 +605,7 @@ export default function Home() {
                         <div>
                           <div style={{ fontSize: 13, color: card.color, marginBottom: 6, fontFamily: 'monospace', letterSpacing: 1 }}>{card.tag}</div>
                           <div style={{ fontSize: 26, color: card.color, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 2, lineHeight: 1, marginBottom: 4 }}>{card.name}</div>
-                          <div style={{ fontSize: 11, color: card.color, opacity: 0.8, fontFamily: 'monospace' }}>{card.hook}</div>
+                          <div style={{ fontSize: 13, color: card.color, opacity: 0.8, fontFamily: 'monospace' }}>{card.hook}</div>
                         </div>
                         {/* Right: UP TO + cost button */}
                         <div style={{ textAlign: 'right' }}>
@@ -634,7 +634,7 @@ export default function Home() {
                             background: 'rgba(0,0,0,0.6)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                           }}>
-                            <span style={{ color: '#aaa', fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 2 }}>
+                            <span style={{ color: '#ffffffdd', fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 2 }}>
                               COMING SOON
                             </span>
                           </div>
@@ -713,7 +713,7 @@ export default function Home() {
       </div>
       <div style={{
         textAlign: 'center', padding: '8px 16px 72px',
-        fontSize: 11, color: 'rgba(255,255,255,0.2)', fontFamily: 'monospace', lineHeight: 1.6,
+        fontSize: 11, color: 'rgba(255,255,255,0.8)', fontFamily: 'monospace', lineHeight: 1.6,
       }}>
         Free daily play available. No purchase necessary.<br />
         Seeker Scratch is a sweepstakes game. 18+ only. Void where prohibited by law.

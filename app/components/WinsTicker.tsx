@@ -115,11 +115,11 @@ export default function WinsTicker() {
       transition: 'all 0.3s ease',
     }}>
       <span style={{ fontSize: '16px' }}>🎉</span>
-      <span style={{ color: '#ffffff99' }}>{win.wallet}</span>
+      <span style={{ color: '#ffffffee' }}>{win.wallet}</span>
       <span>won</span>
       <span style={{ fontWeight: 'bold', color: '#00ff88' }}>+{win.amount} SOL</span>
-      <span style={{ color: '#ffffff44' }}>·</span>
-      <span style={{ color: '#ffffff55' }}>{win.timeAgo}</span>
+      <span style={{ color: '#ffffffcc' }}>·</span>
+      <span style={{ color: '#ffffffcc' }}>{win.timeAgo}</span>
     </div>
   )
 }

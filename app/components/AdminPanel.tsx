@@ -87,6 +87,12 @@ export default function AdminPanel() {
   const [lookupInput, setLookupInput] = useState('')
   const [lookupResult, setLookupResult] = useState<any>(null)
 
+  // Points adjustment
+  const [pointsWallet, setPointsWallet] = useState('')
+  const [pointsAmount, setPointsAmount] = useState('100')
+  const [pointsAddReferral, setPointsAddReferral] = useState(false)
+  const [pointsPreview, setPointsPreview] = useState<any>(null)
+
   const [treasuryPda] = PublicKey.findProgramAddressSync([TREASURY_SEED], PROGRAM_ID)
   const [masterConfigPda] = PublicKey.findProgramAddressSync([MASTER_CONFIG_SEED], PROGRAM_ID)
   const [gameConfigPda] = PublicKey.findProgramAddressSync([GAME_CONFIG_SEED], PROGRAM_ID)
@@ -314,6 +320,45 @@ export default function AdminPanel() {
     } catch (e: any) { setLookupResult({ error: e.message }) }
   }
 
+  const previewPointsWallet = async () => {
+    if (!pointsWallet.trim()) return
+    try {
+      const rp = readProvider()
+      const rProg = new Program(IDL as any, PROGRAM_ID, rp)
+      const key = new PublicKey(pointsWallet.trim())
+      const [pda] = PublicKey.findProgramAddressSync([PROFILE_SEED, key.toBuffer()], PROGRAM_ID)
+      const data = await (rProg.account as any).playerProfile.fetch(pda)
+      setPointsPreview({
+        displayName: data.displayName || null,
+        pointsThisMonth: data.pointsThisMonth.toNumber(),
+        pointsAllTime: data.pointsAllTime.toNumber(),
+        referralsCount: data.referralsCount,
+      })
+    } catch (e: any) {
+      setPointsPreview({ error: e.message?.includes('Account does not exist') ? 'Profile not found' : e.message?.slice(0, 60) })
+    }
+  }
+
+  const adjustPoints = async () => {
+    const pts = parseInt(pointsAmount)
+    if (!pointsWallet.trim() || isNaN(pts) || pts <= 0) return setS('❌ Enter a valid wallet and points amount')
+    if (!confirm(`Add ${pts} points to ${pointsWallet.slice(0, 12)}...? ${pointsAddReferral ? 'Also increment referrals_count.' : ''}`)) return
+    try {
+      setS('Adjusting points...')
+      const program = getProgram(); if (!program) return setS('❌ No wallet')
+      const playerKey = new PublicKey(pointsWallet.trim())
+      const [playerProfile] = PublicKey.findProgramAddressSync([PROFILE_SEED, playerKey.toBuffer()], PROGRAM_ID)
+      await rpcWithRetry(() => (program.methods as any).adminAdjustPoints(new BN(pts), pointsAddReferral).accounts({
+        playerProfile,
+        playerKey,
+        treasury: treasuryPda,
+        admin: publicKey,
+      }).rpc())
+      setS(`✅ Added ${pts} pts to ${pointsWallet.slice(0, 12)}...${pointsAddReferral ? ' + referral count' : ''}`)
+      await previewPointsWallet()
+    } catch (e: any) { setS(`❌ ${e.message?.slice(0, 100)}`) }
+  }
+
   const copy = (text: string) => { navigator.clipboard.writeText(text).catch(() => {}) }
 
   const navItems = [
@@ -323,6 +368,7 @@ export default function AdminPanel() {
     { id: 'banner', label: '📢 Banner' },
     { id: 'winners', label: '🥇 Winners' },
     { id: 'lookup', label: '🔍 Lookup' },
+    { id: 'points', label: '🎯 Points' },
   ]
 
   const pctUsed = dailyCap > 0 ? Math.min(100, (dailyPaidOut / dailyCap) * 100) : 0
@@ -633,6 +679,74 @@ export default function AdminPanel() {
                     🔄 Initialize Master Config
                   </button>
                 </div>
+              </div>
+            )}
+
+            {/* ── POINTS ── */}
+            {activeSection === 'points' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={sectionHdr()}>MANUAL POINTS ADJUSTMENT</div>
+                <div style={{ fontSize: 11, color: '#888', lineHeight: 1.5 }}>
+                  Add points to any player profile. Use for compensation, missed bonuses, or support requests.<br />
+                  <span style={{ color: '#f59e0b' }}>⚠️ Requires program upgrade — deploy updated lib.rs first.</span>
+                </div>
+
+                <div style={{ fontSize: 11, color: '#888', marginTop: 4, marginBottom: 2 }}>Wallet Address</div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <input
+                    value={pointsWallet} onChange={e => { setPointsWallet(e.target.value); setPointsPreview(null) }}
+                    placeholder="Paste wallet address..." style={input({ flex: 1 })}
+                    onKeyDown={e => e.key === 'Enter' && previewPointsWallet()}
+                  />
+                  <button onClick={previewPointsWallet} style={btn('#555')}>Look up</button>
+                </div>
+
+                {/* Retroactive fix shortcut */}
+                <button
+                  onClick={() => { setPointsWallet('GTpPckfLivFsNZphqoBYknrwhwuTEHK49WQXyjRuszAn'); setPointsAmount('100'); setPointsAddReferral(true); setPointsPreview(null) }}
+                  style={{ ...btn('#1a1a3e', '#ffd700'), border: '1px solid #ffd70044', fontSize: 11 }}
+                >
+                  📋 Fill missed referrer (retroactive fix)
+                </button>
+
+                {pointsPreview && (
+                  pointsPreview.error ? (
+                    <div style={{ color: '#f87171', fontSize: 12 }}>❌ {pointsPreview.error}</div>
+                  ) : (
+                    <div style={{ background: '#111', borderRadius: 8, padding: 8, fontSize: 11 }}>
+                      <div style={{ color: '#ffd700', marginBottom: 4 }}>{pointsPreview.displayName || 'Anonymous'}</div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#888' }}>Points this month</span><span style={{ color: '#ccc' }}>{pointsPreview.pointsThisMonth}</span></div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#888' }}>Points all time</span><span style={{ color: '#ccc' }}>{pointsPreview.pointsAllTime}</span></div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#888' }}>Referrals count</span><span style={{ color: '#ccc' }}>{pointsPreview.referralsCount}</span></div>
+                    </div>
+                  )
+                )}
+
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 11, color: '#888', marginBottom: 2 }}>Points to add</div>
+                    <input value={pointsAmount} onChange={e => setPointsAmount(e.target.value)} style={input()} placeholder="e.g. 100" />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingTop: 16 }}>
+                    {['10','50','100','500'].map(n => (
+                      <button key={n} onClick={() => setPointsAmount(n)} style={{ ...btn(pointsAmount === n ? '#ffd700' : '#222', pointsAmount === n ? '#000' : '#aaa'), padding: '3px 8px', fontSize: 11 }}>{n}</button>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderTop: '1px solid #1a1a2e', marginTop: 2 }}>
+                  <div>
+                    <div style={{ color: '#ccc', fontSize: 12 }}>Also increment referrals_count</div>
+                    <div style={{ color: '#555', fontSize: 10 }}>Use when fixing a missed referral credit (+1 friend)</div>
+                  </div>
+                  <button onClick={() => setPointsAddReferral(!pointsAddReferral)} style={{ padding: '4px 10px', border: 'none', borderRadius: 6, cursor: 'pointer', background: pointsAddReferral ? '#4ade80' : '#333', color: pointsAddReferral ? '#000' : '#fff', fontSize: 11, fontWeight: 'bold' }}>
+                    {pointsAddReferral ? 'YES' : 'NO'}
+                  </button>
+                </div>
+
+                <button onClick={adjustPoints} style={btn('#7c3aed')}>
+                  Add {pointsAmount || '?'} Points{pointsAddReferral ? ' + Referral' : ''}
+                </button>
               </div>
             )}
 

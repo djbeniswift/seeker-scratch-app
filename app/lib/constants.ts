@@ -164,6 +164,19 @@ export const IDL = {
         { name: "hotshot", type: "u16" },
         { name: "megagold", type: "u16" }
       ]
+    },
+    {
+      name: "adminAdjustPoints",
+      accounts: [
+        { name: "playerProfile", isMut: true, isSigner: false },
+        { name: "playerKey", isMut: false, isSigner: false },
+        { name: "treasury", isMut: false, isSigner: false },
+        { name: "admin", isMut: true, isSigner: true }
+      ],
+      args: [
+        { name: "points", type: "u64" },
+        { name: "addReferral", type: "bool" }
+      ]
     }
   ],
   accounts: [

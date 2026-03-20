@@ -466,6 +466,18 @@ pub mod seeker_scratch {
         treasury.balance = treasury.balance.checked_sub(amount).ok_or(ScratchError::Overflow)?;
         Ok(())
     }
+
+    /// Admin-only: manually add points to any player profile (support/compensation tool).
+    /// Set add_referral=true to also increment referrals_count by 1 (fixes missed referral credits).
+    pub fn admin_adjust_points(ctx: Context<AdminAdjustPoints>, points: u64, add_referral: bool) -> Result<()> {
+        let profile = &mut ctx.accounts.player_profile;
+        profile.points_this_month = profile.points_this_month.saturating_add(points);
+        profile.points_all_time = profile.points_all_time.saturating_add(points);
+        if add_referral {
+            profile.referrals_count = profile.referrals_count.checked_add(1).ok_or(ScratchError::Overflow)?;
+        }
+        Ok(())
+    }
 }
 
 fn pseudo_random(seed: u64) -> u64 {
@@ -850,6 +862,22 @@ pub struct SetPaused<'info> {
 #[derive(Accounts)]
 pub struct WithdrawProfit<'info> {
     #[account(mut, seeds = [b"scratch_treasury_v2"], bump = treasury.bump)]
+    pub treasury: Account<'info, Treasury>,
+    #[account(mut, address = treasury.admin)]
+    pub admin: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct AdminAdjustPoints<'info> {
+    #[account(
+        mut,
+        seeds = [b"scratch_profile", player_key.key().as_ref()],
+        bump
+    )]
+    pub player_profile: Account<'info, PlayerProfile>,
+    /// CHECK: Used as PDA seed for the profile to adjust
+    pub player_key: AccountInfo<'info>,
+    #[account(seeds = [b"scratch_treasury_v2"], bump = treasury.bump)]
     pub treasury: Account<'info, Treasury>,
     #[account(mut, address = treasury.admin)]
     pub admin: Signer<'info>,

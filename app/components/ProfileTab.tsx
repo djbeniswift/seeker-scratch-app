@@ -138,10 +138,10 @@ export default function ProfileTab({ wallet, publicKey, connection }: any) {
           <div style={{ fontSize: 28, flexShrink: 0 }}>🎁</div>
           <div>
             <div style={{ color: 'var(--gold)', fontSize: 14, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1, marginBottom: 2 }}>
-              SET YOUR USERNAME + AVATAR — EARN 5 FREE POINTS!
+              SET YOUR USERNAME + AVATAR 👑
             </div>
             <div style={{ color: '#ffffffdd', fontSize: 12 }}>
-              Complete your profile and get 5 bonus points instantly. Shows on the leaderboard too 👑
+              Show up on the leaderboard with your name and avatar instead of an anonymous wallet address.
             </div>
           </div>
         </div>

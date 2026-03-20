@@ -3,7 +3,7 @@ import { useWallet, useConnection } from '@solana/wallet-adapter-react'
 import { Program, AnchorProvider, BN } from '@coral-xyz/anchor'
 import { PublicKey, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js'
 import { useState, useEffect, useCallback } from 'react'
-import { PROGRAM_ID, TREASURY_SEED, MASTER_CONFIG_SEED, PROFILE_SEED, IDL } from '../lib/constants'
+import { PROGRAM_ID, TREASURY_SEED, MASTER_CONFIG_SEED, GAME_CONFIG_SEED, PROFILE_SEED, IDL } from '../lib/constants'
 
 const ADMIN = '6RhLQikkjzace4ti4D458iSmKofbPdMGNB7VKHmWwYPP'
 
@@ -88,7 +88,8 @@ export default function AdminPanel() {
   const [lookupResult, setLookupResult] = useState<any>(null)
 
   const [treasuryPda] = PublicKey.findProgramAddressSync([TREASURY_SEED], PROGRAM_ID)
-const [masterConfigPda] = PublicKey.findProgramAddressSync([MASTER_CONFIG_SEED], PROGRAM_ID)
+  const [masterConfigPda] = PublicKey.findProgramAddressSync([MASTER_CONFIG_SEED], PROGRAM_ID)
+  const [gameConfigPda] = PublicKey.findProgramAddressSync([GAME_CONFIG_SEED], PROGRAM_ID)
 
   useEffect(() => { setMounted(true) }, [])
 
@@ -219,6 +220,20 @@ const [masterConfigPda] = PublicKey.findProgramAddressSync([MASTER_CONFIG_SEED],
       }).rpc())
       setS('✅ MasterConfig initialized!')
       await loadData()
+    } catch (e: any) { setS(`❌ ${e.message?.slice(0, 80)}`) }
+  }
+
+  const initGameConfig = async () => {
+    try {
+      setS('Initializing game config...')
+      const program = getProgram(); if (!program) return setS('❌ No wallet')
+      const qp = Math.round(parseFloat(thrQP) * 100)
+      const hs = Math.round(parseFloat(thrHS) * 100)
+      const mg = Math.round(parseFloat(thrMG) * 100)
+      await rpcWithRetry(() => (program.methods as any).updateWinThresholds(qp, hs, mg).accounts({
+        gameConfig: gameConfigPda, treasury: treasuryPda, admin: publicKey, systemProgram: SystemProgram.programId,
+      }).rpc())
+      setS('✅ Game config initialized!')
     } catch (e: any) { setS(`❌ ${e.message?.slice(0, 80)}`) }
   }
 
@@ -378,9 +393,14 @@ const [masterConfigPda] = PublicKey.findProgramAddressSync([MASTER_CONFIG_SEED],
             {activeSection === 'settings' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <div style={sectionHdr()}>GAME SETTINGS</div>
-                <button onClick={initMasterConfig} style={{ ...btn('#333', '#aaa'), width: '100%', fontSize: 11 }}>
-                  🔄 Init MasterConfig (first-time setup only)
-                </button>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button onClick={initMasterConfig} style={{ ...btn('#333', '#aaa'), flex: 1, fontSize: 11 }}>
+                    🔄 Init MasterConfig
+                  </button>
+                  <button onClick={initGameConfig} style={{ ...btn('#333', '#aaa'), flex: 1, fontSize: 11 }}>
+                    🔄 Init GameConfig
+                  </button>
+                </div>
 
                 <div style={{ fontSize: 11, color: '#888', marginBottom: 2 }}>Card Costs (SOL)</div>
                 <div style={{ display: 'flex', gap: 4 }}>

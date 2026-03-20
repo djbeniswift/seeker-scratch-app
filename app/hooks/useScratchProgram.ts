@@ -437,6 +437,9 @@ export function useScratchProgram() {
       let shouldRegisterReferral = false
       let shouldCreditReferrer = false
       let creditReferrerKey: PublicKey | null = null
+      // Card costs in lamports — must match on-chain MasterConfig defaults
+      const CARD_COST_LAMPORTS: Record<string, number> = { QuickPick: 10_000_000, HotShot: 50_000_000, MegaGold: 100_000_000 }
+      const cardCostLamports = CARD_COST_LAMPORTS[cardType] ?? 10_000_000
       try {
         const profileData = await (program.account as any).playerProfile.fetch(profilePda)
         if (profileData.hasBeenReferred) {
@@ -453,16 +456,22 @@ export function useScratchProgram() {
             // referrerProfilePda stays as admin profile (default set above)
           }
           if (!profileData.referralBonusPaid) {
-            shouldCreditReferrer = true
-            creditReferrerKey = profileData.referredBy
+            // Only bundle creditReferrer when THIS purchase triggers the bonus
+            const willTriggerBonus = profileData.totalSpent.toNumber() + cardCostLamports >= 100_000_000
+            if (willTriggerBonus) {
+              shouldCreditReferrer = true
+              creditReferrerKey = profileData.referredBy
+            }
           }
         } else if (pendingReferrer && pendingReferrer !== publicKey.toBase58()) {
           // Profile exists but not yet referred — will register in this tx (skip self-referral)
           const referrerKey = new PublicKey(pendingReferrer)
           referrerProfilePda = getProfilePda(referrerKey)
           shouldRegisterReferral = true
-          shouldCreditReferrer = true
           creditReferrerKey = referrerKey
+          // Only bundle creditReferrer if this first purchase hits the 0.1 SOL threshold
+          const currentTotalSpent = profileData.totalSpent.toNumber()
+          shouldCreditReferrer = currentTotalSpent + cardCostLamports >= 100_000_000
         }
       } catch {
         // Profile doesn't exist yet — if a referrer was passed, register in this tx
@@ -470,8 +479,9 @@ export function useScratchProgram() {
           const referrerKey = new PublicKey(pendingReferrer)
           referrerProfilePda = getProfilePda(referrerKey)
           shouldRegisterReferral = true
-          shouldCreditReferrer = true
           creditReferrerKey = referrerKey
+          // totalSpent starts at 0 for new accounts — only MegaGold (0.1 SOL) triggers immediately
+          shouldCreditReferrer = cardCostLamports >= 100_000_000
         }
       }
 
@@ -509,6 +519,22 @@ export function useScratchProgram() {
         systemProgram: SystemProgram.programId,
       }).instruction()
       instructions.push(ix)
+
+      // 3. Bundle creditReferrer when this purchase triggers the referral bonus.
+      // buyAndScratch sets referral_bonus_paid=true first; creditReferrer runs after in
+      // the same tx and sees it as true — so the on-chain constraint passes.
+      if (shouldCreditReferrer && creditReferrerKey) {
+        const referrerProfileForCredit = getProfilePda(creditReferrerKey)
+        const creditIx = await (getReadOnlyProgram().methods as any).creditReferrer().accounts({
+          referrerProfile: referrerProfileForCredit,
+          referrerKey: creditReferrerKey,
+          callerProfile: profilePda,
+          caller: publicKey,
+        }).instruction()
+        instructions.push(creditIx)
+        console.log('Bundled creditReferrer for referrer:', creditReferrerKey.toBase58())
+      }
+
       console.log('Instructions built:', instructions.length)
 
       // Fetch blockhash for simulation; will refresh again right before signing
@@ -625,9 +651,8 @@ export function useScratchProgram() {
 
       await fetchAll()
 
-      // Note: creditReferrer is NOT called here — buyAndScratch already credits
-      // the referrer on-chain via referrerProfile: isMut. Calling it again would
-      // trigger a second wallet signing prompt and fail (referralBonusPaid is true).
+      // creditReferrer is bundled into the same tx (above) when this purchase triggers the bonus.
+      // No separate call needed here.
 
       // Treasury health check — auto-pause + email alert if balance drops below 6 SOL
       const postBuyLamports = await connection.getBalance(treasuryPda)

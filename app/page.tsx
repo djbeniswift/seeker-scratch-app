@@ -578,7 +578,11 @@ export default function Home() {
                         <div>
                           <div style={{ fontSize: 13, color: '#00d4ff', marginBottom: 4, fontFamily: 'monospace', letterSpacing: 1 }}>🎟️ FREE DAILY PLAY</div>
                           <div style={{ fontSize: 11, color: '#ffffffdd', fontFamily: 'monospace' }}>
-                            {freePlayTimeLeft === 0 ? 'Scratch free, win Sweep Points' : 'Come back tomorrow!'}
+                            {freePlayTimeLeft === 0 ? 'Scratch free, win Sweep Points' : (() => {
+                              const nextSec = (profile?.lastFreePlayTimestamp ?? 0) + (masterConfig?.freePlayCooldownSeconds ?? 86400)
+                              const isToday = new Date(nextSec * 1000).toDateString() === new Date().toDateString()
+                              return isToday ? 'Come back soon!' : 'Come back tomorrow!'
+                            })()}
                           </div>
                         </div>
                         {freePlayTimeLeft === 0 ? (

@@ -102,6 +102,7 @@ export default function Home() {
   const [mounted, setMounted] = useState(false)
   const [activeNav, setActiveNav] = useState('scratch')
   const [scratchState, setScratchState] = useState<{ won: boolean; prize: number; scratched: boolean } | null>(null)
+  const [isWaitingForChain, setIsWaitingForChain] = useState(false)
   const [freeScratchState, setFreeScratchState] = useState<{ won: boolean; sweepPoints: number; scratched: boolean } | null>(null)
   const [freePlayTimeLeft, setFreePlayTimeLeft] = useState(0)
   const [showConfetti, setShowConfetti] = useState(false)
@@ -158,6 +159,7 @@ export default function Home() {
 
     const balanceBefore = await connection.getBalance(wallet.publicKey)
     console.log('Balance before:', balanceBefore)
+    setIsWaitingForChain(true)
     try { await buyCard(cardType, pendingReferrer ?? undefined) } catch (err: any) {
       const msg = err?.message || ''
       if (msg.includes('insufficient lamports') || msg.includes('Insufficient funds') || msg.includes('0x1')) {
@@ -171,6 +173,7 @@ export default function Home() {
       } else {
         alert(formatBuyError(err))
       }
+      setIsWaitingForChain(false)
       return
     }
     
@@ -205,6 +208,7 @@ export default function Home() {
     const won = netDiff > 5000 // positive balance change (ignoring dust) means a win
     const prize = won ? (netDiff / LAMPORTS_PER_SOL) + cardCostSol : 0
     console.log('Final result - won:', won, 'prize:', prize)
+    setIsWaitingForChain(false)
     setScratchState({ won, prize, scratched: false })
     // Referral was bundled into this tx — clear it so it doesn't re-register on subsequent buys
     if (pendingReferrer) setPendingReferrer(null)
@@ -397,6 +401,28 @@ export default function Home() {
         {/* SCRATCH TAB */}
         {activeNav === 'scratch' && (
           <>
+            {/* Waiting for chain confirmation */}
+            {isWaitingForChain && (
+              <div style={{
+                marginBottom: 20,
+                height: 140,
+                borderRadius: 16,
+                overflow: 'hidden',
+                background: 'linear-gradient(135deg, #0d1b2a 0%, #1a1040 50%, #0d1b2a 100%)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 10,
+                border: '1px solid rgba(255,255,255,0.08)',
+              }}>
+                <div style={{ fontSize: 28, animation: 'pulse 1.2s ease-in-out infinite' }}>🔗</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', fontFamily: 'monospace', letterSpacing: 2, animation: 'pulse 1.2s ease-in-out infinite' }}>
+                  CONFIRMING ON-CHAIN...
+                </div>
+              </div>
+            )}
+
             {/* Scratch card — shown while unscratched */}
             {scratchState && !scratchState.scratched && (
               <div style={{

@@ -152,6 +152,15 @@ export const IDL = {
       args: []
     },
     {
+      name: "migrateProfile",
+      accounts: [
+        { name: "profile", isMut: true, isSigner: false },
+        { name: "player", isMut: true, isSigner: true },
+        { name: "systemProgram", isMut: false, isSigner: false }
+      ],
+      args: []
+    },
+    {
       name: "updateWinThresholds",
       accounts: [
         { name: "gameConfig", isMut: true, isSigner: false },

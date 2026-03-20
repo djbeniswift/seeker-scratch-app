@@ -467,6 +467,18 @@ export function useScratchProgram() {
 
       const instructions = []
 
+      // 0. Migrate profile if it exists but is too small (old 310-byte accounts → 320 bytes)
+      const profileAccountInfo = await connection.getAccountInfo(profilePda)
+      if (profileAccountInfo && profileAccountInfo.data.length < 320) {
+        console.log('Profile needs migration:', profileAccountInfo.data.length, '→ 320 bytes')
+        const migrateIx = await (getReadOnlyProgram().methods as any).migrateProfile().accounts({
+          profile: profilePda,
+          player: publicKey,
+          systemProgram: SystemProgram.programId,
+        }).instruction()
+        instructions.push(migrateIx)
+      }
+
       // 1. Bundle referral registration as first instruction if needed — one signature, no second prompt
       if (shouldRegisterReferral && pendingReferrer) {
         const referrerKey = new PublicKey(pendingReferrer)

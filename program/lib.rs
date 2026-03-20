@@ -390,15 +390,6 @@ pub mod seeker_scratch {
             require!(url.len() <= 128, ScratchError::PfpTooLong);
             profile.pfp_url = url;
         }
-        // One-time profile completion bonus: 5 points for setting both name + pfp
-        if !profile.profile_bonus_claimed
-            && !profile.display_name.is_empty()
-            && !profile.pfp_url.is_empty()
-        {
-            profile.profile_bonus_claimed = true;
-            profile.points_this_month = profile.points_this_month.saturating_add(5);
-            profile.points_all_time = profile.points_all_time.saturating_add(5);
-        }
         Ok(())
     }
 
@@ -562,8 +553,8 @@ pub struct PlayerProfile {
     pub sweep_points_all_time: u64,     // 8
     pub free_plays_used: u32,           // 4
     pub free_play_wins: u32,            // 4
-    pub profile_bonus_claimed: bool,    // 1
-    // Total data: 303 bytes + 8 discriminator = 311 bytes — space = 320
+    // Total data: 302 bytes + 8 discriminator = 310 bytes — fits existing on-chain accounts exactly
+    // NOTE: profile_bonus_claimed omitted — adding it = 303 bytes, overflows old 310-byte accounts
 }
 
 #[account]

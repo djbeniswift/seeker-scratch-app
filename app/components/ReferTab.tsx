@@ -78,7 +78,7 @@ export default function ReferTab({ wallet, publicKey, connection, onClaimBonus }
   }
 
   const referralLink = publicKey
-    ? `${window.location.origin}?ref=${publicKey.toBase58()}`
+    ? `https://seekerscratch.vercel.app?ref=${publicKey.toBase58()}`
     : null
 
   const copyLink = () => {

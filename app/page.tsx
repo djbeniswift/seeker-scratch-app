@@ -103,6 +103,7 @@ export default function Home() {
   const [activeNav, setActiveNav] = useState('scratch')
   const [scratchState, setScratchState] = useState<{ won: boolean; prize: number; scratched: boolean } | null>(null)
   const [isWaitingForChain, setIsWaitingForChain] = useState(false)
+  const [txError, setTxError] = useState<string | null>(null)
   const [freeScratchState, setFreeScratchState] = useState<{ won: boolean; sweepPoints: number; scratched: boolean } | null>(null)
   const [freePlayTimeLeft, setFreePlayTimeLeft] = useState(0)
   const [showConfetti, setShowConfetti] = useState(false)
@@ -154,6 +155,7 @@ export default function Home() {
     unlockAudio()
 
     setScratchState(null)
+    setTxError(null)
     setShowConfetti(false)
     playScratch()
 
@@ -163,15 +165,15 @@ export default function Home() {
     try { await buyCard(cardType, pendingReferrer ?? undefined) } catch (err: any) {
       const msg = err?.message || ''
       if (msg.includes('insufficient lamports') || msg.includes('Insufficient funds') || msg.includes('0x1')) {
-        alert('❌ Not enough SOL in your wallet. Please add funds and try again.')
+        setTxError('Not enough SOL in your wallet. Please add funds and try again.')
       } else if (msg.includes('GamePaused') || msg.includes('6000')) {
-        alert('⏸ The game is temporarily paused. Please try again soon.')
+        setTxError('The game is temporarily paused. Please try again soon.')
       } else if (msg.includes('TreasuryTooLow') || msg.includes('6003')) {
-        alert('⚠️ Prize pool is refilling. Please try again in a moment.')
+        setTxError('Prize pool is refilling. Please try again in a moment.')
       } else if (/user rejected|rejected the request|cancelled/i.test(msg)) {
-        // Silent — user cancelled, no alert needed
+        // Silent — user cancelled
       } else {
-        alert(formatBuyError(err))
+        setTxError(formatBuyError(err))
       }
       setIsWaitingForChain(false)
       return
@@ -420,6 +422,29 @@ export default function Home() {
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', fontFamily: 'monospace', letterSpacing: 2, animation: 'pulse 1.2s ease-in-out infinite' }}>
                   CONFIRMING ON-CHAIN...
                 </div>
+              </div>
+            )}
+
+            {/* Transaction error */}
+            {txError && (
+              <div style={{
+                marginBottom: 20,
+                padding: '14px 18px',
+                borderRadius: 12,
+                background: 'rgba(220, 38, 38, 0.12)',
+                border: '1px solid rgba(220, 38, 38, 0.4)',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 10,
+              }}>
+                <span style={{ fontSize: 16, flexShrink: 0 }}>⚠️</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, color: '#fca5a5', lineHeight: 1.5 }}>{txError}</div>
+                </div>
+                <button onClick={() => setTxError(null)} style={{
+                  background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)',
+                  cursor: 'pointer', fontSize: 16, padding: 0, flexShrink: 0,
+                }}>✕</button>
               </div>
             )}
 

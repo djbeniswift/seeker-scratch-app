@@ -86,6 +86,9 @@ export default function AdminPanel() {
   // Player lookup
   const [lookupInput, setLookupInput] = useState('')
   const [lookupResult, setLookupResult] = useState<any>(null)
+  const [nameSearch, setNameSearch] = useState('')
+  const [nameResults, setNameResults] = useState<any[]>([])
+  const [nameSearching, setNameSearching] = useState(false)
 
   // Points adjustment
   const [pointsWallet, setPointsWallet] = useState('')
@@ -318,6 +321,33 @@ export default function AdminPanel() {
         })
       } catch { setLookupResult({ error: 'Profile not found' }) }
     } catch (e: any) { setLookupResult({ error: e.message }) }
+  }
+
+  const searchByName = async () => {
+    const term = nameSearch.trim().toLowerCase()
+    if (!term) return
+    setNameSearching(true)
+    setNameResults([])
+    try {
+      const rp = readProvider()
+      const rProg = new Program(IDL as any, PROGRAM_ID, rp)
+      const accounts = await (rProg.account as any).playerProfile.all()
+      const matches = accounts
+        .map((a: any) => ({
+          wallet: a.account.owner?.toBase58() || a.publicKey.toBase58(),
+          displayName: a.account.displayName || '',
+          pointsThisMonth: a.account.pointsThisMonth.toNumber(),
+          pointsAllTime: a.account.pointsAllTime.toNumber(),
+          referralsCount: a.account.referralsCount,
+        }))
+        .filter((p: any) =>
+          p.displayName.toLowerCase().includes(term) ||
+          p.wallet.toLowerCase().includes(term)
+        )
+        .slice(0, 20)
+      setNameResults(matches)
+    } catch (e: any) { setNameResults([{ error: e.message?.slice(0, 60) }]) }
+    setNameSearching(false)
   }
 
   const previewPointsWallet = async () => {
@@ -673,6 +703,57 @@ export default function AdminPanel() {
                     </div>
                   )
                 )}
+                {/* Copy full wallet from lookup result */}
+                {lookupResult && !lookupResult.error && lookupResult.wallet && (
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <div style={{ flex: 1, background: '#0a0a1a', borderRadius: 6, padding: '6px 8px', fontSize: 10, color: '#aaa', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                      {lookupResult.wallet}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <button onClick={() => copy(lookupResult.wallet)} style={btn('#333')}>Copy</button>
+                      <button onClick={() => { setPointsWallet(lookupResult.wallet); setActiveSection('points') }} style={btn('#7c3aed', '#fff')}>+Pts</button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Name search */}
+                <div style={{ marginTop: 8, borderTop: '1px solid #1a1a2e', paddingTop: 8 }}>
+                  <div style={sectionHdr()}>SEARCH BY NAME / PARTIAL WALLET</div>
+                  <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+                    <input
+                      value={nameSearch} onChange={e => { setNameSearch(e.target.value); setNameResults([]) }}
+                      placeholder="Type name or partial wallet..." style={input({ flex: 1 })}
+                      onKeyDown={e => e.key === 'Enter' && searchByName()}
+                    />
+                    <button onClick={searchByName} style={btn('#555')} disabled={nameSearching}>
+                      {nameSearching ? '...' : 'Find'}
+                    </button>
+                  </div>
+                  {nameResults.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      {nameResults.map((r: any, i: number) => r.error ? (
+                        <div key={i} style={{ color: '#f87171', fontSize: 11 }}>❌ {r.error}</div>
+                      ) : (
+                        <div key={r.wallet} style={{ background: '#111', borderRadius: 6, padding: '6px 8px', fontSize: 11 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
+                            <span style={{ color: '#ffd700', fontWeight: 'bold' }}>{r.displayName || '(no name)'}</span>
+                            <span style={{ color: '#555', fontSize: 10 }}>{r.pointsThisMonth} pts</span>
+                          </div>
+                          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                            <span style={{ color: '#555', fontSize: 10, flex: 1, fontFamily: 'monospace', wordBreak: 'break-all' }}>{r.wallet}</span>
+                            <button onClick={() => copy(r.wallet)} style={{ ...btn('#333'), padding: '2px 6px', fontSize: 10 }}>Copy</button>
+                            <button onClick={() => { setLookupInput(r.wallet); lookupPlayer() }} style={{ ...btn('#555'), padding: '2px 6px', fontSize: 10 }}>View</button>
+                            <button onClick={() => { setPointsWallet(r.wallet); setActiveSection('points') }} style={{ ...btn('#7c3aed'), padding: '2px 6px', fontSize: 10 }}>+Pts</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {nameResults.length === 0 && nameSearch && !nameSearching && (
+                    <div style={{ color: '#555', fontSize: 11 }}>No results — hit Find to search</div>
+                  )}
+                </div>
+
                 <div style={{ marginTop: 8, borderTop: '1px solid #1a1a2e', paddingTop: 8 }}>
                   <div style={sectionHdr()}>QUICK ACTIONS</div>
                   <button onClick={initMasterConfig} style={{ ...btn('#333', '#fff'), width: '100%', marginBottom: 6 }}>

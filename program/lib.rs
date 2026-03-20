@@ -675,7 +675,7 @@ pub struct RegisterReferral<'info> {
     #[account(
         init_if_needed,
         payer = referee,
-        space = 320,
+        space = 310,
         seeds = [b"scratch_profile", referee.key().as_ref()],
         bump
     )]
@@ -728,7 +728,7 @@ pub struct BuyAndScratch<'info> {
     #[account(
         init_if_needed,
         payer = player,
-        space = 320,
+        space = 310,
         seeds = [b"scratch_profile", player.key().as_ref()],
         bump
     )]
@@ -755,7 +755,7 @@ pub struct FreeScratch<'info> {
     #[account(
         init_if_needed,
         payer = player,
-        space = 320,
+        space = 310,
         seeds = [b"scratch_profile", player.key().as_ref()],
         bump
     )]

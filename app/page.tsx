@@ -244,6 +244,7 @@ export default function Home() {
     if (!wallet.connected) { alert('Please connect your wallet first'); return }
     unlockAudio()
     setFreeScratchState(null)
+    setTxError(null)
     playScratch()
     setIsWaitingForFreeChain(true)
     const freeChainSafetyTimer = setTimeout(() => setIsWaitingForFreeChain(false), 15_000)
@@ -257,11 +258,11 @@ export default function Home() {
       setIsWaitingForFreeChain(false)
       const msg = err?.message || ''
       if (msg.includes('FreePlayNotReady') || msg.includes('6014')) {
-        alert('⏰ Free play not ready yet! Come back later.')
+        setTxError('Free play not ready yet — come back later.')
       } else if (/user rejected|rejected the request|cancelled/i.test(msg)) {
         // silent
       } else {
-        alert(msg.slice(0, 120))
+        setTxError(msg.slice(0, 120))
       }
     }
   }

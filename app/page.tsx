@@ -239,11 +239,14 @@ export default function Home() {
     setFreeScratchState(null)
     playScratch()
     setIsWaitingForFreeChain(true)
+    const freeChainSafetyTimer = setTimeout(() => setIsWaitingForFreeChain(false), 15_000)
     try {
       const result = await freeScratch()
+      clearTimeout(freeChainSafetyTimer)
       setIsWaitingForFreeChain(false)
       setFreeScratchState({ ...result, scratched: false })
     } catch (err: any) {
+      clearTimeout(freeChainSafetyTimer)
       setIsWaitingForFreeChain(false)
       const msg = err?.message || ''
       if (msg.includes('FreePlayNotReady') || msg.includes('6014')) {

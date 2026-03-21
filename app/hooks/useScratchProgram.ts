@@ -387,7 +387,7 @@ export function useScratchProgram() {
 
     // Poll for confirmation — avoids TransactionExpiredBlockheightExceededError
     let freeConfirmed = false
-    const freeDeadline = Date.now() + 60_000
+    const freeDeadline = Date.now() + 15_000
     while (Date.now() < freeDeadline) {
       await new Promise(r => setTimeout(r, 2000))
       const statuses = await connection.getSignatureStatuses([sig])
@@ -401,7 +401,7 @@ export function useScratchProgram() {
       }
     }
     if (!freeConfirmed) {
-      throw new Error('Transaction did not confirm in time — please try again.')
+      throw new Error('Transaction timed out — please try again.')
     }
 
     // Wait for RPC to settle then read new sweep points

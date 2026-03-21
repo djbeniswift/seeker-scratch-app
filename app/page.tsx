@@ -609,7 +609,7 @@ export default function Home() {
                           {freePlayTimeLeft === 0 ? (
                             <>
                               <div style={{ fontSize: 11, color: '#ffffffdd', fontFamily: 'monospace' }}>Free to play daily. Win Sweep Points for SKR prizes!</div>
-                              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', fontFamily: 'monospace', marginTop: 2 }}>Requires a small SOL balance (~0.001–0.005 SOL) for the network fee.</div>
+                              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', fontFamily: 'monospace', marginTop: 2 }}>Requires ~0.005 SOL in your wallet to cover the network fee.</div>
                             </>
                           ) : (
                             <div style={{ fontSize: 11, color: '#ffffffdd', fontFamily: 'monospace' }}>

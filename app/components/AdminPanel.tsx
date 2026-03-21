@@ -96,6 +96,11 @@ export default function AdminPanel() {
   const [pointsAddReferral, setPointsAddReferral] = useState(false)
   const [pointsPreview, setPointsPreview] = useState<any>(null)
 
+  // Uncredited referrals scanner
+  const [uncreditedReferrals, setUncreditedReferrals] = useState<any[]>([])
+  const [scanning, setScanning] = useState(false)
+  const [scanned, setScanned] = useState(false)
+
   const [treasuryPda] = PublicKey.findProgramAddressSync([TREASURY_SEED], PROGRAM_ID)
   const [masterConfigPda] = PublicKey.findProgramAddressSync([MASTER_CONFIG_SEED], PROGRAM_ID)
   const [gameConfigPda] = PublicKey.findProgramAddressSync([GAME_CONFIG_SEED], PROGRAM_ID)
@@ -389,6 +394,28 @@ export default function AdminPanel() {
     } catch (e: any) { setS(`❌ ${e.message?.slice(0, 100)}`) }
   }
 
+  const scanUncreditedReferrals = async () => {
+    setScanning(true)
+    setScanned(false)
+    setUncreditedReferrals([])
+    try {
+      const rp = readProvider()
+      const rProg = new Program(IDL as any, PROGRAM_ID, rp)
+      const accounts = await (rProg.account as any).playerProfile.all()
+      const uncredited = accounts
+        .filter((a: any) => a.account.hasBeenReferred && !a.account.referralBonusPaid)
+        .map((a: any) => ({
+          wallet: a.account.owner?.toBase58() || a.publicKey.toBase58(),
+          displayName: a.account.displayName || null,
+          referredBy: a.account.referredBy?.toBase58(),
+          cardsScratched: a.account.cardsScratched,
+        }))
+      setUncreditedReferrals(uncredited)
+      setScanned(true)
+    } catch (e: any) { setS(`❌ Scan failed: ${e.message?.slice(0, 80)}`) }
+    setScanning(false)
+  }
+
   const copy = (text: string) => { navigator.clipboard.writeText(text).catch(() => {}) }
 
   const navItems = [
@@ -399,6 +426,7 @@ export default function AdminPanel() {
     { id: 'winners', label: '🥇 Winners' },
     { id: 'lookup', label: '🔍 Lookup' },
     { id: 'points', label: '🎯 Points' },
+    { id: 'referrals', label: '🔗 Referrals' },
   ]
 
   const pctUsed = dailyCap > 0 ? Math.min(100, (dailyPaidOut / dailyCap) * 100) : 0
@@ -828,6 +856,50 @@ export default function AdminPanel() {
                 <button onClick={adjustPoints} style={btn('#7c3aed')}>
                   Add {pointsAmount || '?'} Points{pointsAddReferral ? ' + Referral' : ''}
                 </button>
+              </div>
+            )}
+
+            {/* ── REFERRALS ── */}
+            {activeSection === 'referrals' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={sectionHdr('#00d4ff')}>UNCREDITED REFERRALS</div>
+                <div style={{ fontSize: 11, color: '#888', lineHeight: 1.5 }}>
+                  Finds wallets that were referred but whose referrer hasn't been credited yet. Click "Credit Referrer" to add 100 pts + referral count to the referrer via adminAdjustPoints.
+                </div>
+                <div style={{ fontSize: 10, color: '#f59e0b', lineHeight: 1.4 }}>
+                  ⚠️ After crediting, entries stay in the list (referralBonusPaid flag can only be set by the player's own transaction). Keep a manual log to avoid double-crediting.
+                </div>
+                <button onClick={scanUncreditedReferrals} disabled={scanning} style={btn('#00d4ff', '#000')}>
+                  {scanning ? '⏳ Scanning all profiles...' : '🔍 Scan All Profiles'}
+                </button>
+                {scanned && uncreditedReferrals.length === 0 && (
+                  <div style={{ color: '#4ade80', fontSize: 11 }}>✅ None found — all referrers are credited!</div>
+                )}
+                {uncreditedReferrals.length > 0 && (
+                  <>
+                    <div style={{ color: '#f59e0b', fontSize: 11, fontWeight: 'bold' }}>{uncreditedReferrals.length} uncredited referral(s) found</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {uncreditedReferrals.map((r) => (
+                        <div key={r.wallet} style={{ background: '#111', borderRadius: 8, padding: 8, fontSize: 11 }}>
+                          <div style={{ color: '#ffd700', marginBottom: 4 }}>{r.displayName || 'Anonymous'} · {r.cardsScratched} cards scratched</div>
+                          <div style={{ color: '#888', marginBottom: 2 }}>
+                            Referee: <span style={{ color: '#ccc', fontFamily: 'monospace' }}>{r.wallet.slice(0, 8)}...{r.wallet.slice(-4)}</span>
+                          </div>
+                          <div style={{ color: '#888', marginBottom: 6 }}>
+                            Referrer: <span style={{ color: '#00d4ff', fontFamily: 'monospace' }}>{r.referredBy?.slice(0, 8)}...{r.referredBy?.slice(-4)}</span>
+                          </div>
+                          <div style={{ display: 'flex', gap: 4 }}>
+                            <button onClick={() => copy(r.referredBy)} style={{ ...btn('#333'), padding: '3px 8px', fontSize: 10, flex: 1 }}>Copy Referrer</button>
+                            <button
+                              onClick={() => { setPointsWallet(r.referredBy); setPointsAmount('100'); setPointsAddReferral(true); setPointsPreview(null); setActiveSection('points') }}
+                              style={{ ...btn('#7c3aed'), padding: '3px 8px', fontSize: 10, flex: 1 }}
+                            >Credit Referrer →</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
             )}
 

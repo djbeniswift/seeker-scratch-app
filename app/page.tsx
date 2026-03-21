@@ -606,13 +606,20 @@ export default function Home() {
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div>
                           <div style={{ fontSize: 13, color: '#00d4ff', marginBottom: 4, fontFamily: 'monospace', letterSpacing: 1 }}>🎟️ FREE DAILY PLAY</div>
-                          <div style={{ fontSize: 11, color: '#ffffffdd', fontFamily: 'monospace' }}>
-                            {freePlayTimeLeft === 0 ? 'Free to play daily. Small network fee (~0.000005 SOL) applies. Win Sweep Points for SKR prizes!' : (() => {
-                              const nextSec = (profile?.lastFreePlayTimestamp ?? 0) + (masterConfig?.freePlayCooldownSeconds ?? 86400)
-                              const isToday = new Date(nextSec * 1000).toDateString() === new Date().toDateString()
-                              return isToday ? 'Come back soon!' : 'Come back tomorrow!'
-                            })()}
-                          </div>
+                          {freePlayTimeLeft === 0 ? (
+                            <>
+                              <div style={{ fontSize: 11, color: '#ffffffdd', fontFamily: 'monospace' }}>Free to play daily. Win Sweep Points for SKR prizes!</div>
+                              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', fontFamily: 'monospace', marginTop: 2 }}>Small network fee (~0.000005 SOL) applies.</div>
+                            </>
+                          ) : (
+                            <div style={{ fontSize: 11, color: '#ffffffdd', fontFamily: 'monospace' }}>
+                              {(() => {
+                                const nextSec = (profile?.lastFreePlayTimestamp ?? 0) + (masterConfig?.freePlayCooldownSeconds ?? 86400)
+                                const isToday = new Date(nextSec * 1000).toDateString() === new Date().toDateString()
+                                return isToday ? 'Come back soon!' : 'Come back tomorrow!'
+                              })()}
+                            </div>
+                          )}
                         </div>
                         {freePlayTimeLeft === 0 ? (
                           <button

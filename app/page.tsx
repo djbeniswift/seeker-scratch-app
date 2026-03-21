@@ -103,6 +103,7 @@ export default function Home() {
   const [activeNav, setActiveNav] = useState('scratch')
   const [scratchState, setScratchState] = useState<{ won: boolean; prize: number; scratched: boolean } | null>(null)
   const [isWaitingForChain, setIsWaitingForChain] = useState(false)
+  const [isWaitingForFreeChain, setIsWaitingForFreeChain] = useState(false)
   const [txError, setTxError] = useState<string | null>(null)
   const [freeScratchState, setFreeScratchState] = useState<{ won: boolean; sweepPoints: number; scratched: boolean } | null>(null)
   const [freePlayTimeLeft, setFreePlayTimeLeft] = useState(0)
@@ -237,10 +238,13 @@ export default function Home() {
     unlockAudio()
     setFreeScratchState(null)
     playScratch()
+    setIsWaitingForFreeChain(true)
     try {
       const result = await freeScratch()
+      setIsWaitingForFreeChain(false)
       setFreeScratchState({ ...result, scratched: false })
     } catch (err: any) {
+      setIsWaitingForFreeChain(false)
       const msg = err?.message || ''
       if (msg.includes('FreePlayNotReady') || msg.includes('6014')) {
         alert('⏰ Free play not ready yet! Come back later.')
@@ -521,6 +525,28 @@ export default function Home() {
                 {/* ── Free Play Card ── */}
                 {wallet.connected && (
                   <div style={{ marginBottom: 16 }}>
+                    {/* Free play — waiting for chain confirmation */}
+                    {isWaitingForFreeChain && (
+                      <div style={{
+                        marginBottom: 12,
+                        height: 120,
+                        borderRadius: 16,
+                        overflow: 'hidden',
+                        background: 'linear-gradient(135deg, #0d1b2a 0%, #102040 50%, #0d1b2a 100%)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 10,
+                        border: '1px solid rgba(0,212,255,0.15)',
+                      }}>
+                        <div style={{ fontSize: 24, animation: 'pulse 1.2s ease-in-out infinite' }}>🔗</div>
+                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', fontFamily: 'monospace', letterSpacing: 2, animation: 'pulse 1.2s ease-in-out infinite' }}>
+                          CONFIRMING ON-CHAIN...
+                        </div>
+                      </div>
+                    )}
+
                     {/* Free scratch reveal animation */}
                     {freeScratchState && !freeScratchState.scratched && (
                       <div style={{ position: 'relative', marginBottom: 12, height: 120, borderRadius: 16, overflow: 'hidden' }}>
@@ -578,7 +604,7 @@ export default function Home() {
                         <div>
                           <div style={{ fontSize: 13, color: '#00d4ff', marginBottom: 4, fontFamily: 'monospace', letterSpacing: 1 }}>🎟️ FREE DAILY PLAY</div>
                           <div style={{ fontSize: 11, color: '#ffffffdd', fontFamily: 'monospace' }}>
-                            {freePlayTimeLeft === 0 ? 'Scratch free, win Sweep Points' : (() => {
+                            {freePlayTimeLeft === 0 ? 'Free to play daily. Small network fee (~0.000005 SOL) applies. Win Sweep Points for SKR prizes!' : (() => {
                               const nextSec = (profile?.lastFreePlayTimestamp ?? 0) + (masterConfig?.freePlayCooldownSeconds ?? 86400)
                               const isToday = new Date(nextSec * 1000).toDateString() === new Date().toDateString()
                               return isToday ? 'Come back soon!' : 'Come back tomorrow!'

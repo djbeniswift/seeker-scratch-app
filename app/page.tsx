@@ -119,6 +119,13 @@ export default function Home() {
     if (ref && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(ref)) setPendingReferrer(ref)
   }, [])
 
+  // Clear scratch results when wallet changes (prevents stale state from a previous wallet showing)
+  useEffect(() => {
+    setScratchState(null)
+    setFreeScratchState(null)
+    setTxError(null)
+  }, [wallet.publicKey?.toBase58()])
+
   // Countdown to next free play
   useEffect(() => {
     const update = () => {

@@ -88,13 +88,20 @@ export async function runMonthlyPrizes() {
   )
   const program = new Program(IDL as any, PROGRAM_ID, provider)
 
-  // Fetch prize amounts from MasterConfig on-chain (stored in lamports)
+  // Fetch prize amounts from MasterConfig on-chain (stored in lamports).
+  // Use safe BN construction via .toString() to avoid "Cannot read properties of undefined
+  // (reading 'toArrayLike')" when the field comes back as a raw number instead of a BN object.
   const [masterConfigPda] = PublicKey.findProgramAddressSync([MASTER_CONFIG_SEED], PROGRAM_ID)
   const masterConfig = await (program.account as any).masterConfig.fetch(masterConfigPda)
+  console.log(`[runMonthlyPrizes] MasterConfig prize amounts (raw):`, {
+    prize1stSol: masterConfig.prize1stSol?.toString?.() ?? masterConfig.prize1stSol,
+    prize2ndSol: masterConfig.prize2ndSol?.toString?.() ?? masterConfig.prize2ndSol,
+    prize3rdSol: masterConfig.prize3rdSol?.toString?.() ?? masterConfig.prize3rdSol,
+  })
   const prizeAmounts: [BN, BN, BN] = [
-    masterConfig.prize1stSol as BN,
-    masterConfig.prize2ndSol as BN,
-    masterConfig.prize3rdSol as BN,
+    masterConfig.prize1stSol ? new BN(masterConfig.prize1stSol.toString()) : new BN(250_000_000),
+    masterConfig.prize2ndSol ? new BN(masterConfig.prize2ndSol.toString()) : new BN(150_000_000),
+    masterConfig.prize3rdSol ? new BN(masterConfig.prize3rdSol.toString()) : new BN(50_000_000),
   ]
 
   // Fetch all profiles, sort by pointsThisMonth descending, take top 3
@@ -135,20 +142,30 @@ export async function runMonthlyPrizes() {
   ]
 
   const resolvedCount = resolved.filter(Boolean).length
-  console.log(`[runMonthlyPrizes] Resolved ${resolvedCount}/${sorted.length} wallets — calling setMonthlyWinners`)
+  console.log(`[runMonthlyPrizes] Resolved ${resolvedCount}/${sorted.length} wallets`)
+  console.log(`[runMonthlyPrizes] winners array:`, winners.map(w => w.toBase58()))
+  console.log(`[runMonthlyPrizes] amounts array:`, amounts.map(a => a.toString()))
+  console.log(`[runMonthlyPrizes] Calling setMonthlyWinners...`)
 
   const [treasuryPda] = PublicKey.findProgramAddressSync([TREASURY_SEED], PROGRAM_ID)
   const [monthlyPrizePda] = PublicKey.findProgramAddressSync([MONTHLY_PRIZE_SEED], PROGRAM_ID)
 
-  const tx = await (program.methods as any)
-    .setMonthlyWinners(winners, amounts)
-    .accounts({
-      monthlyPrize: monthlyPrizePda,
-      treasury: treasuryPda,
-      admin: adminKeypair.publicKey,
-      systemProgram: PublicKey.default,
-    })
-    .rpc({ commitment: 'confirmed' })
+  let tx: string
+  try {
+    tx = await (program.methods as any)
+      .setMonthlyWinners(winners, amounts)
+      .accounts({
+        monthlyPrize: monthlyPrizePda,
+        treasury: treasuryPda,
+        admin: adminKeypair.publicKey,
+        systemProgram: PublicKey.default,
+      })
+      .rpc({ commitment: 'confirmed' })
+  } catch (err: any) {
+    console.error(`[runMonthlyPrizes] setMonthlyWinners failed:`, err?.message ?? err)
+    console.error(`[runMonthlyPrizes] Program logs:`, err?.logs ?? 'none')
+    throw err
+  }
 
   console.log(`[runMonthlyPrizes] setMonthlyWinners tx: ${tx}`)
 

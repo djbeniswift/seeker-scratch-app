@@ -2,10 +2,15 @@
 import { useEffect, useState } from 'react'
 import { Program, AnchorProvider } from '@coral-xyz/anchor'
 import { PublicKey } from '@solana/web3.js'
-import { PROGRAM_ID, MASTER_CONFIG_SEED, IDL } from '../lib/constants'
+import { PROGRAM_ID, MASTER_CONFIG_SEED, MONTHLY_PRIZE_SEED, TREASURY_SEED, IDL } from '../lib/constants'
+import Confetti from './Confetti'
 
-export default function PrizesTab({ connection }: any) {
+export default function PrizesTab({ connection, wallet, publicKey, unclaimedPrize, onClaimed }: any) {
   const [mc, setMc] = useState<any>(null)
+  const [claiming, setClaiming] = useState(false)
+  const [claimed, setClaimed] = useState(false)
+  const [claimError, setClaimError] = useState<string | null>(null)
+  const [showConfetti, setShowConfetti] = useState(false)
 
   useEffect(() => {
     if (!connection) return
@@ -31,6 +36,31 @@ export default function PrizesTab({ connection }: any) {
     load()
   }, [connection])
 
+  const claimPrize = async () => {
+    if (!publicKey || !wallet || !unclaimedPrize) return
+    setClaiming(true)
+    setClaimError(null)
+    try {
+      const provider = new AnchorProvider(connection, wallet as any, { commitment: 'confirmed' })
+      const prog = new Program(IDL as any, PROGRAM_ID, provider)
+      const [monthlyPrizePda] = PublicKey.findProgramAddressSync([MONTHLY_PRIZE_SEED], PROGRAM_ID)
+      const [treasuryPda] = PublicKey.findProgramAddressSync([TREASURY_SEED], PROGRAM_ID)
+      await (prog.methods as any).claimMonthlyPrize().accounts({
+        monthlyPrize: monthlyPrizePda,
+        treasury: treasuryPda,
+        claimant: publicKey,
+      }).rpc({ commitment: 'confirmed' })
+      setClaimed(true)
+      setShowConfetti(true)
+      setTimeout(() => setShowConfetti(false), 5000)
+      onClaimed?.()
+    } catch (e: any) {
+      setClaimError(e?.message || 'Claim failed. Please try again.')
+    } finally {
+      setClaiming(false)
+    }
+  }
+
   const p1Sol = mc?.prize1stSol ?? 0.25
   const p2Sol = mc?.prize2ndSol ?? 0.15
   const p3Sol = mc?.prize3rdSol ?? 0.05
@@ -40,6 +70,9 @@ export default function PrizesTab({ connection }: any) {
   const s1Skr = mc?.sweep1stSkr ?? 500
   const s2Skr = mc?.sweep2ndSkr ?? 250
   const s3Skr = mc?.sweep3rdSkr ?? 100
+
+  const placeLabel = ['', '1ST', '2ND', '3RD']
+  const placeMedal = ['', '🥇', '🥈', '🥉']
 
   const monthlyPrizes = [
     { place: '🥇 1ST PLACE', sol: `${p1Sol} SOL`, skr: `${p1Skr} SKR`, icon: '👑', color: '#FFD700' },
@@ -54,6 +87,59 @@ export default function PrizesTab({ connection }: any) {
 
   return (
     <div style={{ paddingBottom: 16 }}>
+      <Confetti active={showConfetti} />
+
+      {/* ── Claim section — only shown when wallet has an unclaimed prize ── */}
+      {unclaimedPrize && (
+        <div style={{
+          background: 'linear-gradient(135deg, #1a1a3e, #2d1b69)',
+          border: '2px solid var(--gold)', borderRadius: 16, padding: 20,
+          textAlign: 'center', marginBottom: 16, position: 'relative', overflow: 'hidden',
+        }}>
+          <div style={{ position: 'absolute', top: -40, right: -40, width: 150, height: 150, borderRadius: '50%', background: 'rgba(245,200,66,0.15)', filter: 'blur(40px)' }} />
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <div style={{ fontSize: 48, marginBottom: 8 }}>{placeMedal[unclaimedPrize.place]}</div>
+            <div style={{ color: 'var(--gold)', fontSize: 22, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 2, marginBottom: 4 }}>
+              YOU WON {placeLabel[unclaimedPrize.place]} PLACE!
+            </div>
+            <div style={{ color: '#a0aec0', fontSize: 13, marginBottom: 16 }}>Monthly Leaderboard Prize</div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+              <div style={{ background: 'rgba(0,255,136,0.1)', border: '1px solid rgba(0,255,136,0.3)', borderRadius: 12, padding: '14px 32px' }}>
+                <div style={{ color: 'var(--green)', fontSize: 36, fontFamily: "'Bebas Neue', sans-serif" }}>
+                  {unclaimedPrize.amount} SOL
+                </div>
+                <div style={{ color: '#555', fontSize: 13, letterSpacing: 1 }}>YOUR PRIZE</div>
+              </div>
+            </div>
+            {!claimed ? (
+              <>
+                <button
+                  onClick={claimPrize}
+                  disabled={claiming}
+                  style={{
+                    width: '100%', padding: '16px',
+                    background: claiming ? '#555' : 'linear-gradient(135deg, #ffd700, #f59e0b)',
+                    border: 'none', borderRadius: 12, cursor: claiming ? 'not-allowed' : 'pointer',
+                    color: '#000', fontSize: 20, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 2,
+                  }}
+                >
+                  {claiming ? '⏳ CLAIMING...' : '🎉 CLAIM MY PRIZE'}
+                </button>
+                {claimError && (
+                  <div style={{ marginTop: 10, color: '#fca5a5', fontSize: 12, fontFamily: 'monospace' }}>
+                    ⚠️ {claimError}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div style={{ padding: 14, background: 'rgba(0,255,136,0.1)', border: '1px solid var(--green)', borderRadius: 10, color: 'var(--green)', fontSize: 16, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1 }}>
+                ✅ {unclaimedPrize.amount} SOL SENT TO YOUR WALLET!
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <div style={{ background: 'linear-gradient(135deg, #1a1a3e, #2d1b69)', border: '1px solid var(--gold)', borderRadius: 16, padding: 20, textAlign: 'center', marginBottom: 16 }}>
         <div style={{ fontSize: 36, marginBottom: 6 }}>🏆</div>
         <div style={{ color: 'var(--gold)', fontSize: 26, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 2 }}>MONTHLY PRIZES</div>

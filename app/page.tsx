@@ -59,12 +59,13 @@ function formatBuyError(err: any): string {
 import WalletButton from './components/WalletButton'
 import ScratchReveal from './components/ScratchReveal'
 import { useScratchProgram } from './hooks/useScratchProgram'
-import { LAMPORTS_PER_SOL } from '@solana/web3.js'
+import { LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js'
+import { Program, AnchorProvider } from '@coral-xyz/anchor'
+import { IDL, PROGRAM_ID, MONTHLY_PRIZE_SEED } from './lib/constants'
 import { useLeaderboard } from './contexts/LeaderboardContext'
 import AdminPanel from './components/AdminPanel'
 import ReferTab from './components/ReferTab'
 import ProfileTab from './components/ProfileTab'
-import WinnerBanner from './components/WinnerBanner'
 import RanksTab from './components/RanksTab'
 import PrizesTab from './components/PrizesTab'
 import Confetti from './components/Confetti'
@@ -109,6 +110,8 @@ export default function Home() {
   const [freePlayTimeLeft, setFreePlayTimeLeft] = useState(0)
   const [showConfetti, setShowConfetti] = useState(false)
   const [pendingReferrer, setPendingReferrer] = useState<string | null>(null)
+  const [unclaimedPrize, setUnclaimedPrize] = useState<{ amount: number; place: number } | null>(null)
+  const [unclaimedDismissed, setUnclaimedDismissed] = useState(false)
   const { muted, toggleMute, unlockAudio, playScratch, playSmallWin, playBigWin, playLoss } = useSound()
 
   useEffect(() => {
@@ -124,6 +127,29 @@ export default function Home() {
     setScratchState(null)
     setFreeScratchState(null)
     setTxError(null)
+  }, [wallet.publicKey?.toBase58()])
+
+  // Check if connected wallet has an unclaimed monthly prize
+  useEffect(() => {
+    if (!wallet.publicKey) { setUnclaimedPrize(null); return }
+    const check = async () => {
+      try {
+        const rp = new AnchorProvider(connection, {} as any, { commitment: 'confirmed' })
+        const prog = new Program(IDL as any, PROGRAM_ID, rp)
+        const [pda] = PublicKey.findProgramAddressSync([MONTHLY_PRIZE_SEED], PROGRAM_ID)
+        const prize = await (prog.account as any).monthlyPrize.fetch(pda)
+        const walletStr = wallet.publicKey!.toBase58()
+        let found: { amount: number; place: number } | null = null
+        prize.winners.forEach((w: any, i: number) => {
+          if (w.toBase58() === walletStr && !prize.paid[i]) {
+            found = { place: i + 1, amount: prize.amounts[i].toNumber() / 1e9 }
+          }
+        })
+        setUnclaimedPrize(found)
+        setUnclaimedDismissed(false)
+      } catch {}
+    }
+    check()
   }, [wallet.publicKey?.toBase58()])
 
   // Countdown to next free play
@@ -414,7 +440,32 @@ export default function Home() {
           </div>
         )}
 
-        {wallet.connected && <WinnerBanner wallet={wallet} publicKey={wallet.publicKey} connection={connection} />}
+        {wallet.connected && unclaimedPrize && !unclaimedDismissed && (
+          <div
+            onClick={() => setActiveNav('prizes')}
+            style={{
+              margin: '0 0 16px 0', padding: '14px 16px',
+              background: 'linear-gradient(135deg, rgba(245,200,66,0.15), rgba(245,200,66,0.05))',
+              border: '2px solid var(--gold)', borderRadius: 14,
+              display: 'flex', alignItems: 'center', gap: 12,
+              cursor: 'pointer', position: 'relative',
+            }}
+          >
+            <span style={{ fontSize: 28, flexShrink: 0 }}>🏆</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ color: 'var(--gold)', fontSize: 15, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1 }}>
+                YOU WON {unclaimedPrize.amount} SOL THIS MONTH!
+              </div>
+              <div style={{ color: '#ffffffcc', fontSize: 12, fontFamily: 'monospace', marginTop: 2 }}>
+                Tap to claim →
+              </div>
+            </div>
+            <button
+              onClick={e => { e.stopPropagation(); setUnclaimedDismissed(true) }}
+              style={{ background: 'none', border: 'none', color: '#555', fontSize: 20, cursor: 'pointer', padding: 0, flexShrink: 0 }}
+            >✕</button>
+          </div>
+        )}
         {/* SCRATCH TAB */}
         {activeNav === 'scratch' && (
           <>
@@ -758,7 +809,13 @@ export default function Home() {
         )}
         {/* PRIZES TAB */}
         {activeNav === 'prizes' && (
-          <PrizesTab connection={connection} />
+          <PrizesTab
+            connection={connection}
+            wallet={wallet}
+            publicKey={wallet.publicKey}
+            unclaimedPrize={unclaimedPrize}
+            onClaimed={() => setUnclaimedPrize(null)}
+          />
         )}
         {/* REFER TAB */}
         {activeNav === 'refer' && (

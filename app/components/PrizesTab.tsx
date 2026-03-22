@@ -211,7 +211,7 @@ export default function PrizesTab({ connection, wallet, publicKey, unclaimedPriz
           ))}
         </div>
         <div style={{ marginTop: 12, padding: 10, background: 'rgba(0,212,255,0.05)', border: '1px solid rgba(0,212,255,0.15)', borderRadius: 8, color: '#ffffffdd', fontSize: 12, textAlign: 'center' }}>
-          🎟️ Use your free daily play to earn sweep points. No purchase necessary.
+          🎟️ Use your free daily play to earn sweep points. A one-time ~0.003 SOL account setup fee applies on first play only.
         </div>
       </div>
     </div>

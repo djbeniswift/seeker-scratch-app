@@ -667,8 +667,7 @@ export default function Home() {
                           <div style={{ fontSize: 13, color: '#00d4ff', marginBottom: 4, fontFamily: 'monospace', letterSpacing: 1 }}>🎟️ FREE DAILY PLAY</div>
                           {freePlayTimeLeft === 0 ? (
                             <>
-                              <div style={{ fontSize: 11, color: '#ffffffdd', fontFamily: 'monospace' }}>Free to play daily. Win Sweep Points for SKR prizes!</div>
-                              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', fontFamily: 'monospace', marginTop: 2 }}>Requires ~0.005 SOL in your wallet to cover the network fee.</div>
+                              <div style={{ fontSize: 11, color: '#ffffffdd', fontFamily: 'monospace' }}>Play free daily. One-time 0.003 SOL setup fee for new players.</div>
                             </>
                           ) : (
                             <div style={{ fontSize: 11, color: '#ffffffdd', fontFamily: 'monospace' }}>
@@ -871,7 +870,7 @@ export default function Home() {
         textAlign: 'center', padding: '8px 16px 72px',
         fontSize: 11, color: 'rgba(255,255,255,0.8)', fontFamily: 'monospace', lineHeight: 1.6,
       }}>
-        Free daily play available. No purchase necessary.<br />
+        Free to play daily. A one-time ~0.003 SOL account setup fee applies on first play only.<br />
         Seeker Scratch is a sweepstakes game. 18+ only. Void where prohibited by law.
       </div>
       <AdminPanel />

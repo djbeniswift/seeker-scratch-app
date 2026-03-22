@@ -1,6 +1,6 @@
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { Program, AnchorProvider, BorshAccountsCoder } from '@coral-xyz/anchor'
-import { PublicKey, LAMPORTS_PER_SOL, SystemProgram, Transaction, TransactionMessage, VersionedTransaction } from '@solana/web3.js'
+import { Connection, PublicKey, LAMPORTS_PER_SOL, SystemProgram, Transaction, TransactionMessage, VersionedTransaction } from '@solana/web3.js'
 import { useCallback, useState, useEffect } from 'react'
 
 // Pure-JS base64 → base58 conversion for MWA signatures (no external dep needed)
@@ -15,9 +15,11 @@ function base64ToBase58(b64: string): string {
   for (const b of bytes) { if (b !== 0) break; result = '1' + result }
   return result
 }
-import { PROGRAM_ID, TREASURY_SEED, PROFILE_SEED, GAME_CONFIG_SEED, MASTER_CONFIG_SEED, IDL } from '../lib/constants'
+import { PROGRAM_ID, TREASURY_SEED, PROFILE_SEED, GAME_CONFIG_SEED, MASTER_CONFIG_SEED, IDL, FALLBACK_RPC_URL } from '../lib/constants'
 
-// Retry getLatestBlockhash up to 4 times with exponential backoff on 429s
+// Fallback connection used when primary (Helius) is rate-limited
+const fallbackConnection = new Connection(FALLBACK_RPC_URL, 'confirmed')
+
 function isRateLimitError(err: any): boolean {
   return err?.message?.includes('429') ||
     err?.message?.includes('rate limit') ||
@@ -25,27 +27,31 @@ function isRateLimitError(err: any): boolean {
     err?.code === -32429
 }
 
+// On rate-limit: immediately switch to fallback RPC, no delay.
+// If fallback also fails, error propagates to the caller.
+async function withRateLimitRetry<T>(primary: () => Promise<T>, fallback: () => Promise<T>): Promise<T> {
+  try {
+    return await primary()
+  } catch (err: any) {
+    if (!isRateLimitError(err)) throw err
+    return fallback()
+  }
+}
+
+// Retry blockhash fetch — switches to fallback RPC on rate-limit, exponential
+// backoff on other transient errors.
 async function getBlockhashWithRetry(connection: any, commitment: string) {
   for (let attempt = 0; attempt < 4; attempt++) {
     try {
-      return await connection.getLatestBlockhash(commitment)
+      const conn = attempt >= 2 ? fallbackConnection : connection
+      return await conn.getLatestBlockhash(commitment)
     } catch (err: any) {
-      if (!isRateLimitError(err) || attempt === 3) throw err
+      if (attempt === 3) throw err
+      if (isRateLimitError(err) && attempt < 2) continue // next iteration uses fallback
       await new Promise(r => setTimeout(r, 600 * Math.pow(2, attempt)))
     }
   }
   throw new Error('getLatestBlockhash failed after retries')
-}
-
-// Silently retry once after 5s on rate-limit; rethrows all other errors
-async function withRateLimitRetry<T>(fn: () => Promise<T>): Promise<T> {
-  try {
-    return await fn()
-  } catch (err: any) {
-    if (!isRateLimitError(err)) throw err
-    await new Promise(r => setTimeout(r, 5000))
-    return fn()
-  }
 }
 
 export function useScratchProgram() {
@@ -251,7 +257,10 @@ export function useScratchProgram() {
       if (profilePk) pks.push(profilePk)
       if (wallet.publicKey) pks.push(wallet.publicKey)
 
-      const infos = await withRateLimitRetry(() => connection.getMultipleAccountsInfo(pks, 'confirmed'))
+      const infos = await withRateLimitRetry(
+        () => connection.getMultipleAccountsInfo(pks, 'confirmed'),
+        () => fallbackConnection.getMultipleAccountsInfo(pks, 'confirmed')
+      )
 
       // Treasury
       const tInfo = infos[0]

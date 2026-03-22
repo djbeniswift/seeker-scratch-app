@@ -11,6 +11,14 @@ const KNOWN_WALLETS = [
   '6RhLQikkjzace4ti4D458iSmKofbPdMGNB7VKHmWwYPP', // admin
 ]
 
+// Excluded from prizes but still visible on leaderboard.
+// Derived to profile PDAs at runtime so we can filter the profiles array by PDA pubkey.
+const EXCLUDED_WALLETS = [
+  '6RhLQikkjzace4ti4D458iSmKofbPdMGNB7VKHmWwYPP', // admin
+  'DBH2VpbjWLdrJnau4RjdpYBTcLy9pMGa1qQr4U9dDgER', // house wallet
+  'A6CqGe7oeEqctqqiJJn7ep4H64gKUzipKaARssD4hcFx', // playground
+]
+
 // Resolve the player wallet for a profile PDA by checking transaction history.
 // The profile PDA is derived as [PROFILE_SEED, wallet.toBytes()], but the on-chain
 // program never writes the wallet into profile.owner — so we can't read it from
@@ -136,17 +144,26 @@ export async function runMonthlyPrizes() {
   // Fetch all profiles once — reused for both SOL and sweep leaderboards
   const profiles = await (program.account as any).playerProfile.all()
 
-  // SOL leaderboard: top 3 by pointsThisMonth
+  // Derive excluded profile PDAs from wallet addresses so we can filter by PDA pubkey
+  const excludedPdaSet = new Set(
+    EXCLUDED_WALLETS.map(w => {
+      const [pda] = PublicKey.findProgramAddressSync([PROFILE_SEED, new PublicKey(w).toBytes()], PROGRAM_ID)
+      return pda.toBase58()
+    })
+  )
+  const isExcluded = (p: any) => excludedPdaSet.has(p.publicKey.toBase58())
+
+  // SOL leaderboard: top 3 by pointsThisMonth (excluded from prizes but still visible on leaderboard)
   const sorted = profiles
-    .filter((p: any) => p.account.pointsThisMonth.toNumber() > 0)
+    .filter((p: any) => p.account.pointsThisMonth.toNumber() > 0 && !isExcluded(p))
     .sort((a: any, b: any) => b.account.pointsThisMonth.toNumber() - a.account.pointsThisMonth.toNumber())
     .slice(0, 3)
 
-  console.log(`[runMonthlyPrizes] Top ${sorted.length} SOL leaderboard players this month`)
+  console.log(`[runMonthlyPrizes] Top ${sorted.length} SOL leaderboard players this month (after exclusions)`)
 
-  // Sweep leaderboard: top 3 by sweepPointsThisMonth
+  // Sweep leaderboard: top 3 by sweepPointsThisMonth (excluded from prizes but still visible on leaderboard)
   const sweepSorted = profiles
-    .filter((p: any) => (p.account.sweepPointsThisMonth?.toNumber?.() ?? 0) > 0)
+    .filter((p: any) => (p.account.sweepPointsThisMonth?.toNumber?.() ?? 0) > 0 && !isExcluded(p))
     .sort((a: any, b: any) => (b.account.sweepPointsThisMonth?.toNumber?.() ?? 0) - (a.account.sweepPointsThisMonth?.toNumber?.() ?? 0))
     .slice(0, 3)
 

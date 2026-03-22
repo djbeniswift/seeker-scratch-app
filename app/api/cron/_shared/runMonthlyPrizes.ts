@@ -10,19 +10,27 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 // program never writes the wallet into profile.owner — so we can't read it from
 // account data. Instead, get the oldest transaction for the profile PDA and check
 // accounts[0] — the fee payer is always the first account and is always the player.
-async function resolveWalletFromPda(connection: Connection, profilePda: PublicKey): Promise<PublicKey> {
+// Returns null (never throws) so callers can skip failed resolutions gracefully.
+async function resolveWalletFromPda(connection: Connection, profilePda: PublicKey): Promise<PublicKey | null> {
   const pdaStr = profilePda.toBase58()
   console.log(`[resolveWallet] Resolving wallet for profile PDA: ${pdaStr}`)
 
-  // Fetch up to 10 sigs and use the oldest (last) — that's the account creation tx
-  const sigs = await connection.getSignaturesForAddress(profilePda, { limit: 10 }, 'confirmed')
+  let sigs: Awaited<ReturnType<typeof connection.getSignaturesForAddress>>
+  try {
+    // Fetch up to 10 sigs; reverse so oldest (account creation tx) is tried first
+    sigs = await connection.getSignaturesForAddress(profilePda, { limit: 10 }, 'confirmed')
+  } catch (err) {
+    console.error(`[resolveWallet] Failed to fetch signatures for ${pdaStr}:`, err)
+    return null
+  }
+
   console.log(`[resolveWallet] Found ${sigs.length} signatures for ${pdaStr}`)
 
   if (sigs.length === 0) {
-    throw new Error(`No transactions found for profile PDA: ${pdaStr}`)
+    console.warn(`[resolveWallet] No transactions found for profile PDA: ${pdaStr}`)
+    return null
   }
 
-  // Try oldest-first (most likely to be the createProfile / first buyAndScratch tx)
   const ordered = [...sigs].reverse()
 
   for (const { signature } of ordered) {
@@ -33,7 +41,10 @@ async function resolveWalletFromPda(connection: Connection, profilePda: PublicKe
         maxSupportedTransactionVersion: 0,
       })
       const accounts = (tx?.transaction?.message as any)?.accountKeys ?? []
-      if (accounts.length === 0) continue
+      if (accounts.length === 0) {
+        console.log(`[resolveWallet] Tx ${signature} has no accounts, skipping`)
+        continue
+      }
 
       // accounts[0] is always the fee payer — the player wallet
       const feePayer: PublicKey = accounts[0].pubkey
@@ -53,7 +64,8 @@ async function resolveWalletFromPda(connection: Connection, profilePda: PublicKe
     }
   }
 
-  throw new Error(`Cannot resolve wallet for profile PDA: ${pdaStr}`)
+  console.error(`[resolveWallet] Exhausted all transactions, could not resolve wallet for ${pdaStr}`)
+  return null
 }
 
 export async function runMonthlyPrizes() {
@@ -92,28 +104,38 @@ export async function runMonthlyPrizes() {
     .sort((a: any, b: any) => b.account.pointsThisMonth.toNumber() - a.account.pointsThisMonth.toNumber())
     .slice(0, 3)
 
+  console.log(`[runMonthlyPrizes] Top ${sorted.length} players with points this month`)
+
   if (sorted.length === 0) {
     return { message: 'No players with points this month', winners: [] }
   }
 
-  // Resolve wallets from PDAs. profile.owner is never set by the on-chain program
-  // so it reads as 11111...111 (PublicKey.default). Instead we derive the wallet by
-  // finding which account key in a recent transaction hashes to this profile PDA.
-  const resolvedWallets = await Promise.all(
-    sorted.map((p: any) => resolveWalletFromPda(connection, p.publicKey))
-  )
+  // Resolve wallets one at a time — catch failures individually so one bad profile
+  // doesn't abort the entire cron job. Failed slots are skipped (zeroed out).
+  const resolved: (PublicKey | null)[] = []
+  for (const p of sorted) {
+    const wallet = await resolveWalletFromPda(connection, p.publicKey)
+    if (wallet === null) {
+      console.error(`[runMonthlyPrizes] Skipping winner slot — could not resolve wallet for PDA ${p.publicKey.toBase58()}`)
+    }
+    resolved.push(wallet)
+  }
 
-  // Pad to 3 slots — real entries use resolved wallets + prize amounts, padding uses defaults
+  // Build padded 3-slot arrays. Slots with unresolved wallets use PublicKey.default + BN(0)
+  // so setMonthlyWinners still receives its required fixed-length arrays.
   const winners: [PublicKey, PublicKey, PublicKey] = [
-    resolvedWallets[0] ?? PublicKey.default,
-    resolvedWallets[1] ?? PublicKey.default,
-    resolvedWallets[2] ?? PublicKey.default,
+    resolved[0] ?? PublicKey.default,
+    resolved[1] ?? PublicKey.default,
+    resolved[2] ?? PublicKey.default,
   ]
   const amounts: [BN, BN, BN] = [
-    sorted[0] ? prizeAmounts[0] : new BN(0),
-    sorted[1] ? prizeAmounts[1] : new BN(0),
-    sorted[2] ? prizeAmounts[2] : new BN(0),
+    resolved[0] ? prizeAmounts[0] : new BN(0),
+    resolved[1] ? prizeAmounts[1] : new BN(0),
+    resolved[2] ? prizeAmounts[2] : new BN(0),
   ]
+
+  const resolvedCount = resolved.filter(Boolean).length
+  console.log(`[runMonthlyPrizes] Resolved ${resolvedCount}/${sorted.length} wallets — calling setMonthlyWinners`)
 
   const [treasuryPda] = PublicKey.findProgramAddressSync([TREASURY_SEED], PROGRAM_ID)
   const [monthlyPrizePda] = PublicKey.findProgramAddressSync([MONTHLY_PRIZE_SEED], PROGRAM_ID)
@@ -128,9 +150,12 @@ export async function runMonthlyPrizes() {
     })
     .rpc({ commitment: 'confirmed' })
 
+  console.log(`[runMonthlyPrizes] setMonthlyWinners tx: ${tx}`)
+
   // Build result rows
   const placeLabels = ['1st', '2nd', '3rd']
   const winnerRows = winners.map((w, i) => {
+    if (!resolved[i]) return `${placeLabels[i]}: SKIPPED (wallet resolution failed)`
     const pts = sorted[i]?.account?.pointsThisMonth?.toNumber?.() ?? 0
     const sol = amounts[i].toNumber() / 1_000_000_000
     return `${placeLabels[i]}: ${w.toBase58()} — ${sol} SOL (${pts} pts)`
@@ -145,6 +170,7 @@ export async function runMonthlyPrizes() {
     subject: `🏆 Monthly Winners Set — ${monthLabel}`,
     text: [
       `Monthly winners have been set on-chain for ${monthLabel}.`,
+      `Resolved ${resolvedCount}/${sorted.length} winner wallets.`,
       '',
       winnerRows.join('\n'),
       '',
@@ -157,9 +183,11 @@ export async function runMonthlyPrizes() {
   return {
     success: true,
     tx,
+    resolvedCount,
     winners: winners.map((w, i) => ({
       place: i + 1,
       wallet: w.toBase58(),
+      resolved: resolved[i] !== null,
       amountSol: amounts[i].toNumber() / 1_000_000_000,
       pointsThisMonth: sorted[i]?.account?.pointsThisMonth?.toNumber?.() ?? 0,
     })),

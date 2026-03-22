@@ -17,6 +17,7 @@ const EXCLUDED_WALLETS = [
   '6RhLQikkjzace4ti4D458iSmKofbPdMGNB7VKHmWwYPP', // admin
   'DBH2VpbjWLdrJnau4RjdpYBTcLy9pMGa1qQr4U9dDgER', // house wallet
   'A6CqGe7oeEqctqqiJJn7ep4H64gKUzipKaARssD4hcFx', // playground
+  'F6H2mTqL3HvmtRB77w5TTJ48MMjvxaxg2gKxEHyBATpm', // SKR distribution wallet
 ]
 
 // Resolve the player wallet for a profile PDA by checking transaction history.

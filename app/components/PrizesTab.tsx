@@ -113,18 +113,31 @@ export default function PrizesTab({ connection, wallet, publicKey, unclaimedPriz
             </div>
             {!claimed ? (
               <>
-                <button
-                  onClick={claimPrize}
-                  disabled={claiming}
-                  style={{
-                    width: '100%', padding: '16px',
-                    background: claiming ? '#555' : 'linear-gradient(135deg, #ffd700, #f59e0b)',
-                    border: 'none', borderRadius: 12, cursor: claiming ? 'not-allowed' : 'pointer',
-                    color: '#000', fontSize: 20, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 2,
-                  }}
-                >
-                  {claiming ? '⏳ CLAIMING...' : '🎉 CLAIM MY PRIZE'}
-                </button>
+                {claiming ? (
+                  <div style={{
+                    height: 72, borderRadius: 12, overflow: 'hidden',
+                    background: 'linear-gradient(135deg, #0d1b2a 0%, #1a1040 50%, #0d1b2a 100%)',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    border: '1px solid rgba(255,255,255,0.08)',
+                  }}>
+                    <div style={{ fontSize: 22, animation: 'pulse 1.2s ease-in-out infinite' }}>🔗</div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', fontFamily: 'monospace', letterSpacing: 2, animation: 'pulse 1.2s ease-in-out infinite' }}>
+                      CONFIRMING ON-CHAIN...
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={claimPrize}
+                    style={{
+                      width: '100%', padding: '16px',
+                      background: 'linear-gradient(135deg, #ffd700, #f59e0b)',
+                      border: 'none', borderRadius: 12, cursor: 'pointer',
+                      color: '#000', fontSize: 20, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 2,
+                    }}
+                  >
+                    🎉 CLAIM MY PRIZE
+                  </button>
+                )}
                 {claimError && (
                   <div style={{ marginTop: 10, color: '#fca5a5', fontSize: 12, fontFamily: 'monospace' }}>
                     ⚠️ {claimError}

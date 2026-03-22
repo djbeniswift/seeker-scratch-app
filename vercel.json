@@ -4,8 +4,8 @@
   },
   "crons": [
     {
-      "path": "/api/cron/monthly-winners",
-      "schedule": "0 0 1 * *"
+      "path": "/api/cron/monthly-prizes",
+      "schedule": "1 0 1 * *"
     }
   ]
 }

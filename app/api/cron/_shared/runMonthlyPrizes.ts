@@ -120,15 +120,37 @@ export async function runMonthlyPrizes() {
     masterConfig.prize2ndSol ? new BN(masterConfig.prize2ndSol.toString()) : new BN(150_000_000),
     masterConfig.prize3rdSol ? new BN(masterConfig.prize3rdSol.toString()) : new BN(50_000_000),
   ]
+  // SKR amounts for SOL leaderboard (token, sent manually)
+  const solSkr = [
+    masterConfig.prize1stSkr ? masterConfig.prize1stSkr.toNumber() : 500,
+    masterConfig.prize2ndSkr ? masterConfig.prize2ndSkr.toNumber() : 250,
+    masterConfig.prize3rdSkr ? masterConfig.prize3rdSkr.toNumber() : 100,
+  ]
+  // SKR amounts for Sweep leaderboard (token, sent manually)
+  const sweepSkr = [
+    masterConfig.sweep1stSkr ? masterConfig.sweep1stSkr.toNumber() : 500,
+    masterConfig.sweep2ndSkr ? masterConfig.sweep2ndSkr.toNumber() : 250,
+    masterConfig.sweep3rdSkr ? masterConfig.sweep3rdSkr.toNumber() : 100,
+  ]
 
-  // Fetch all profiles, sort by pointsThisMonth descending, take top 3
+  // Fetch all profiles once — reused for both SOL and sweep leaderboards
   const profiles = await (program.account as any).playerProfile.all()
+
+  // SOL leaderboard: top 3 by pointsThisMonth
   const sorted = profiles
     .filter((p: any) => p.account.pointsThisMonth.toNumber() > 0)
     .sort((a: any, b: any) => b.account.pointsThisMonth.toNumber() - a.account.pointsThisMonth.toNumber())
     .slice(0, 3)
 
-  console.log(`[runMonthlyPrizes] Top ${sorted.length} players with points this month`)
+  console.log(`[runMonthlyPrizes] Top ${sorted.length} SOL leaderboard players this month`)
+
+  // Sweep leaderboard: top 3 by sweepPointsThisMonth
+  const sweepSorted = profiles
+    .filter((p: any) => (p.account.sweepPointsThisMonth?.toNumber?.() ?? 0) > 0)
+    .sort((a: any, b: any) => (b.account.sweepPointsThisMonth?.toNumber?.() ?? 0) - (a.account.sweepPointsThisMonth?.toNumber?.() ?? 0))
+    .slice(0, 3)
+
+  console.log(`[runMonthlyPrizes] Top ${sweepSorted.length} sweep leaderboard players this month`)
 
   if (sorted.length === 0) {
     return { message: 'No players with points this month', winners: [] }
@@ -186,31 +208,66 @@ export async function runMonthlyPrizes() {
 
   console.log(`[runMonthlyPrizes] setMonthlyWinners tx: ${tx}`)
 
-  // Build result rows
-  const placeLabels = ['1st', '2nd', '3rd']
-  const winnerRows = winners.map((w, i) => {
-    if (!resolved[i]) return `${placeLabels[i]}: SKIPPED (wallet resolution failed)`
-    const pts = sorted[i]?.account?.pointsThisMonth?.toNumber?.() ?? 0
-    const sol = amounts[i].toNumber() / 1_000_000_000
-    return `${placeLabels[i]}: ${w.toBase58()} — ${sol} SOL (${pts} pts)`
-  })
+  // Resolve sweep leaderboard wallets (same fault-tolerant approach)
+  const sweepResolved: (PublicKey | null)[] = []
+  for (const p of sweepSorted) {
+    const wallet = await resolveWalletFromPda(connection, p.publicKey)
+    if (wallet === null) {
+      console.error(`[runMonthlyPrizes] Could not resolve sweep winner wallet for PDA ${p.publicKey.toBase58()}`)
+    }
+    sweepResolved.push(wallet)
+  }
 
   const monthLabel = new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })
+  const placeLabels = ['1st', '2nd', '3rd']
 
-  // Send confirmation email
+  // SOL leaderboard rows
+  const solRows = winners.map((w, i) => {
+    if (!resolved[i]) return `  ${placeLabels[i]}: SKIPPED (wallet resolution failed)`
+    const pts = sorted[i]?.account?.pointsThisMonth?.toNumber?.() ?? 0
+    const sol = amounts[i].toNumber() / 1_000_000_000
+    return `  ${placeLabels[i]}: ${w.toBase58()} — ${sol} SOL + ${solSkr[i]} SKR (${pts} pts)`
+  })
+
+  // Sweep leaderboard rows
+  const sweepRows = [0, 1, 2].map(i => {
+    if (!sweepResolved[i]) return `  ${placeLabels[i]}: ${sweepSorted[i] ? 'SKIPPED (wallet resolution failed)' : 'no winner'}`
+    const pts = sweepSorted[i]?.account?.sweepPointsThisMonth?.toNumber?.() ?? 0
+    return `  ${placeLabels[i]}: ${sweepResolved[i]!.toBase58()} — ${sweepSkr[i]} SKR (${pts} sweep pts)`
+  })
+
+  // Total SKR to send manually
+  const solSkrTotal = resolved.reduce((sum, r, i) => sum + (r ? solSkr[i] : 0), 0)
+  const sweepSkrTotal = sweepResolved.reduce((sum, r, i) => sum + (r ? sweepSkr[i] : 0), 0)
+  const totalSkr = solSkrTotal + sweepSkrTotal
+
+  // Build SKR checklist
+  const skrLines: string[] = []
+  winners.forEach((w, i) => {
+    if (resolved[i]) skrLines.push(`  [ ] ${w.toBase58()} — ${solSkr[i]} SKR (SOL ${placeLabels[i]})`)
+  })
+  sweepResolved.forEach((w, i) => {
+    if (w) skrLines.push(`  [ ] ${w.toBase58()} — ${sweepSkr[i]} SKR (Sweep ${placeLabels[i]})`)
+  })
+
   await resend.emails.send({
     from: 'Seeker Scratch <onboarding@resend.dev>',
     to: 'labswift@gmail.com',
-    subject: `🏆 Monthly Winners Set — ${monthLabel}`,
+    subject: `🏆 Monthly Winners — ${monthLabel}`,
     text: [
-      `Monthly winners have been set on-chain for ${monthLabel}.`,
-      `Resolved ${resolvedCount}/${sorted.length} winner wallets.`,
+      `=== SOL LEADERBOARD WINNERS (auto-set on-chain) ===`,
+      ...solRows,
       '',
-      winnerRows.join('\n'),
+      `=== SWEEP LEADERBOARD WINNERS (SKR only) ===`,
+      ...sweepRows,
+      '',
+      `=== SKR TO SEND MANUALLY ===`,
+      `Send from your SKR wallet to each address above.`,
+      `Total SKR this month: ${totalSkr} SKR`,
+      '',
+      ...skrLines,
       '',
       `Tx: ${tx}`,
-      '',
-      'Winners can now claim their prizes at seekerscratch.com',
     ].join('\n'),
   })
 
@@ -218,12 +275,21 @@ export async function runMonthlyPrizes() {
     success: true,
     tx,
     resolvedCount,
-    winners: winners.map((w, i) => ({
+    totalSkr,
+    solWinners: winners.map((w, i) => ({
       place: i + 1,
       wallet: w.toBase58(),
       resolved: resolved[i] !== null,
       amountSol: amounts[i].toNumber() / 1_000_000_000,
+      amountSkr: resolved[i] ? solSkr[i] : 0,
       pointsThisMonth: sorted[i]?.account?.pointsThisMonth?.toNumber?.() ?? 0,
+    })),
+    sweepWinners: [0, 1, 2].map(i => ({
+      place: i + 1,
+      wallet: sweepResolved[i]?.toBase58() ?? null,
+      resolved: sweepResolved[i] !== null && sweepResolved[i] !== undefined,
+      amountSkr: sweepResolved[i] ? sweepSkr[i] : 0,
+      sweepPointsThisMonth: sweepSorted[i]?.account?.sweepPointsThisMonth?.toNumber?.() ?? 0,
     })),
   }
 }

@@ -427,6 +427,7 @@ export default function AdminPanel() {
     { id: 'lookup', label: '🔍 Lookup' },
     { id: 'points', label: '🎯 Points' },
     { id: 'referrals', label: '🔗 Referrals' },
+    { id: 'monthend', label: '📅 Month End' },
   ]
 
   const pctUsed = dailyCap > 0 ? Math.min(100, (dailyPaidOut / dailyCap) * 100) : 0
@@ -902,6 +903,81 @@ export default function AdminPanel() {
                 )}
               </div>
             )}
+
+            {/* ── MONTH END ── */}
+            {activeSection === 'monthend' && (() => {
+              const ordinals = ['1st', '2nd', '3rd']
+              const copySweep = () => copy(
+                ordinals.map((o, i) => sweepWinners[i]
+                  ? `${o}: ${sweepWinners[i].wallet} - ${sweepWinners[i].sweepPointsThisMonth} pts`
+                  : `${o}: (no data)`
+                ).join('\n')
+              )
+              const copySol = () => copy(
+                ordinals.map((o, i) => winners[i]
+                  ? `${o}: ${winners[i].wallet} - ${winners[i].pointsThisMonth} pts`
+                  : `${o}: (no data)`
+                ).join('\n')
+              )
+              const monthStartDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+                .toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+                  {/* Sweep leaderboard */}
+                  <div style={sectionHdr('#00d4ff')}>SWEEP LEADERBOARD</div>
+                  {sweepWinners.length === 0 ? (
+                    <div style={{ color: '#555', fontSize: 11 }}>No sweep activity this month</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      {sweepWinners.map((w, i) => (
+                        <div key={w.wallet} style={{ background: '#111', borderRadius: 8, padding: '8px 10px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
+                            <span style={{ color: '#00d4ff', fontSize: 12 }}>{['🥇','🥈','🥉'][i]} {w.displayName || 'Anonymous'}</span>
+                            <span style={{ color: '#aaa', fontSize: 11 }}>{w.sweepPointsThisMonth} pts</span>
+                          </div>
+                          <div style={{ color: '#555', fontSize: 10, fontFamily: 'monospace', wordBreak: 'break-all' }}>{w.wallet}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <button onClick={copySweep} style={btn('#00d4ff', '#000')}>
+                    Copy Sweep Wallets
+                  </button>
+
+                  {/* SOL leaderboard */}
+                  <div style={{ ...sectionHdr(), marginTop: 4 }}>SOL LEADERBOARD</div>
+                  {winners.length === 0 ? (
+                    <div style={{ color: '#555', fontSize: 11 }}>No data yet — panel just opened?</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      {winners.map((w, i) => (
+                        <div key={w.wallet} style={{ background: '#111', borderRadius: 8, padding: '8px 10px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
+                            <span style={{ color: '#ffd700', fontSize: 12 }}>{['🥇','🥈','🥉'][i]} {w.displayName || 'Anonymous'}</span>
+                            <span style={{ color: '#aaa', fontSize: 11 }}>{w.pointsThisMonth} pts</span>
+                          </div>
+                          <div style={{ color: '#555', fontSize: 10, fontFamily: 'monospace', wordBreak: 'break-all' }}>{w.wallet}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <button onClick={copySol} style={btn('#ffd700', '#000')}>
+                    Copy SOL Wallets
+                  </button>
+
+                  {/* Month reset warning */}
+                  <div style={{ marginTop: 4, padding: '10px 12px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: 10 }}>
+                    <div style={{ color: '#f87171', fontWeight: 'bold', fontSize: 11, marginBottom: 6 }}>⚠️ MONTH RESET WARNING</div>
+                    <div style={{ color: '#aaa', fontSize: 11, marginBottom: 4 }}>Current month started: <span style={{ color: '#fff' }}>{monthStartDate}</span></div>
+                    <div style={{ color: '#f87171', fontSize: 11, lineHeight: 1.5 }}>
+                      Resetting points will affect the leaderboard — make sure prizes are sent first before triggering any reset.
+                    </div>
+                  </div>
+
+                </div>
+              )
+            })()}
 
             {/* Status */}
             {status && (

@@ -11,7 +11,7 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 // account data. Instead, fetch recent txs that touched the PDA and find the account
 // key that derives back to this PDA.
 async function resolveWalletFromPda(connection: Connection, profilePda: PublicKey): Promise<PublicKey> {
-  const sigs = await connection.getSignaturesForAddress(profilePda, { limit: 5, commitment: 'confirmed' })
+  const sigs = await connection.getSignaturesForAddress(profilePda, { limit: 5 }, 'confirmed')
   for (const { signature } of sigs) {
     try {
       const tx = await connection.getParsedTransaction(signature, {

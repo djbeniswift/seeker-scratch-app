@@ -8,27 +8,52 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 // Resolve the player wallet for a profile PDA by checking transaction history.
 // The profile PDA is derived as [PROFILE_SEED, wallet.toBytes()], but the on-chain
 // program never writes the wallet into profile.owner — so we can't read it from
-// account data. Instead, fetch recent txs that touched the PDA and find the account
-// key that derives back to this PDA.
+// account data. Instead, get the oldest transaction for the profile PDA and check
+// accounts[0] — the fee payer is always the first account and is always the player.
 async function resolveWalletFromPda(connection: Connection, profilePda: PublicKey): Promise<PublicKey> {
-  const sigs = await connection.getSignaturesForAddress(profilePda, { limit: 5 }, 'confirmed')
-  for (const { signature } of sigs) {
+  const pdaStr = profilePda.toBase58()
+  console.log(`[resolveWallet] Resolving wallet for profile PDA: ${pdaStr}`)
+
+  // Fetch up to 10 sigs and use the oldest (last) — that's the account creation tx
+  const sigs = await connection.getSignaturesForAddress(profilePda, { limit: 10 }, 'confirmed')
+  console.log(`[resolveWallet] Found ${sigs.length} signatures for ${pdaStr}`)
+
+  if (sigs.length === 0) {
+    throw new Error(`No transactions found for profile PDA: ${pdaStr}`)
+  }
+
+  // Try oldest-first (most likely to be the createProfile / first buyAndScratch tx)
+  const ordered = [...sigs].reverse()
+
+  for (const { signature } of ordered) {
     try {
+      console.log(`[resolveWallet] Checking tx ${signature}`)
       const tx = await connection.getParsedTransaction(signature, {
         commitment: 'confirmed',
         maxSupportedTransactionVersion: 0,
       })
       const accounts = (tx?.transaction?.message as any)?.accountKeys ?? []
-      for (const acc of accounts) {
-        const key: PublicKey = acc.pubkey
-        const [derived] = PublicKey.findProgramAddressSync([PROFILE_SEED, key.toBytes()], PROGRAM_ID)
-        if (derived.equals(profilePda)) {
-          return key
-        }
+      if (accounts.length === 0) continue
+
+      // accounts[0] is always the fee payer — the player wallet
+      const feePayer: PublicKey = accounts[0].pubkey
+      console.log(`[resolveWallet] Fee payer (accounts[0]): ${feePayer.toBase58()}`)
+
+      const [derived] = PublicKey.findProgramAddressSync([PROFILE_SEED, feePayer.toBytes()], PROGRAM_ID)
+      console.log(`[resolveWallet] Derived PDA from fee payer: ${derived.toBase58()}`)
+
+      if (derived.equals(profilePda)) {
+        console.log(`[resolveWallet] Match! Wallet = ${feePayer.toBase58()}`)
+        return feePayer
       }
-    } catch {}
+
+      console.log(`[resolveWallet] No match for tx ${signature}, trying next`)
+    } catch (err) {
+      console.warn(`[resolveWallet] Error fetching tx ${signature}:`, err)
+    }
   }
-  throw new Error(`Cannot resolve wallet for profile PDA: ${profilePda.toBase58()}`)
+
+  throw new Error(`Cannot resolve wallet for profile PDA: ${pdaStr}`)
 }
 
 export async function runMonthlyPrizes() {

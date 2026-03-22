@@ -4,6 +4,12 @@ import { Program, AnchorProvider } from '@coral-xyz/anchor'
 import { PublicKey } from '@solana/web3.js'
 import { PROGRAM_ID, PROFILE_SEED, IDL } from '../lib/constants'
 
+// Module-level cache — survives RanksTab unmount/remount (tab switches) within a page session.
+// Prevents a new getProgramAccounts call every time the user taps the Ranks tab.
+const CACHE_TTL_MS = 5 * 60 * 1000
+let _cachedPlayers: any[] = []
+let _cacheTime = 0
+
 const KNOWN_WALLETS = [
   '6RhLQikkjzace4ti4D458iSmKofbPdMGNB7VKHmWwYPP',
   'GTpPckfLivFsNZphqoBYknrwhwuTEHK49WQXyjRuszAn',
@@ -20,7 +26,13 @@ export default function RanksTab({ connection, wallet, publicKey }: any) {
     return pda
   }
 
-  const fetchLeaderboard = async () => {
+  const fetchLeaderboard = async (force = false) => {
+    // Use cached data if fresh and not forced
+    if (!force && _cachedPlayers.length > 0 && Date.now() - _cacheTime < CACHE_TTL_MS) {
+      setPlayers(_cachedPlayers)
+      setLoading(false)
+      return
+    }
     setLoading(true)
     try {
       const readProvider = new AnchorProvider(connection, {} as any, { commitment: 'confirmed' })
@@ -60,6 +72,8 @@ export default function RanksTab({ connection, wallet, publicKey }: any) {
           } catch {}
         }
       }
+      _cachedPlayers = profiles
+      _cacheTime = Date.now()
       setPlayers(profiles)
     } catch (e) {
       console.error(e)
@@ -89,6 +103,9 @@ export default function RanksTab({ connection, wallet, publicKey }: any) {
         <div style={{ fontSize: 36, marginBottom: 6 }}>🏆</div>
         <div style={{ color: 'var(--gold)', fontSize: 24, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 2 }}>LEADERBOARD</div>
         <div style={{ color: '#ffffffdd', fontSize: 14, marginTop: 4 }}>Top players earn prizes each month</div>
+        <button onClick={() => fetchLeaderboard(true)} disabled={loading} style={{ marginTop: 8, background: 'none', border: '1px solid rgba(245,200,66,0.3)', borderRadius: 6, color: loading ? '#555' : 'var(--gold)', fontSize: 11, padding: '3px 10px', cursor: loading ? 'default' : 'pointer', fontFamily: 'monospace' }}>
+          {loading ? 'Loading...' : '↻ Refresh'}
+        </button>
       </div>
 
       {/* League toggle */}

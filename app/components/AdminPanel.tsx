@@ -188,7 +188,7 @@ export default function AdminPanel() {
     if (!open) return
     loadData()
     loadWinners()
-    const id = setInterval(loadData, 30000)
+    const id = setInterval(loadData, 60000)
     return () => clearInterval(id)
   }, [open, loadData, loadWinners])
 

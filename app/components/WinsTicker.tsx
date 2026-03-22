@@ -23,6 +23,24 @@ function shortWallet(pk: string) {
   return `${pk.slice(0, 4)}...${pk.slice(-4)}`
 }
 
+// Wrap a Helius JSON-RPC fetch with a single silent retry on rate-limit (-32429)
+async function heliusFetch(body: object): Promise<any> {
+  const opts = {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  }
+  const res = await fetch(HELIUS_RPC, opts)
+  const json = await res.json()
+  if (json?.error?.code === -32429) {
+    // Rate limited — wait 5s and retry once silently
+    await new Promise(r => setTimeout(r, 5000))
+    const retryRes = await fetch(HELIUS_RPC, opts)
+    return retryRes.json()
+  }
+  return json
+}
+
 export default function WinsTicker() {
   const [wins, setWins] = useState<Win[]>([])
   const [idx, setIdx] = useState(0)
@@ -30,33 +48,23 @@ export default function WinsTicker() {
   useEffect(() => {
     async function fetchWins() {
       try {
-        const res = await fetch(HELIUS_RPC, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            jsonrpc: '2.0',
-            id: 1,
-            method: 'getSignaturesForAddress',
-            params: [PROGRAM_ID, { limit: 50 }],
-          }),
+        const { result } = await heliusFetch({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'getSignaturesForAddress',
+          params: [PROGRAM_ID, { limit: 50 }],
         })
-        const { result } = await res.json()
         if (!result) return
 
         const found: Win[] = []
         for (const sig of result) {
           if (sig.err) continue
-          const txRes = await fetch(HELIUS_RPC, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              jsonrpc: '2.0',
-              id: 1,
-              method: 'getTransaction',
-              params: [sig.signature, { encoding: 'jsonParsed', maxSupportedTransactionVersion: 0 }],
-            }),
+          const { result: tx } = await heliusFetch({
+            jsonrpc: '2.0',
+            id: 1,
+            method: 'getTransaction',
+            params: [sig.signature, { encoding: 'jsonParsed', maxSupportedTransactionVersion: 0 }],
           })
-          const { result: tx } = await txRes.json()
           if (!tx) continue
 
           const keys = tx.transaction?.message?.accountKeys || []
@@ -83,7 +91,7 @@ export default function WinsTicker() {
     }
 
     fetchWins()
-    const interval = setInterval(fetchWins, 30000)
+    const interval = setInterval(fetchWins, 60000)
     return () => clearInterval(interval)
   }, [])
 

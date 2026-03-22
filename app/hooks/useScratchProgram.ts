@@ -18,17 +18,34 @@ function base64ToBase58(b64: string): string {
 import { PROGRAM_ID, TREASURY_SEED, PROFILE_SEED, GAME_CONFIG_SEED, MASTER_CONFIG_SEED, IDL } from '../lib/constants'
 
 // Retry getLatestBlockhash up to 4 times with exponential backoff on 429s
+function isRateLimitError(err: any): boolean {
+  return err?.message?.includes('429') ||
+    err?.message?.includes('rate limit') ||
+    err?.message?.includes('-32429') ||
+    err?.code === -32429
+}
+
 async function getBlockhashWithRetry(connection: any, commitment: string) {
   for (let attempt = 0; attempt < 4; attempt++) {
     try {
       return await connection.getLatestBlockhash(commitment)
     } catch (err: any) {
-      const is429 = err?.message?.includes('429') || err?.message?.includes('rate limit')
-      if (!is429 || attempt === 3) throw err
+      if (!isRateLimitError(err) || attempt === 3) throw err
       await new Promise(r => setTimeout(r, 600 * Math.pow(2, attempt)))
     }
   }
   throw new Error('getLatestBlockhash failed after retries')
+}
+
+// Silently retry once after 5s on rate-limit; rethrows all other errors
+async function withRateLimitRetry<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn()
+  } catch (err: any) {
+    if (!isRateLimitError(err)) throw err
+    await new Promise(r => setTimeout(r, 5000))
+    return fn()
+  }
 }
 
 export function useScratchProgram() {
@@ -234,7 +251,7 @@ export function useScratchProgram() {
       if (profilePk) pks.push(profilePk)
       if (wallet.publicKey) pks.push(wallet.publicKey)
 
-      const infos = await connection.getMultipleAccountsInfo(pks, 'confirmed')
+      const infos = await withRateLimitRetry(() => connection.getMultipleAccountsInfo(pks, 'confirmed'))
 
       // Treasury
       const tInfo = infos[0]

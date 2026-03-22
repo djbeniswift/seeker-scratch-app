@@ -5,6 +5,12 @@ import { IDL, PROGRAM_ID, TREASURY_SEED, MONTHLY_PRIZE_SEED, MASTER_CONFIG_SEED,
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
+// Wallets that can't be resolved via tx history (e.g. admin wallet with old txs).
+// Checked as a final fallback in resolveWalletFromPda.
+const KNOWN_WALLETS = [
+  '6RhLQikkjzace4ti4D458iSmKofbPdMGNB7VKHmWwYPP', // admin
+]
+
 // Resolve the player wallet for a profile PDA by checking transaction history.
 // The profile PDA is derived as [PROFILE_SEED, wallet.toBytes()], but the on-chain
 // program never writes the wallet into profile.owner — so we can't read it from
@@ -64,7 +70,18 @@ async function resolveWalletFromPda(connection: Connection, profilePda: PublicKe
     }
   }
 
-  console.error(`[resolveWallet] Exhausted all transactions, could not resolve wallet for ${pdaStr}`)
+  // Fallback: check known wallets by brute-force PDA derivation
+  console.log(`[resolveWallet] Trying known wallet fallback for ${pdaStr}`)
+  for (const known of KNOWN_WALLETS) {
+    const knownPubkey = new PublicKey(known)
+    const [derived] = PublicKey.findProgramAddressSync([PROFILE_SEED, knownPubkey.toBytes()], PROGRAM_ID)
+    if (derived.equals(profilePda)) {
+      console.log(`[resolveWallet] Resolved via known wallet list: ${known}`)
+      return knownPubkey
+    }
+  }
+
+  console.error(`[resolveWallet] Could not resolve wallet for ${pdaStr} — exhausted tx history and known wallet list`)
   return null
 }
 

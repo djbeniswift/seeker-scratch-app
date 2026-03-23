@@ -516,46 +516,27 @@ export default function AdminPanel() {
   const loadActivity = async () => {
     setActivityLoading(true)
     try {
-      const sigs = await rpcWithRetry(() =>
-        connection.getSignaturesForAddress(treasuryPda, { limit: 50 }, 'confirmed')
+      const treasuryAddr = treasuryPda.toBase58()
+      const res = await fetch(
+        `https://api.helius.xyz/v0/addresses/${treasuryAddr}/transactions?api-key=e74081ed-6624-4d7b-9b49-9732a61b29ba&limit=50`
       )
-      const sigStrings = sigs.map((s: any) => s.signature)
-      // Batch into chunks of 10 to avoid 429
-      const chunkSize = 10
-      const txs: any[] = []
-      for (let i = 0; i < sigStrings.length; i += chunkSize) {
-        const chunk = sigStrings.slice(i, i + chunkSize)
-        const batch = await rpcWithRetry(() =>
-          connection.getParsedTransactions(chunk, { commitment: 'confirmed', maxSupportedTransactionVersion: 0 })
-        )
-        txs.push(...(batch ?? []))
-        if (i + chunkSize < sigStrings.length) {
-          await new Promise(r => setTimeout(r, 300))
-        }
-      }
-      const rows: any[] = []
-      for (let i = 0; i < sigs.length; i++) {
-        const sig = sigs[i]
-        const tx = txs[i]
-        if (!tx?.meta) continue
-        const accounts: string[] = (tx.transaction.message as any).accountKeys?.map((k: any) =>
-          typeof k === 'string' ? k : k.pubkey?.toBase58?.() ?? k.pubkey?.toString?.() ?? ''
-        ) ?? []
-        const treasuryIdx = accounts.findIndex(a => a === treasuryPda.toBase58())
+      if (!res.ok) throw new Error(`Helius API ${res.status}: ${await res.text().then(t => t.slice(0, 80))}`)
+      const txs: any[] = await res.json()
+      const rows: any[] = txs.map((tx: any) => {
+        const transfers: any[] = tx.nativeTransfers ?? []
         let delta = 0
-        if (treasuryIdx >= 0 && tx.meta.postBalances && tx.meta.preBalances) {
-          delta = (tx.meta.postBalances[treasuryIdx] - tx.meta.preBalances[treasuryIdx]) / LAMPORTS_PER_SOL
+        for (const t of transfers) {
+          if (t.toUserAccount === treasuryAddr) delta += t.amount / LAMPORTS_PER_SOL
+          if (t.fromUserAccount === treasuryAddr) delta -= t.amount / LAMPORTS_PER_SOL
         }
         const abs = Math.abs(delta)
-        let type: string
-        let color: string
+        let type: string, color: string
         if (delta < -0.0005) { type = 'WIN'; color = '#4ade80' }
         else if (abs < 0.0005) { type = 'FREE PLAY'; color = '#a78bfa' }
         else if (delta > 0.5) { type = 'FUND'; color = '#fbbf24' }
         else { type = 'SCRATCH'; color = '#60a5fa' }
-        const feePayer = accounts[0] ?? ''
-        rows.push({ sig: sig.signature, blockTime: sig.blockTime, wallet: feePayer, type, color, delta })
-      }
+        return { sig: tx.signature, blockTime: tx.timestamp, wallet: tx.feePayer ?? '', type, color, delta }
+      })
       setActivity(rows)
       setActivityLoaded(true)
     } catch (e: any) { setS(`❌ Activity load failed: ${e.message?.slice(0, 80)}`) }

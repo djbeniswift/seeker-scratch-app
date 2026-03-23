@@ -517,10 +517,11 @@ export default function AdminPanel() {
     setActivityLoading(true)
     try {
       const treasuryAddr = treasuryPda.toBase58()
-      const res = await fetch(
-        `https://api.helius.xyz/v0/addresses/${treasuryAddr}/transactions?api-key=e74081ed-6624-4d7b-9b49-9732a61b29ba&limit=50`
-      )
-      if (!res.ok) throw new Error(`Helius API ${res.status}: ${await res.text().then(t => t.slice(0, 80))}`)
+      const res = await fetch('/api/treasury-activity')
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error ?? `HTTP ${res.status}`)
+      }
       const txs: any[] = await res.json()
       const rows: any[] = txs.map((tx: any) => {
         const transfers: any[] = tx.nativeTransfers ?? []

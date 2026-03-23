@@ -517,12 +517,22 @@ export default function AdminPanel() {
     setActivityLoading(true)
     try {
       const sigs = await rpcWithRetry(() =>
-        connection.getSignaturesForAddress(treasuryPda, { limit: 100 }, 'confirmed')
+        connection.getSignaturesForAddress(treasuryPda, { limit: 50 }, 'confirmed')
       )
       const sigStrings = sigs.map((s: any) => s.signature)
-      const txs = await rpcWithRetry(() =>
-        connection.getParsedTransactions(sigStrings, { commitment: 'confirmed', maxSupportedTransactionVersion: 0 })
-      )
+      // Batch into chunks of 10 to avoid 429
+      const chunkSize = 10
+      const txs: any[] = []
+      for (let i = 0; i < sigStrings.length; i += chunkSize) {
+        const chunk = sigStrings.slice(i, i + chunkSize)
+        const batch = await rpcWithRetry(() =>
+          connection.getParsedTransactions(chunk, { commitment: 'confirmed', maxSupportedTransactionVersion: 0 })
+        )
+        txs.push(...(batch ?? []))
+        if (i + chunkSize < sigStrings.length) {
+          await new Promise(r => setTimeout(r, 300))
+        }
+      }
       const rows: any[] = []
       for (let i = 0; i < sigs.length; i++) {
         const sig = sigs[i]

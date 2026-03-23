@@ -206,6 +206,12 @@ export default function AdminPanel() {
     return () => clearInterval(id)
   }, [open, loadData, loadWinners])
 
+  useEffect(() => {
+    if (activeSection === 'players' && !playersLoaded && !playersLoading) {
+      loadAllPlayers()
+    }
+  }, [activeSection]) // eslint-disable-line react-hooks/exhaustive-deps
+
   if (!mounted) return null
   if (!publicKey || publicKey.toBase58() !== ADMIN) return null
 
@@ -933,131 +939,128 @@ export default function AdminPanel() {
               return (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
 
-                  {/* Wallet lookup */}
-                  <div style={sectionHdr()}>LOOKUP BY WALLET</div>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <input
-                      value={playersInput} onChange={e => setPlayersInput(e.target.value)}
-                      placeholder="Paste wallet address..." style={input({ flex: 1 })}
-                      onKeyDown={e => e.key === 'Enter' && lookupPlayerFull()}
-                    />
-                    <button onClick={lookupPlayerFull} style={btn('#7c3aed')}>Go</button>
+                  {/* Browse all players — shown first */}
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <div style={{ color: '#ffd700', fontWeight: 'bold', fontSize: 12, fontFamily: 'monospace', flex: 1 }}>
+                      ALL PLAYERS {playersLoaded ? `(${allPlayers.length})` : ''}
+                    </div>
+                    <button onClick={loadAllPlayers} disabled={playersLoading} style={btn(playersLoading ? '#333' : '#4ade80', '#000')}>
+                      {playersLoading ? '⏳ Loading...' : playersLoaded ? '🔄 Reload' : '📋 Load All'}
+                    </button>
                   </div>
 
-                  {playersResult && (
-                    playersResult.error ? (
-                      <div style={{ color: '#f87171', fontSize: 12 }}>❌ {playersResult.error}</div>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        <div style={{ background: '#111', borderRadius: 8, padding: '10px 12px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                            {playersResult.pfpUrl ? (
-                              <img src={playersResult.pfpUrl} alt="PFP" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', border: '1px solid #333', flexShrink: 0 }} onError={(e) => { (e.target as any).style.display = 'none' }} />
-                            ) : (
-                              <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#222', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>👤</div>
+                  {playersLoaded && (
+                    <>
+                      <input
+                        value={playersFilter} onChange={e => setPlayersFilter(e.target.value)}
+                        placeholder="Filter by name or PDA..." style={input()}
+                      />
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        {filtered.slice(0, 50).map((p) => (
+                          <div key={p.pda} style={{ background: '#111', borderRadius: 6, overflow: 'hidden' }}>
+                            <div
+                              onClick={() => setExpandedPda(expandedPda === p.pda ? null : p.pda)}
+                              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 8px', cursor: 'pointer' }}
+                            >
+                              <div>
+                                <span style={{ color: '#ffd700', fontSize: 11, fontWeight: 'bold' }}>{p.displayName || 'Anonymous'}</span>
+                                <span style={{ color: '#555', fontSize: 10, marginLeft: 6 }}>{p.cardsScratched} cards · {p.wins}W · {p.winRate}%</span>
+                              </div>
+                              <span style={{ color: '#aaa', fontSize: 10 }}>{p.pointsAllTime} pts</span>
+                            </div>
+                            {expandedPda === p.pda && (
+                              <div style={{ padding: '6px 8px', borderTop: '1px solid #1a1a2e', display: 'flex', flexDirection: 'column', gap: 3 }}>
+                                {([['Spent', `${p.totalSpent} SOL`], ['Won', `${p.totalWon} SOL`], ['SOL pts (month)', p.pointsThisMonth], ['Sweep pts (month)', p.sweepPointsThisMonth], ['Free plays', p.freePlaysUsed], ['Free wins', p.freePlayWins], ['Referrals made', p.referralsCount], ['Referred', p.hasBeenReferred ? '✅' : '❌'], ['Bonus paid', p.referralBonusPaid ? '✅' : '❌']] as [string,any][]).map(([l,v]) => (
+                                  <div key={l} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10 }}><span style={{ color: '#555' }}>{l}</span><span style={{ color: '#bbb' }}>{String(v)}</span></div>
+                                ))}
+                                <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
+                                  <span style={{ color: '#444', fontSize: 9, fontFamily: 'monospace', flex: 1, wordBreak: 'break-all' }}>{p.pda}</span>
+                                  <button onClick={() => copy(p.pda)} style={{ ...btn('#333'), padding: '2px 5px', fontSize: 9 }}>Copy PDA</button>
+                                  <a href={`https://solscan.io/account/${p.pda}`} target="_blank" rel="noreferrer" style={{ ...btn('#1a1a3e', '#00d4ff'), padding: '2px 5px', fontSize: 9, textDecoration: 'none', border: '1px solid #00d4ff33' }}>Solscan</a>
+                                </div>
+                              </div>
                             )}
-                            <div style={{ color: '#ffd700', fontSize: 13, fontWeight: 'bold' }}>
-                              {playersResult.displayName || 'Anonymous'}
-                            </div>
                           </div>
-                          <div style={{ marginBottom: 6 }}>
-                            <div style={{ color: '#555', fontSize: 10, marginBottom: 2 }}>WALLET</div>
-                            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                              <span style={{ color: '#aaa', fontSize: 10, fontFamily: 'monospace', flex: 1, wordBreak: 'break-all' }}>{playersResult.wallet}</span>
-                              <button onClick={() => copy(playersResult.wallet)} style={{ ...btn('#333'), padding: '2px 6px', fontSize: 10 }}>Copy</button>
-                              <a href={`https://solscan.io/account/${playersResult.wallet}`} target="_blank" rel="noreferrer" style={{ ...btn('#1a1a3e', '#00d4ff'), padding: '2px 6px', fontSize: 10, textDecoration: 'none', border: '1px solid #00d4ff44' }}>Solscan</a>
-                            </div>
-                          </div>
-                          <div>
-                            <div style={{ color: '#555', fontSize: 10, marginBottom: 2 }}>PROFILE PDA</div>
-                            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                              <span style={{ color: '#aaa', fontSize: 10, fontFamily: 'monospace', flex: 1, wordBreak: 'break-all' }}>{playersResult.pda}</span>
-                              <button onClick={() => copy(playersResult.pda)} style={{ ...btn('#333'), padding: '2px 6px', fontSize: 10 }}>Copy</button>
-                              <a href={`https://solscan.io/account/${playersResult.pda}`} target="_blank" rel="noreferrer" style={{ ...btn('#1a1a3e', '#00d4ff'), padding: '2px 6px', fontSize: 10, textDecoration: 'none', border: '1px solid #00d4ff44' }}>Solscan</a>
-                            </div>
-                          </div>
-                        </div>
-                        <div style={{ background: '#111', borderRadius: 8, padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          <div style={{ color: '#ffd700', fontSize: 10, fontWeight: 'bold', marginBottom: 2, letterSpacing: 1 }}>GAMEPLAY</div>
-                          {([['Cards', playersResult.cardsScratched], ['Wins', playersResult.wins], ['Win Rate', `${playersResult.winRate}%`], ['Spent', `${playersResult.totalSpent} SOL`], ['Won', `${playersResult.totalWon} SOL`], ['Free Plays', playersResult.freePlaysUsed], ['Free Wins', playersResult.freePlayWins]] as [string,any][]).map(([l,v]) => (
-                            <div key={l} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}><span style={{ color: '#666' }}>{l}</span><span style={{ color: '#ccc' }}>{String(v)}</span></div>
-                          ))}
-                        </div>
-                        <div style={{ background: '#111', borderRadius: 8, padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          <div style={{ color: '#ffd700', fontSize: 10, fontWeight: 'bold', marginBottom: 2, letterSpacing: 1 }}>POINTS</div>
-                          {([['SOL pts (month)', playersResult.pointsThisMonth], ['SOL pts (all time)', playersResult.pointsAllTime], ['Sweep pts (month)', playersResult.sweepPointsThisMonth], ['Sweep pts (all time)', playersResult.sweepPointsAllTime]] as [string,any][]).map(([l,v]) => (
-                            <div key={l} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}><span style={{ color: '#666' }}>{l}</span><span style={{ color: '#ccc' }}>{String(v)}</span></div>
-                          ))}
-                        </div>
-                        <div style={{ background: '#111', borderRadius: 8, padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          <div style={{ color: '#ffd700', fontSize: 10, fontWeight: 'bold', marginBottom: 2, letterSpacing: 1 }}>REFERRALS</div>
-                          {([['Referred', playersResult.hasBeenReferred ? '✅' : '❌'], ['Bonus Paid', playersResult.referralBonusPaid ? '✅' : '❌'], ['Referrals Made', playersResult.referralsCount], ['Referred By', playersResult.referredBy ? `${playersResult.referredBy.slice(0,10)}...` : '—']] as [string,any][]).map(([l,v]) => (
-                            <div key={l} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}><span style={{ color: '#666' }}>{l}</span><span style={{ color: '#ccc' }}>{String(v)}</span></div>
-                          ))}
-                          {([['Last Win Slot', playersResult.lastWinSlot > 0 ? playersResult.lastWinSlot : '—'], ['Last Free Play', playersResult.lastFreePlayTs > 0 ? new Date(playersResult.lastFreePlayTs * 1000).toLocaleString() : '—']] as [string,any][]).map(([l,v]) => (
-                            <div key={l} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}><span style={{ color: '#666' }}>{l}</span><span style={{ color: '#ccc' }}>{String(v)}</span></div>
-                          ))}
-                        </div>
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          <button onClick={() => { setPointsWallet(playersResult.wallet); setActiveSection('points') }} style={{ ...btn('#7c3aed'), flex: 1 }}>🎯 Add Points</button>
-                          <button onClick={() => copy(playersResult.wallet)} style={{ ...btn('#333'), flex: 1 }}>📋 Copy Wallet</button>
-                        </div>
+                        ))}
+                        {filtered.length > 50 && (
+                          <div style={{ color: '#555', fontSize: 11, textAlign: 'center', padding: 4 }}>Showing 50 of {filtered.length} — use filter to narrow</div>
+                        )}
+                        {filtered.length === 0 && (
+                          <div style={{ color: '#555', fontSize: 11 }}>No players match filter</div>
+                        )}
                       </div>
-                    )
+                    </>
                   )}
 
-                  {/* Browse all players */}
+                  {/* Wallet lookup — below the list */}
                   <div style={{ borderTop: '1px solid #1a1a2e', paddingTop: 8, marginTop: 4 }}>
-                    <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 6 }}>
-                      <div style={{ color: '#ffd700', fontWeight: 'bold', fontSize: 12, fontFamily: 'monospace', flex: 1 }}>
-                        ALL PLAYERS {playersLoaded ? `(${allPlayers.length})` : ''}
-                      </div>
-                      <button onClick={loadAllPlayers} disabled={playersLoading} style={btn(playersLoading ? '#333' : '#4ade80', '#000')}>
-                        {playersLoading ? '⏳' : playersLoaded ? '🔄 Reload' : '📋 Load All'}
-                      </button>
+                    <div style={sectionHdr()}>LOOKUP BY WALLET</div>
+                    <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+                      <input
+                        value={playersInput} onChange={e => setPlayersInput(e.target.value)}
+                        placeholder="Paste wallet address..." style={input({ flex: 1 })}
+                        onKeyDown={e => e.key === 'Enter' && lookupPlayerFull()}
+                      />
+                      <button onClick={lookupPlayerFull} style={btn('#7c3aed')}>Go</button>
                     </div>
 
-                    {playersLoaded && (
-                      <>
-                        <input
-                          value={playersFilter} onChange={e => setPlayersFilter(e.target.value)}
-                          placeholder="Filter by name or PDA..." style={{ ...input(), marginBottom: 6 }}
-                        />
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 300, overflowY: 'auto' }}>
-                          {filtered.slice(0, 50).map((p) => (
-                            <div key={p.pda} style={{ background: '#111', borderRadius: 6, overflow: 'hidden' }}>
-                              <div
-                                onClick={() => setExpandedPda(expandedPda === p.pda ? null : p.pda)}
-                                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 8px', cursor: 'pointer' }}
-                              >
-                                <div>
-                                  <span style={{ color: '#ffd700', fontSize: 11, fontWeight: 'bold' }}>{p.displayName || 'Anonymous'}</span>
-                                  <span style={{ color: '#555', fontSize: 10, marginLeft: 6 }}>{p.cardsScratched} cards · {p.wins}W · {p.winRate}%</span>
-                                </div>
-                                <span style={{ color: '#aaa', fontSize: 10 }}>{p.pointsAllTime} pts</span>
-                              </div>
-                              {expandedPda === p.pda && (
-                                <div style={{ padding: '6px 8px', borderTop: '1px solid #1a1a2e', display: 'flex', flexDirection: 'column', gap: 3 }}>
-                                  {([['Spent', `${p.totalSpent} SOL`], ['Won', `${p.totalWon} SOL`], ['SOL pts (month)', p.pointsThisMonth], ['Sweep pts (month)', p.sweepPointsThisMonth], ['Free plays', p.freePlaysUsed], ['Free wins', p.freePlayWins], ['Referrals made', p.referralsCount], ['Referred', p.hasBeenReferred ? '✅' : '❌'], ['Bonus paid', p.referralBonusPaid ? '✅' : '❌']] as [string,any][]).map(([l,v]) => (
-                                    <div key={l} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10 }}><span style={{ color: '#555' }}>{l}</span><span style={{ color: '#bbb' }}>{String(v)}</span></div>
-                                  ))}
-                                  <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
-                                    <span style={{ color: '#444', fontSize: 9, fontFamily: 'monospace', flex: 1, wordBreak: 'break-all' }}>{p.pda}</span>
-                                    <button onClick={() => copy(p.pda)} style={{ ...btn('#333'), padding: '2px 5px', fontSize: 9 }}>Copy PDA</button>
-                                    <a href={`https://solscan.io/account/${p.pda}`} target="_blank" rel="noreferrer" style={{ ...btn('#1a1a3e', '#00d4ff'), padding: '2px 5px', fontSize: 9, textDecoration: 'none', border: '1px solid #00d4ff33' }}>Solscan</a>
-                                  </div>
-                                </div>
+                    {playersResult && (
+                      playersResult.error ? (
+                        <div style={{ color: '#f87171', fontSize: 12 }}>❌ {playersResult.error}</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          <div style={{ background: '#111', borderRadius: 8, padding: '10px 12px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                              {playersResult.pfpUrl ? (
+                                <img src={playersResult.pfpUrl} alt="PFP" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', border: '1px solid #333', flexShrink: 0 }} onError={(e) => { (e.target as any).style.display = 'none' }} />
+                              ) : (
+                                <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#222', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>👤</div>
                               )}
+                              <div style={{ color: '#ffd700', fontSize: 13, fontWeight: 'bold' }}>
+                                {playersResult.displayName || 'Anonymous'}
+                              </div>
                             </div>
-                          ))}
-                          {filtered.length > 50 && (
-                            <div style={{ color: '#555', fontSize: 11, textAlign: 'center', padding: 4 }}>Showing 50 of {filtered.length} — use filter to narrow</div>
-                          )}
-                          {filtered.length === 0 && (
-                            <div style={{ color: '#555', fontSize: 11 }}>No players match filter</div>
-                          )}
+                            <div style={{ marginBottom: 6 }}>
+                              <div style={{ color: '#555', fontSize: 10, marginBottom: 2 }}>WALLET</div>
+                              <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                                <span style={{ color: '#aaa', fontSize: 10, fontFamily: 'monospace', flex: 1, wordBreak: 'break-all' }}>{playersResult.wallet}</span>
+                                <button onClick={() => copy(playersResult.wallet)} style={{ ...btn('#333'), padding: '2px 6px', fontSize: 10 }}>Copy</button>
+                                <a href={`https://solscan.io/account/${playersResult.wallet}`} target="_blank" rel="noreferrer" style={{ ...btn('#1a1a3e', '#00d4ff'), padding: '2px 6px', fontSize: 10, textDecoration: 'none', border: '1px solid #00d4ff44' }}>Solscan</a>
+                              </div>
+                            </div>
+                            <div>
+                              <div style={{ color: '#555', fontSize: 10, marginBottom: 2 }}>PROFILE PDA</div>
+                              <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                                <span style={{ color: '#aaa', fontSize: 10, fontFamily: 'monospace', flex: 1, wordBreak: 'break-all' }}>{playersResult.pda}</span>
+                                <button onClick={() => copy(playersResult.pda)} style={{ ...btn('#333'), padding: '2px 6px', fontSize: 10 }}>Copy</button>
+                                <a href={`https://solscan.io/account/${playersResult.pda}`} target="_blank" rel="noreferrer" style={{ ...btn('#1a1a3e', '#00d4ff'), padding: '2px 6px', fontSize: 10, textDecoration: 'none', border: '1px solid #00d4ff44' }}>Solscan</a>
+                              </div>
+                            </div>
+                          </div>
+                          <div style={{ background: '#111', borderRadius: 8, padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            <div style={{ color: '#ffd700', fontSize: 10, fontWeight: 'bold', marginBottom: 2, letterSpacing: 1 }}>GAMEPLAY</div>
+                            {([['Cards', playersResult.cardsScratched], ['Wins', playersResult.wins], ['Win Rate', `${playersResult.winRate}%`], ['Spent', `${playersResult.totalSpent} SOL`], ['Won', `${playersResult.totalWon} SOL`], ['Free Plays', playersResult.freePlaysUsed], ['Free Wins', playersResult.freePlayWins]] as [string,any][]).map(([l,v]) => (
+                              <div key={l} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}><span style={{ color: '#666' }}>{l}</span><span style={{ color: '#ccc' }}>{String(v)}</span></div>
+                            ))}
+                          </div>
+                          <div style={{ background: '#111', borderRadius: 8, padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            <div style={{ color: '#ffd700', fontSize: 10, fontWeight: 'bold', marginBottom: 2, letterSpacing: 1 }}>POINTS</div>
+                            {([['SOL pts (month)', playersResult.pointsThisMonth], ['SOL pts (all time)', playersResult.pointsAllTime], ['Sweep pts (month)', playersResult.sweepPointsThisMonth], ['Sweep pts (all time)', playersResult.sweepPointsAllTime]] as [string,any][]).map(([l,v]) => (
+                              <div key={l} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}><span style={{ color: '#666' }}>{l}</span><span style={{ color: '#ccc' }}>{String(v)}</span></div>
+                            ))}
+                          </div>
+                          <div style={{ background: '#111', borderRadius: 8, padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            <div style={{ color: '#ffd700', fontSize: 10, fontWeight: 'bold', marginBottom: 2, letterSpacing: 1 }}>REFERRALS</div>
+                            {([['Referred', playersResult.hasBeenReferred ? '✅' : '❌'], ['Bonus Paid', playersResult.referralBonusPaid ? '✅' : '❌'], ['Referrals Made', playersResult.referralsCount], ['Referred By', playersResult.referredBy ? `${playersResult.referredBy.slice(0,10)}...` : '—'], ['Last Win Slot', playersResult.lastWinSlot > 0 ? playersResult.lastWinSlot : '—'], ['Last Free Play', playersResult.lastFreePlayTs > 0 ? new Date(playersResult.lastFreePlayTs * 1000).toLocaleString() : '—']] as [string,any][]).map(([l,v]) => (
+                              <div key={l} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}><span style={{ color: '#666' }}>{l}</span><span style={{ color: '#ccc' }}>{String(v)}</span></div>
+                            ))}
+                          </div>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <button onClick={() => { setPointsWallet(playersResult.wallet); setActiveSection('points') }} style={{ ...btn('#7c3aed'), flex: 1 }}>🎯 Add Points</button>
+                            <button onClick={() => copy(playersResult.wallet)} style={{ ...btn('#333'), flex: 1 }}>📋 Copy Wallet</button>
+                          </div>
                         </div>
-                      </>
+                      )
                     )}
                   </div>
 

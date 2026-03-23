@@ -391,6 +391,7 @@ export default function AdminPanel() {
           wallet: walletKey.toBase58(),
           pda: pda.toBase58(),
           displayName: data.displayName || null,
+          pfpUrl: data.pfpUrl || null,
           cardsScratched: cards,
           wins,
           winRate: cards > 0 ? ((wins / cards) * 100).toFixed(1) : '—',
@@ -904,8 +905,15 @@ export default function AdminPanel() {
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                         <div style={{ background: '#111', borderRadius: 8, padding: '10px 12px' }}>
-                          <div style={{ color: '#ffd700', fontSize: 13, fontWeight: 'bold', marginBottom: 6 }}>
-                            {playersResult.displayName || 'Anonymous'}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                            {playersResult.pfpUrl ? (
+                              <img src={playersResult.pfpUrl} alt="PFP" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', border: '1px solid #333', flexShrink: 0 }} onError={(e) => { (e.target as any).style.display = 'none' }} />
+                            ) : (
+                              <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#222', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>👤</div>
+                            )}
+                            <div style={{ color: '#ffd700', fontSize: 13, fontWeight: 'bold' }}>
+                              {playersResult.displayName || 'Anonymous'}
+                            </div>
                           </div>
                           <div style={{ marginBottom: 6 }}>
                             <div style={{ color: '#555', fontSize: 10, marginBottom: 2 }}>WALLET</div>

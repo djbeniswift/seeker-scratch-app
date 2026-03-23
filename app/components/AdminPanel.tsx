@@ -99,6 +99,11 @@ export default function AdminPanel() {
   const [nameResults, setNameResults] = useState<any[]>([])
   const [nameSearching, setNameSearching] = useState(false)
 
+  // Activity tab
+  const [activity, setActivity] = useState<any[]>([])
+  const [activityLoading, setActivityLoading] = useState(false)
+  const [activityLoaded, setActivityLoaded] = useState(false)
+
   // Points adjustment
   const [pointsWallet, setPointsWallet] = useState('')
   const [pointsAmount, setPointsAmount] = useState('100')
@@ -502,6 +507,45 @@ export default function AdminPanel() {
     setScanning(false)
   }
 
+  const loadActivity = async () => {
+    setActivityLoading(true)
+    try {
+      const sigs = await rpcWithRetry(() =>
+        connection.getSignaturesForAddress(treasuryPda, { limit: 100 }, 'confirmed')
+      )
+      const sigStrings = sigs.map((s: any) => s.signature)
+      const txs = await rpcWithRetry(() =>
+        connection.getParsedTransactions(sigStrings, { commitment: 'confirmed', maxSupportedTransactionVersion: 0 })
+      )
+      const rows: any[] = []
+      for (let i = 0; i < sigs.length; i++) {
+        const sig = sigs[i]
+        const tx = txs[i]
+        if (!tx?.meta) continue
+        const accounts: string[] = (tx.transaction.message as any).accountKeys?.map((k: any) =>
+          typeof k === 'string' ? k : k.pubkey?.toBase58?.() ?? k.pubkey?.toString?.() ?? ''
+        ) ?? []
+        const treasuryIdx = accounts.findIndex(a => a === treasuryPda.toBase58())
+        let delta = 0
+        if (treasuryIdx >= 0 && tx.meta.postBalances && tx.meta.preBalances) {
+          delta = (tx.meta.postBalances[treasuryIdx] - tx.meta.preBalances[treasuryIdx]) / LAMPORTS_PER_SOL
+        }
+        const abs = Math.abs(delta)
+        let type: string
+        let color: string
+        if (delta < -0.0005) { type = 'WIN'; color = '#4ade80' }
+        else if (abs < 0.0005) { type = 'FREE PLAY'; color = '#a78bfa' }
+        else if (delta > 0.5) { type = 'FUND'; color = '#fbbf24' }
+        else { type = 'SCRATCH'; color = '#60a5fa' }
+        const feePayer = accounts[0] ?? ''
+        rows.push({ sig: sig.signature, blockTime: sig.blockTime, wallet: feePayer, type, color, delta })
+      }
+      setActivity(rows)
+      setActivityLoaded(true)
+    } catch (e: any) { setS(`❌ Activity load failed: ${e.message?.slice(0, 80)}`) }
+    setActivityLoading(false)
+  }
+
   const copy = (text: string) => { navigator.clipboard.writeText(text).catch(() => {}) }
 
   const navItems = [
@@ -515,6 +559,7 @@ export default function AdminPanel() {
     { id: 'points', label: '🎯 Points' },
     { id: 'referrals', label: '🔗 Referrals' },
     { id: 'monthend', label: '📅 Month End' },
+    { id: 'activity', label: '📋 Activity' },
   ]
 
   const pctUsed = dailyCap > 0 ? Math.min(100, (dailyPaidOut / dailyCap) * 100) : 0
@@ -1206,6 +1251,54 @@ export default function AdminPanel() {
                 </div>
               )
             })()}
+
+            {/* ── ACTIVITY ── */}
+            {activeSection === 'activity' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={sectionHdr('#a78bfa')}>TREASURY ACTIVITY</div>
+                  <button onClick={loadActivity} disabled={activityLoading} style={{ ...btn('#a78bfa'), padding: '4px 10px', fontSize: 11 }}>
+                    {activityLoading ? '⏳' : '🔄 Refresh'}
+                  </button>
+                </div>
+                {!activityLoaded && !activityLoading && (
+                  <div style={{ color: '#555', fontSize: 11 }}>Click Refresh to load the last 100 transactions.</div>
+                )}
+                {activityLoaded && activity.length === 0 && (
+                  <div style={{ color: '#555', fontSize: 11 }}>No transactions found.</div>
+                )}
+                {activity.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 420, overflowY: 'auto' }}>
+                    {activity.map((row) => {
+                      const ago = (() => {
+                        if (!row.blockTime) return '—'
+                        const secs = Math.floor(Date.now() / 1000) - row.blockTime
+                        if (secs < 60) return `${secs}s ago`
+                        if (secs < 3600) return `${Math.floor(secs / 60)}m ago`
+                        if (secs < 86400) return `${Math.floor(secs / 3600)}h ago`
+                        return `${Math.floor(secs / 86400)}d ago`
+                      })()
+                      const short = row.wallet ? `${row.wallet.slice(0, 4)}...${row.wallet.slice(-4)}` : '—'
+                      const amtColor = row.type === 'WIN' ? '#4ade80' : '#888'
+                      const amtPrefix = row.delta < 0 ? '-' : '+'
+                      const amtAbs = Math.abs(row.delta)
+                      return (
+                        <div key={row.sig} style={{ background: '#111', borderRadius: 8, padding: '7px 10px', display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
+                          <span style={{ color: '#555', minWidth: 52, flexShrink: 0 }}>{ago}</span>
+                          <span style={{ color: '#ccc', fontFamily: 'monospace', flex: 1, minWidth: 0 }}>{short}</span>
+                          <button onClick={() => copy(row.wallet)} title="Copy wallet" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#555', fontSize: 11, padding: '0 2px', flexShrink: 0 }}>⎘</button>
+                          <span style={{ color: row.color, fontWeight: 'bold', minWidth: 62, textAlign: 'center', flexShrink: 0, fontSize: 10 }}>{row.type}</span>
+                          <span style={{ color: amtColor, fontFamily: 'monospace', minWidth: 60, textAlign: 'right', flexShrink: 0 }}>
+                            {amtAbs < 0.0001 ? '—' : `${amtPrefix}${amtAbs.toFixed(4)}`}
+                          </span>
+                          <a href={`https://solscan.io/tx/${row.sig}`} target="_blank" rel="noreferrer" style={{ color: '#555', fontSize: 11, textDecoration: 'none', flexShrink: 0 }}>↗</a>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Status */}
             {status && (

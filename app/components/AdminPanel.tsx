@@ -87,6 +87,10 @@ export default function AdminPanel() {
   const [lookupInput, setLookupInput] = useState('')
   const [lookupResult, setLookupResult] = useState<any>(null)
   const [nameSearch, setNameSearch] = useState('')
+
+  // Players tab (full profile view)
+  const [playersInput, setPlayersInput] = useState('')
+  const [playersResult, setPlayersResult] = useState<any>(null)
   const [nameResults, setNameResults] = useState<any[]>([])
   const [nameSearching, setNameSearching] = useState(false)
 
@@ -328,6 +332,45 @@ export default function AdminPanel() {
     } catch (e: any) { setLookupResult({ error: e.message }) }
   }
 
+  const lookupPlayerFull = async () => {
+    if (!playersInput.trim()) return
+    setPlayersResult(null)
+    try {
+      const rp = readProvider()
+      const rProg = new Program(IDL as any, PROGRAM_ID, rp)
+      let walletKey: PublicKey
+      try { walletKey = new PublicKey(playersInput.trim()) } catch { setPlayersResult({ error: 'Invalid wallet address' }); return }
+      const [pda] = PublicKey.findProgramAddressSync([PROFILE_SEED, walletKey.toBuffer()], PROGRAM_ID)
+      try {
+        const data = await (rProg.account as any).playerProfile.fetch(pda)
+        const cards = data.cardsScratched ?? 0
+        const wins = data.wins ?? 0
+        setPlayersResult({
+          wallet: walletKey.toBase58(),
+          pda: pda.toBase58(),
+          displayName: data.displayName || null,
+          cardsScratched: cards,
+          wins,
+          winRate: cards > 0 ? ((wins / cards) * 100).toFixed(1) : '—',
+          totalSpent: (data.totalSpent.toNumber() / LAMPORTS_PER_SOL).toFixed(3),
+          totalWon: (data.totalWon.toNumber() / LAMPORTS_PER_SOL).toFixed(3),
+          pointsThisMonth: data.pointsThisMonth.toNumber(),
+          pointsAllTime: data.pointsAllTime.toNumber(),
+          sweepPointsThisMonth: data.sweepPointsThisMonth?.toNumber() ?? 0,
+          sweepPointsAllTime: data.sweepPointsAllTime?.toNumber() ?? 0,
+          freePlaysUsed: data.freePlaysUsed ?? 0,
+          freePlayWins: data.freePlayWins ?? 0,
+          hasBeenReferred: data.hasBeenReferred,
+          referredBy: data.referredBy?.toBase58(),
+          referralBonusPaid: data.referralBonusPaid,
+          referralsCount: data.referralsCount ?? 0,
+          lastWinSlot: data.lastWinSlot?.toNumber?.() ?? data.lastWinSlot ?? 0,
+          lastFreePlayTs: data.lastFreePlayTimestamp?.toNumber?.() ?? data.lastFreePlayTimestamp ?? 0,
+        })
+      } catch { setPlayersResult({ error: 'Profile not found — player has never played' }) }
+    } catch (e: any) { setPlayersResult({ error: e.message?.slice(0, 80) }) }
+  }
+
   const searchByName = async () => {
     const term = nameSearch.trim().toLowerCase()
     if (!term) return
@@ -425,6 +468,7 @@ export default function AdminPanel() {
     { id: 'banner', label: '📢 Banner' },
     { id: 'winners', label: '🥇 Winners' },
     { id: 'lookup', label: '🔍 Lookup' },
+    { id: 'players', label: '👤 Players' },
     { id: 'points', label: '🎯 Points' },
     { id: 'referrals', label: '🔗 Referrals' },
     { id: 'monthend', label: '📅 Month End' },
@@ -789,6 +833,138 @@ export default function AdminPanel() {
                     🔄 Initialize Master Config
                   </button>
                 </div>
+              </div>
+            )}
+
+            {/* ── PLAYERS ── */}
+            {activeSection === 'players' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={sectionHdr()}>PLAYER LOOKUP</div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <input
+                    value={playersInput} onChange={e => setPlayersInput(e.target.value)}
+                    placeholder="Wallet address..." style={input({ flex: 1 })}
+                    onKeyDown={e => e.key === 'Enter' && lookupPlayerFull()}
+                  />
+                  <button onClick={lookupPlayerFull} style={btn('#7c3aed')}>Lookup</button>
+                </div>
+
+                {playersResult && (
+                  playersResult.error ? (
+                    <div style={{ color: '#f87171', fontSize: 12 }}>❌ {playersResult.error}</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {/* Header */}
+                      <div style={{ background: '#111', borderRadius: 8, padding: '10px 12px' }}>
+                        <div style={{ color: '#ffd700', fontSize: 13, fontWeight: 'bold', marginBottom: 6 }}>
+                          {playersResult.displayName || 'Anonymous'}
+                        </div>
+
+                        {/* Wallet + Solscan */}
+                        <div style={{ marginBottom: 6 }}>
+                          <div style={{ color: '#555', fontSize: 10, marginBottom: 2 }}>WALLET</div>
+                          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                            <span style={{ color: '#aaa', fontSize: 10, fontFamily: 'monospace', flex: 1, wordBreak: 'break-all' }}>{playersResult.wallet}</span>
+                            <button onClick={() => copy(playersResult.wallet)} style={{ ...btn('#333'), padding: '2px 6px', fontSize: 10 }}>Copy</button>
+                            <a href={`https://solscan.io/account/${playersResult.wallet}`} target="_blank" rel="noreferrer" style={{ ...btn('#1a1a3e', '#00d4ff'), padding: '2px 6px', fontSize: 10, textDecoration: 'none', border: '1px solid #00d4ff44' }}>Solscan</a>
+                          </div>
+                        </div>
+
+                        {/* Profile PDA + Solscan */}
+                        <div>
+                          <div style={{ color: '#555', fontSize: 10, marginBottom: 2 }}>PROFILE PDA</div>
+                          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                            <span style={{ color: '#aaa', fontSize: 10, fontFamily: 'monospace', flex: 1, wordBreak: 'break-all' }}>{playersResult.pda}</span>
+                            <button onClick={() => copy(playersResult.pda)} style={{ ...btn('#333'), padding: '2px 6px', fontSize: 10 }}>Copy</button>
+                            <a href={`https://solscan.io/account/${playersResult.pda}`} target="_blank" rel="noreferrer" style={{ ...btn('#1a1a3e', '#00d4ff'), padding: '2px 6px', fontSize: 10, textDecoration: 'none', border: '1px solid #00d4ff44' }}>Solscan</a>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Stats */}
+                      <div style={{ background: '#111', borderRadius: 8, padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <div style={{ color: '#ffd700', fontSize: 10, fontWeight: 'bold', marginBottom: 4, letterSpacing: 1 }}>GAMEPLAY</div>
+                        {[
+                          ['Cards Scratched', playersResult.cardsScratched],
+                          ['Wins', playersResult.wins],
+                          ['Win Rate', `${playersResult.winRate}%`],
+                          ['Total Spent', `${playersResult.totalSpent} SOL`],
+                          ['Total Won', `${playersResult.totalWon} SOL`],
+                          ['Free Plays Used', playersResult.freePlaysUsed],
+                          ['Free Play Wins', playersResult.freePlayWins],
+                        ].map(([l, v]) => (
+                          <div key={l as string} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+                            <span style={{ color: '#666' }}>{l as string}</span>
+                            <span style={{ color: '#ccc' }}>{String(v)}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div style={{ background: '#111', borderRadius: 8, padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <div style={{ color: '#ffd700', fontSize: 10, fontWeight: 'bold', marginBottom: 4, letterSpacing: 1 }}>POINTS</div>
+                        {[
+                          ['SOL Points (month)', playersResult.pointsThisMonth],
+                          ['SOL Points (all time)', playersResult.pointsAllTime],
+                          ['Sweep Points (month)', playersResult.sweepPointsThisMonth],
+                          ['Sweep Points (all time)', playersResult.sweepPointsAllTime],
+                        ].map(([l, v]) => (
+                          <div key={l as string} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+                            <span style={{ color: '#666' }}>{l as string}</span>
+                            <span style={{ color: '#ccc' }}>{String(v)}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div style={{ background: '#111', borderRadius: 8, padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <div style={{ color: '#ffd700', fontSize: 10, fontWeight: 'bold', marginBottom: 4, letterSpacing: 1 }}>REFERRALS</div>
+                        {[
+                          ['Has Been Referred', playersResult.hasBeenReferred ? '✅ Yes' : '❌ No'],
+                          ['Referral Bonus Paid', playersResult.referralBonusPaid ? '✅ Yes' : '❌ No'],
+                          ['Referrals Made', playersResult.referralsCount],
+                          ['Referred By', playersResult.referredBy ? `${playersResult.referredBy.slice(0, 10)}...` : '—'],
+                        ].map(([l, v]) => (
+                          <div key={l as string} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+                            <span style={{ color: '#666' }}>{l as string}</span>
+                            <span style={{ color: '#ccc' }}>{String(v)}</span>
+                          </div>
+                        ))}
+                        {playersResult.referredBy && (
+                          <button onClick={() => copy(playersResult.referredBy)} style={{ ...btn('#333'), marginTop: 4, fontSize: 10, padding: '2px 6px', alignSelf: 'flex-start' }}>
+                            Copy Referrer Address
+                          </button>
+                        )}
+                      </div>
+
+                      <div style={{ background: '#111', borderRadius: 8, padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <div style={{ color: '#ffd700', fontSize: 10, fontWeight: 'bold', marginBottom: 4, letterSpacing: 1 }}>TIMESTAMPS</div>
+                        {[
+                          ['Last Win Slot', playersResult.lastWinSlot > 0 ? playersResult.lastWinSlot : '—'],
+                          ['Last Free Play', playersResult.lastFreePlayTs > 0
+                            ? new Date(playersResult.lastFreePlayTs * 1000).toLocaleString()
+                            : '—'],
+                        ].map(([l, v]) => (
+                          <div key={l as string} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+                            <span style={{ color: '#666' }}>{l as string}</span>
+                            <span style={{ color: '#ccc' }}>{String(v)}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Quick Actions */}
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button
+                          onClick={() => { setPointsWallet(playersResult.wallet); setActiveSection('points') }}
+                          style={{ ...btn('#7c3aed'), flex: 1 }}
+                        >
+                          🎯 Add Points
+                        </button>
+                        <button onClick={() => copy(playersResult.wallet)} style={{ ...btn('#333'), flex: 1 }}>
+                          📋 Copy Wallet
+                        </button>
+                      </div>
+                    </div>
+                  )
+                )}
               </div>
             )}
 

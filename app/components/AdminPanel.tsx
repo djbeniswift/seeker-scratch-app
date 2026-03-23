@@ -525,18 +525,29 @@ export default function AdminPanel() {
       const txs: any[] = await res.json()
       const rows: any[] = txs.map((tx: any) => {
         const transfers: any[] = tx.nativeTransfers ?? []
-        let delta = 0
+        let inflow = 0, outflow = 0
         for (const t of transfers) {
-          if (t.toUserAccount === treasuryAddr) delta += t.amount / LAMPORTS_PER_SOL
-          if (t.fromUserAccount === treasuryAddr) delta -= t.amount / LAMPORTS_PER_SOL
+          if (t.toUserAccount === treasuryAddr) inflow += t.amount / LAMPORTS_PER_SOL
+          if (t.fromUserAccount === treasuryAddr) outflow += t.amount / LAMPORTS_PER_SOL
         }
+        const delta = inflow - outflow
         const abs = Math.abs(delta)
-        let type: string, color: string
-        if (delta < -0.0005) { type = 'WIN'; color = '#4ade80' }
-        else if (abs < 0.0005) { type = 'FREE PLAY'; color = '#a78bfa' }
-        else if (delta > 0.5) { type = 'FUND'; color = '#fbbf24' }
-        else { type = 'SCRATCH'; color = '#60a5fa' }
-        return { sig: tx.signature, blockTime: tx.timestamp, wallet: tx.feePayer ?? '', type, color, delta }
+        let type: string, color: string, cardLabel: string | null, won: boolean | null
+        if (delta < -0.0005) {
+          type = 'WIN'; color = '#4ade80'; cardLabel = null; won = true
+        } else if (abs < 0.0005) {
+          type = 'FREE'; color = '#22d3ee'; cardLabel = null; won = null
+        } else if (delta > 0.5) {
+          type = 'FUND'; color = '#fbbf24'; cardLabel = null; won = null
+        } else {
+          type = 'SCRATCH'; color = '#60a5fa'
+          won = outflow > 0.0005
+          if (inflow > 0.006 && inflow < 0.015) cardLabel = 'QP 0.01◎'
+          else if (inflow > 0.03 && inflow < 0.07) cardLabel = 'HS 0.05◎'
+          else if (inflow > 0.07 && inflow < 0.15) cardLabel = 'MG 0.10◎'
+          else cardLabel = null
+        }
+        return { sig: tx.signature, blockTime: tx.timestamp, wallet: tx.feePayer ?? '', type, color, delta, inflow, outflow, cardLabel, won }
       })
       setActivity(rows)
       setActivityLoaded(true)
@@ -1274,18 +1285,35 @@ export default function AdminPanel() {
                         return `${Math.floor(secs / 86400)}d ago`
                       })()
                       const short = row.wallet ? `${row.wallet.slice(0, 4)}...${row.wallet.slice(-4)}` : '—'
-                      const amtColor = row.type === 'WIN' ? '#4ade80' : '#888'
-                      const amtPrefix = row.delta < 0 ? '-' : '+'
-                      const amtAbs = Math.abs(row.delta)
                       return (
                         <div key={row.sig} style={{ background: '#111', borderRadius: 8, padding: '7px 10px', display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
                           <span style={{ color: '#555', minWidth: 52, flexShrink: 0 }}>{ago}</span>
-                          <span style={{ color: '#ccc', fontFamily: 'monospace', flex: 1, minWidth: 0 }}>{short}</span>
-                          <button onClick={() => copy(row.wallet)} title="Copy wallet" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#555', fontSize: 11, padding: '0 2px', flexShrink: 0 }}>⎘</button>
-                          <span style={{ color: row.color, fontWeight: 'bold', minWidth: 62, textAlign: 'center', flexShrink: 0, fontSize: 10 }}>{row.type}</span>
-                          <span style={{ color: amtColor, fontFamily: 'monospace', minWidth: 60, textAlign: 'right', flexShrink: 0 }}>
-                            {amtAbs < 0.0001 ? '—' : `${amtPrefix}${amtAbs.toFixed(4)}`}
-                          </span>
+                          <a href={`https://solscan.io/account/${row.wallet}`} target="_blank" rel="noreferrer"
+                             style={{ color: '#ccc', fontFamily: 'monospace', flex: 1, minWidth: 0, textDecoration: 'none' }}>
+                            {short}
+                          </a>
+                          <button onClick={() => copy(row.wallet)} title="Copy wallet" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#444', fontSize: 11, padding: '0 2px', flexShrink: 0 }}>⎘</button>
+                          {row.type === 'WIN' && (
+                            <span style={{ color: '#4ade80', fontFamily: 'monospace', minWidth: 100, textAlign: 'right', flexShrink: 0, fontSize: 10 }}>
+                              {'🏆 '}+{Math.abs(row.delta).toFixed(4)}◎
+                            </span>
+                          )}
+                          {row.type === 'FREE' && (
+                            <span style={{ color: '#22d3ee', fontWeight: 'bold', minWidth: 100, textAlign: 'right', flexShrink: 0, fontSize: 10 }}>
+                              FREE
+                            </span>
+                          )}
+                          {row.type === 'FUND' && (
+                            <span style={{ color: '#fbbf24', fontFamily: 'monospace', minWidth: 100, textAlign: 'right', flexShrink: 0, fontSize: 10 }}>
+                              FUND +{row.delta.toFixed(2)}◎
+                            </span>
+                          )}
+                          {row.type === 'SCRATCH' && (
+                            <span style={{ minWidth: 100, textAlign: 'right', flexShrink: 0, fontSize: 10, display: 'flex', gap: 4, justifyContent: 'flex-end', alignItems: 'center' }}>
+                              <span style={{ color: '#60a5fa' }}>{row.cardLabel ?? `+${row.delta.toFixed(4)}`}</span>
+                              <span style={{ color: row.won ? '#4ade80' : '#f87171', fontSize: 9, fontWeight: 'bold' }}>{row.won ? 'W' : 'L'}</span>
+                            </span>
+                          )}
                           <a href={`https://solscan.io/tx/${row.sig}`} target="_blank" rel="noreferrer" style={{ color: '#555', fontSize: 11, textDecoration: 'none', flexShrink: 0 }}>↗</a>
                         </div>
                       )

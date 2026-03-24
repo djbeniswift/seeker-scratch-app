@@ -360,7 +360,7 @@ export default function AdminPanel() {
         const wins = a.account.wins ?? 0
         return {
           pda: a.publicKey.toBase58(),
-          wallet: a.account.owner?.toBase58() || '',
+          wallet: (() => { const o = a.account.owner?.toBase58() ?? ''; return (o && o !== '11111111111111111111111111111111') ? o : a.publicKey.toBase58() })(),
           displayName: a.account.displayName || null,
           cardsScratched: cards,
           wins,

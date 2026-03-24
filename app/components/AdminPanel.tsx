@@ -2,7 +2,7 @@
 import { useWallet, useConnection } from '@solana/wallet-adapter-react'
 import { Program, AnchorProvider, BN } from '@coral-xyz/anchor'
 import { PublicKey, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { PROGRAM_ID, TREASURY_SEED, MASTER_CONFIG_SEED, GAME_CONFIG_SEED, PROFILE_SEED, IDL } from '../lib/constants'
 
 const ADMIN = '6RhLQikkjzace4ti4D458iSmKofbPdMGNB7VKHmWwYPP'
@@ -129,6 +129,11 @@ export default function AdminPanel() {
 
   useEffect(() => { setMounted(true) }, [])
 
+  // Tracks whether form fields have been populated from chain at least once.
+  // Prevents interval refreshes (and dep-change re-fires) from overwriting
+  // values the admin is actively editing.
+  const settingsLoadedRef = useRef(false)
+
   const getProgram = useCallback(() => {
     if (!publicKey) return null
     const walletAdapter = {
@@ -159,33 +164,39 @@ export default function AdminPanel() {
 
       try {
         const mc = await (rProg.account as any).masterConfig.fetch(masterConfigPda)
-        setCostQP((mc.costQuickpick.toNumber() / LAMPORTS_PER_SOL).toFixed(2))
-        setCostHS((mc.costHotshot.toNumber() / LAMPORTS_PER_SOL).toFixed(2))
-        setCostMG((mc.costMegagold.toNumber() / LAMPORTS_PER_SOL).toFixed(2))
-        setThrQP((mc.thresholdQuickpick / 100).toFixed(1))
-        setThrHS((mc.thresholdHotshot / 100).toFixed(1))
-        setThrMG((mc.thresholdMegagold / 100).toFixed(1))
-        setFeePct((mc.houseFeeBps.toNumber() / 100).toFixed(1))
-        setMinTreasury((mc.minTreasury.toNumber() / LAMPORTS_PER_SOL).toFixed(0))
-        const cap = mc.dailyPayoutCap.toNumber() / LAMPORTS_PER_SOL
-        setDailyCapInput(cap.toFixed(0))
-        setDailyCap(cap)
-        setEnableQP(mc.quickpickEnabled)
-        setEnableHS(mc.hotshotEnabled)
-        setEnableMG(mc.megagoldEnabled)
-        setDoublePoints(mc.doublePointsActive)
-        setCooldownHrs((mc.freePlayCooldownSeconds.toNumber() / 3600).toFixed(0))
-        setP1Sol((mc.prize1stSol.toNumber() / LAMPORTS_PER_SOL).toFixed(2))
-        setP2Sol((mc.prize2ndSol.toNumber() / LAMPORTS_PER_SOL).toFixed(2))
-        setP3Sol((mc.prize3rdSol.toNumber() / LAMPORTS_PER_SOL).toFixed(2))
-        setP1Skr(mc.prize1stSkr.toNumber().toString())
-        setP2Skr(mc.prize2ndSkr.toNumber().toString())
-        setP3Skr(mc.prize3rdSkr.toNumber().toString())
-        setS1Skr(mc.sweep1stSkr.toNumber().toString())
-        setS2Skr(mc.sweep2ndSkr.toNumber().toString())
-        setS3Skr(mc.sweep3rdSkr.toNumber().toString())
-        setBannerText(mc.bannerText)
-        setBannerActive(mc.bannerActive)
+        // Only set editable form fields on initial load — subsequent interval
+        // refreshes would otherwise overwrite values the admin is actively editing.
+        if (!settingsLoadedRef.current) {
+          setCostQP((mc.costQuickpick.toNumber() / LAMPORTS_PER_SOL).toFixed(2))
+          setCostHS((mc.costHotshot.toNumber() / LAMPORTS_PER_SOL).toFixed(2))
+          setCostMG((mc.costMegagold.toNumber() / LAMPORTS_PER_SOL).toFixed(2))
+          setThrQP((mc.thresholdQuickpick / 100).toFixed(1))
+          setThrHS((mc.thresholdHotshot / 100).toFixed(1))
+          setThrMG((mc.thresholdMegagold / 100).toFixed(1))
+          setFeePct((mc.houseFeeBps.toNumber() / 100).toFixed(1))
+          setMinTreasury((mc.minTreasury.toNumber() / LAMPORTS_PER_SOL).toFixed(0))
+          const cap = mc.dailyPayoutCap.toNumber() / LAMPORTS_PER_SOL
+          setDailyCapInput(cap.toFixed(0))
+          setDailyCap(cap)
+          setEnableQP(mc.quickpickEnabled)
+          setEnableHS(mc.hotshotEnabled)
+          setEnableMG(mc.megagoldEnabled)
+          setDoublePoints(mc.doublePointsActive)
+          // Use String() so decimals like 2.4 are preserved, not rounded
+          setCooldownHrs(String(mc.freePlayCooldownSeconds.toNumber() / 3600))
+          setP1Sol((mc.prize1stSol.toNumber() / LAMPORTS_PER_SOL).toFixed(2))
+          setP2Sol((mc.prize2ndSol.toNumber() / LAMPORTS_PER_SOL).toFixed(2))
+          setP3Sol((mc.prize3rdSol.toNumber() / LAMPORTS_PER_SOL).toFixed(2))
+          setP1Skr(mc.prize1stSkr.toNumber().toString())
+          setP2Skr(mc.prize2ndSkr.toNumber().toString())
+          setP3Skr(mc.prize3rdSkr.toNumber().toString())
+          setS1Skr(mc.sweep1stSkr.toNumber().toString())
+          setS2Skr(mc.sweep2ndSkr.toNumber().toString())
+          setS3Skr(mc.sweep3rdSkr.toNumber().toString())
+          setBannerText(mc.bannerText)
+          setBannerActive(mc.bannerActive)
+          settingsLoadedRef.current = true
+        }
       } catch {}
     } catch {}
   }, [connection, treasuryPda, masterConfigPda, readProvider])
@@ -207,7 +218,7 @@ export default function AdminPanel() {
   }, [readProvider])
 
   useEffect(() => {
-    if (!open) return
+    if (!open) { settingsLoadedRef.current = false; return }
     loadData()
     loadWinners()
     const id = setInterval(loadData, 60000)
@@ -286,6 +297,7 @@ export default function AdminPanel() {
       await rpcWithRetry(() => (program.methods as any).updateMasterConfig(buildMasterConfigArgs()).accounts({
         masterConfig: masterConfigPda, treasury: treasuryPda, admin: publicKey, systemProgram: SystemProgram.programId,
       }).rpc())
+      settingsLoadedRef.current = false // allow loadData to refresh form fields after save
       setS('✅ Game settings saved!')
     } catch (e: any) { setS(`❌ ${e.message?.slice(0, 80)}`) }
   }

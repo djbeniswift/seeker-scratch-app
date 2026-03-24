@@ -290,6 +290,23 @@ export default function AdminPanel() {
     } catch (e: any) { setS(`❌ ${e.message?.slice(0, 80)}`) }
   }
 
+  // Saves the promo countdown directly — bypasses React state batching by passing
+  // the new bannerText/bannerActive values directly to the on-chain call.
+  const savePromoCountdown = async () => {
+    const promoText = `COUNTDOWN:${promoEndDate}|${promoMsg}`
+    try {
+      setS('Activating promo countdown...')
+      const program = getProgram(); if (!program) return setS('❌ No wallet')
+      const args = { ...buildMasterConfigArgs(), bannerText: promoText, bannerActive: true }
+      await rpcWithRetry(() => (program.methods as any).updateMasterConfig(args).accounts({
+        masterConfig: masterConfigPda, treasury: treasuryPda, admin: publicKey, systemProgram: SystemProgram.programId,
+      }).rpc())
+      setBannerText(promoText)
+      setBannerActive(true)
+      setS('✅ Promo countdown activated!')
+    } catch (e: any) { setS(`❌ ${e.message?.slice(0, 80)}`) }
+  }
+
   const fund = async () => {
     try {
       setS('Funding...')
@@ -806,14 +823,7 @@ export default function AdminPanel() {
                       />
                     </div>
                     <div style={{ display: 'flex', gap: 6 }}>
-                      <button
-                        onClick={() => {
-                          setBannerText(`COUNTDOWN:${promoEndDate}|${promoMsg}`)
-                          setBannerActive(true)
-                          setTimeout(() => saveGameSettings(), 50)
-                        }}
-                        style={btn('#ffd700', '#000')}
-                      >
+                      <button onClick={savePromoCountdown} style={btn('#ffd700', '#000')}>
                         Activate Countdown
                       </button>
                     </div>

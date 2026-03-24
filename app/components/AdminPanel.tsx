@@ -32,7 +32,7 @@ const sectionHdr = (color = '#ffd700'): React.CSSProperties => ({
   fontFamily: 'monospace', borderBottom: '1px solid #222', paddingBottom: 4,
 })
 
-export default function AdminPanel() {
+export default function AdminPanel({ onSettingsSaved }: { onSettingsSaved?: () => void }) {
   const { publicKey, signTransaction, signAllTransactions } = useWallet()
   const { connection } = useConnection()
   const [open, setOpen] = useState(false)
@@ -299,6 +299,7 @@ export default function AdminPanel() {
         masterConfig: masterConfigPda, treasury: treasuryPda, admin: publicKey, systemProgram: SystemProgram.programId,
       }).rpc())
       settingsLoadedRef.current = false // allow loadData to refresh form fields after save
+      onSettingsSaved?.()
       setS('✅ Game settings saved!')
     } catch (e: any) { setS(`❌ ${e.message?.slice(0, 80)}`) }
   }
@@ -316,6 +317,7 @@ export default function AdminPanel() {
       }).rpc())
       setBannerText(promoText)
       setBannerActive(true)
+      onSettingsSaved?.()
       setS('✅ Promo countdown activated!')
     } catch (e: any) { setS(`❌ ${e.message?.slice(0, 80)}`) }
   }

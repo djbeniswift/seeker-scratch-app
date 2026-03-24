@@ -343,7 +343,7 @@ export default function Home() {
         <div style={{ color: '#ffffffdd', fontSize: 15, maxWidth: 300, lineHeight: 1.6 }}>
           Seeker Scratch is temporarily down for maintenance. Check back soon!
         </div>
-        <AdminPanel />
+        <AdminPanel onSettingsSaved={fetchAll} />
       </div>
     )
   }
@@ -916,7 +916,7 @@ export default function Home() {
         Free to play daily. A one-time ~0.004 SOL account setup fee applies on first play only.<br />
         Seeker Scratch is a sweepstakes game. 18+ only. Void where prohibited by law.
       </div>
-      <AdminPanel />
+      <AdminPanel onSettingsSaved={fetchAll} />
       <Confetti active={showConfetti} />
     </>
   )

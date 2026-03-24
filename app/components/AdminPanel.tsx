@@ -223,7 +223,8 @@ export default function AdminPanel() {
     loadWinners()
     const id = setInterval(loadData, 60000)
     return () => clearInterval(id)
-  }, [open, loadData, loadWinners])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
 
   useEffect(() => {
     if (activeSection === 'players' && !playersLoaded && !playersLoading) {

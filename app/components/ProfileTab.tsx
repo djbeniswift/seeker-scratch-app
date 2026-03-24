@@ -4,11 +4,16 @@ import { Program, AnchorProvider } from '@coral-xyz/anchor'
 import { PublicKey, SystemProgram } from '@solana/web3.js'
 import { PROGRAM_ID, PROFILE_SEED, IDL } from '../lib/constants'
 
+const UNAVATAR_BASE = 'https://unavatar.io/twitter/'
+const isUnavatar = (url: string) => url.startsWith(UNAVATAR_BASE)
+
 export default function ProfileTab({ wallet, publicKey, connection }: any) {
   const [profile, setProfile] = useState<any>(null)
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState('')
   const [pfpUrl, setPfpUrl] = useState('')
+  const [twitterHandle, setTwitterHandle] = useState('')
+  const [showManualUrl, setShowManualUrl] = useState(false)
   const [status, setStatus] = useState('')
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -24,6 +29,7 @@ export default function ProfileTab({ wallet, publicKey, connection }: any) {
       const data = await res.json()
       if (data.success) {
         setPfpUrl(data.data.url)
+        setTwitterHandle('')
         setStatus('✅ Image uploaded!')
       } else {
         setStatus('❌ Upload failed')
@@ -79,7 +85,9 @@ export default function ProfileTab({ wallet, publicKey, connection }: any) {
       }
       setProfile(p)
       setName(p.displayName || '')
-      setPfpUrl(p.pfpUrl || '')
+      const url = p.pfpUrl || ''
+      setPfpUrl(url)
+      setTwitterHandle(isUnavatar(url) ? url.slice(UNAVATAR_BASE.length) : '')
     } catch {
       setProfile(null)
     }
@@ -88,6 +96,19 @@ export default function ProfileTab({ wallet, publicKey, connection }: any) {
   useEffect(() => {
     if (publicKey) fetchProfile()
   }, [publicKey])
+
+  // When twitter handle changes, sync pfpUrl
+  const handleTwitterChange = (raw: string) => {
+    const stripped = raw.replace(/^@+/, '').trim()
+    setTwitterHandle(stripped)
+    setPfpUrl(stripped ? `${UNAVATAR_BASE}${stripped}` : (isUnavatar(pfpUrl) ? '' : pfpUrl))
+  }
+
+  // When manual URL is typed, clear twitter handle
+  const handleManualUrl = (url: string) => {
+    setPfpUrl(url)
+    setTwitterHandle('')
+  }
 
   const saveProfile = async () => {
     if (!publicKey) return
@@ -123,6 +144,7 @@ export default function ProfileTab({ wallet, publicKey, connection }: any) {
   )
 
   const winRate = profile?.cardsScratched > 0 ? ((profile.wins / profile.cardsScratched) * 100).toFixed(1) : '0.0'
+  const profileHasTwitter = isUnavatar(profile?.pfpUrl || '')
 
   return (
     <div style={{ paddingBottom: 16 }}>
@@ -165,6 +187,16 @@ export default function ProfileTab({ wallet, publicKey, connection }: any) {
               <img src={profile.pfpUrl} alt="pfp" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => (e.currentTarget.style.display = 'none')} />
             ) : '👤'}
           </div>
+          {/* 𝕏 badge for Twitter-linked profiles */}
+          {profileHasTwitter && (
+            <div style={{
+              position: 'absolute', top: 0, right: 0,
+              background: '#000', border: '1px solid #333',
+              borderRadius: '50%', width: 24, height: 24,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 13, fontWeight: 'bold', color: '#fff', userSelect: 'none',
+            }}>𝕏</div>
+          )}
           <button
             onClick={() => setEditing(!editing)}
             style={{
@@ -203,7 +235,9 @@ export default function ProfileTab({ wallet, publicKey, connection }: any) {
           borderRadius: 12, padding: 16, marginBottom: 16
         }}>
           <div style={{ color: 'var(--gold)', fontSize: 13, letterSpacing: 2, marginBottom: 12 }}>EDIT PROFILE</div>
-          <div style={{ marginBottom: 10 }}>
+
+          {/* Username */}
+          <div style={{ marginBottom: 14 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
               <div style={{ color: '#ffffffdd', fontSize: 13 }}>USERNAME</div>
               <div style={{ fontSize: 11, color: name.length >= 14 ? (name.length >= 16 ? '#f87171' : 'var(--gold)') : '#555', fontFamily: 'monospace' }}>
@@ -221,39 +255,92 @@ export default function ProfileTab({ wallet, publicKey, connection }: any) {
               }}
             />
           </div>
-          <div style={{ marginBottom: 12 }}>
-            <div style={{ color: '#ffffffdd', fontSize: 13, marginBottom: 8 }}>PROFILE PICTURE</div>
+
+          {/* Twitter/X Handle */}
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ color: '#ffffffdd', fontSize: 13, marginBottom: 4 }}>𝕏 TWITTER/X HANDLE</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              {/* Live avatar preview */}
               <div style={{
-                width: 64, height: 64, borderRadius: '50%',
-                border: '2px solid var(--border)', overflow: 'hidden',
-                background: '#0a0a1a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, flexShrink: 0
+                width: 56, height: 56, borderRadius: '50%', flexShrink: 0,
+                border: twitterHandle ? '2px solid #1d9bf0' : '2px solid var(--border)',
+                overflow: 'hidden', background: '#0a0a1a',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24,
+                transition: 'border-color 0.2s',
               }}>
                 {pfpUrl ? (
                   <img src={pfpUrl} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => (e.currentTarget.style.display = 'none')} />
                 ) : '👤'}
               </div>
-              <label style={{
-                flex: 1, padding: '10px', background: uploading ? '#333' : '#1a1a3e',
-                border: '1px dashed var(--gold)', borderRadius: 8,
-                color: uploading ? '#aaa' : 'var(--gold)', fontSize: 13,
-                textAlign: 'center', cursor: uploading ? 'not-allowed' : 'pointer',
-                fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1
-              }}>
-                {uploading ? '⏳ UPLOADING...' : '📷 CHOOSE IMAGE'}
+              <input
+                value={twitterHandle ? `@${twitterHandle}` : ''}
+                onChange={e => handleTwitterChange(e.target.value)}
+                placeholder="@yourhandle"
+                style={{
+                  flex: 1, padding: '10px 12px', background: '#0a0a1a',
+                  border: `1px solid ${twitterHandle ? '#1d9bf0' : 'var(--border)'}`,
+                  borderRadius: 8, color: '#fff', fontSize: 14, boxSizing: 'border-box',
+                  transition: 'border-color 0.2s',
+                }}
+              />
+            </div>
+            {twitterHandle && (
+              <div style={{ fontSize: 11, color: '#1d9bf0', marginTop: 5, paddingLeft: 2 }}>
+                ✓ Avatar will be fetched from your Twitter/X profile
+              </div>
+            )}
+          </div>
+
+          {/* Manual URL fallback (collapsed) */}
+          <div style={{ marginBottom: 12 }}>
+            <button
+              onClick={() => setShowManualUrl(v => !v)}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: '#555', fontSize: 12, padding: 0, display: 'flex', alignItems: 'center', gap: 4,
+              }}
+            >
+              <span style={{ fontSize: 10 }}>{showManualUrl ? '▲' : '▼'}</span>
+              or upload / enter image URL manually
+            </button>
+
+            {showManualUrl && (
+              <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {/* Upload button */}
+                <label style={{
+                  padding: '10px', background: uploading ? '#333' : '#1a1a3e',
+                  border: '1px dashed var(--gold)', borderRadius: 8,
+                  color: uploading ? '#aaa' : 'var(--gold)', fontSize: 13,
+                  textAlign: 'center', cursor: uploading ? 'not-allowed' : 'pointer',
+                  fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1
+                }}>
+                  {uploading ? '⏳ UPLOADING...' : '📷 CHOOSE IMAGE'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    disabled={uploading}
+                    onChange={e => {
+                      const file = e.target.files?.[0]
+                      if (file) uploadImage(file)
+                    }}
+                  />
+                </label>
+                {/* Direct URL input */}
                 <input
-                  type="file"
-                  accept="image/*"
-                  style={{ display: 'none' }}
-                  disabled={uploading}
-                  onChange={e => {
-                    const file = e.target.files?.[0]
-                    if (file) uploadImage(file)
+                  value={isUnavatar(pfpUrl) ? '' : pfpUrl}
+                  onChange={e => handleManualUrl(e.target.value)}
+                  placeholder="https://example.com/avatar.png"
+                  style={{
+                    width: '100%', padding: '10px 12px', background: '#0a0a1a',
+                    border: '1px solid var(--border)', borderRadius: 8,
+                    color: '#fff', fontSize: 13, boxSizing: 'border-box',
                   }}
                 />
-              </label>
-            </div>
+              </div>
+            )}
           </div>
+
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={saveProfile} disabled={saving} style={{
               flex: 1, padding: '10px', background: 'var(--gold)', color: '#000',

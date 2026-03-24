@@ -1,7 +1,7 @@
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { Program, AnchorProvider, BorshAccountsCoder } from '@coral-xyz/anchor'
 import { Connection, PublicKey, LAMPORTS_PER_SOL, SystemProgram, Transaction, TransactionMessage, VersionedTransaction } from '@solana/web3.js'
-import { useCallback, useState, useEffect } from 'react'
+import { useCallback, useState, useEffect, useRef } from 'react'
 
 // Pure-JS base64 → base58 conversion for MWA signatures (no external dep needed)
 const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
@@ -42,6 +42,8 @@ async function withRateLimitRetry<T>(primary: () => Promise<T>, fallback: () => 
 
 export { isRateLimitError }
 
+const MC_CACHE_KEY = 'seekerscratch_masterconfig'
+
 // Retry blockhash fetch — switches to fallback RPC on rate-limit, exponential
 // backoff on other transient errors.
 async function getBlockhashWithRetry(connection: any, commitment: string) {
@@ -63,7 +65,19 @@ export function useScratchProgram() {
   const wallet = useWallet()
   const [treasury, setTreasury] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
-  const [masterConfig, setMasterConfig] = useState<any>(null)
+  const [masterConfig, setMasterConfig] = useState<any>(() => {
+    if (typeof window === 'undefined') return null
+    try {
+      const cached = localStorage.getItem(MC_CACHE_KEY)
+      return cached ? JSON.parse(cached) : null
+    } catch { return null }
+  })
+  const masterConfigRef = useRef<any>(masterConfig)
+  const setMasterConfigSafe = useCallback((val: any) => {
+    masterConfigRef.current = val
+    setMasterConfig(val)
+    try { localStorage.setItem(MC_CACHE_KEY, JSON.stringify(val)) } catch {}
+  }, [])
   const [walletBalance, setWalletBalance] = useState<number>(0)
   const [loading, setLoading] = useState(false)
 
@@ -141,7 +155,7 @@ export function useScratchProgram() {
       const readProvider = new AnchorProvider(connection, {} as any, { commitment: 'confirmed' })
       const readProgram = new Program(IDL as any, PROGRAM_ID, readProvider)
       const data = await (readProgram.account as any).masterConfig.fetch(masterConfigPda)
-      setMasterConfig({
+      setMasterConfigSafe({
         costQuickpick: data.costQuickpick.toNumber() / LAMPORTS_PER_SOL,
         costHotshot: data.costHotshot.toNumber() / LAMPORTS_PER_SOL,
         costMegagold: data.costMegagold.toNumber() / LAMPORTS_PER_SOL,
@@ -168,11 +182,11 @@ export function useScratchProgram() {
         bannerText: data.bannerText,
         bannerActive: data.bannerActive,
       })
-    } catch {
-      // Swallow error — keep existing masterConfig state.
-      // Setting null here caused the countdown to reset to 86400 on any RPC hiccup.
+    } catch (e) {
+      console.error('fetchMasterConfig failed, keeping existing value', e)
+      // Do NOT call setMasterConfig(null) — keep whatever value we have (ref + state + localStorage)
     }
-  }, [connection, masterConfigPda])
+  }, [connection, masterConfigPda, setMasterConfigSafe])
 
   const fetchProfile = useCallback(async () => {
     if (!wallet.publicKey) return
@@ -286,7 +300,7 @@ export function useScratchProgram() {
       if (mcInfo && mcInfo.data.length >= 8) {
         try {
           const mc = coder.decode('MasterConfig', mcInfo.data)
-          setMasterConfig({
+          setMasterConfigSafe({
             costQuickpick: mc.costQuickpick.toNumber() / LAMPORTS_PER_SOL,
             costHotshot: mc.costHotshot.toNumber() / LAMPORTS_PER_SOL,
             costMegagold: mc.costMegagold.toNumber() / LAMPORTS_PER_SOL,
@@ -315,7 +329,7 @@ export function useScratchProgram() {
           })
         } catch { /* keep existing masterConfig — don't reset to null on decode/network error */ }
       } else {
-        setMasterConfig(null)
+        // mcInfo missing or too short — keep existing masterConfig instead of resetting to null
       }
 
       // Profile + wallet balance
@@ -354,7 +368,7 @@ export function useScratchProgram() {
       fetchMasterConfig()
       if (wallet.publicKey) fetchProfile()
     }
-  }, [connection, wallet.publicKey, treasuryPda, masterConfigPda, getProfilePda, fetchTreasury, fetchMasterConfig, fetchProfile])
+  }, [connection, wallet.publicKey, treasuryPda, masterConfigPda, getProfilePda, fetchTreasury, fetchMasterConfig, fetchProfile, setMasterConfigSafe])
 
   // Auto-fetch when wallet connects or changes
   useEffect(() => {

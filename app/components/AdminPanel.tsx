@@ -591,13 +591,13 @@ export default function AdminPanel() {
           {/* Header */}
           <div style={{ padding: '10px 14px', borderBottom: '1px solid #222', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
             <span style={{ color: '#ffd700', fontWeight: 'bold', fontSize: 13 }}>⚙️ Admin Panel</span>
-            <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer', fontSize: 16 }}>✕</button>
+            <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', color: '#ffffffcc', cursor: 'pointer', fontSize: 16 }}>✕</button>
           </div>
 
           {/* Section nav */}
           <div style={{ display: 'flex', gap: 4, padding: '8px 10px', borderBottom: '1px solid #1a1a2e', overflowX: 'auto', flexShrink: 0 }}>
             {navItems.map(n => (
-              <button key={n.id} onClick={() => setActiveSection(n.id)} style={{ padding: '4px 8px', border: 'none', borderRadius: 6, cursor: 'pointer', background: activeSection === n.id ? '#ffd700' : '#1a1a2e', color: activeSection === n.id ? '#000' : '#aaa', fontSize: 11, whiteSpace: 'nowrap', fontWeight: activeSection === n.id ? 'bold' : 'normal' }}>
+              <button key={n.id} onClick={() => setActiveSection(n.id)} style={{ padding: '4px 8px', border: 'none', borderRadius: 6, cursor: 'pointer', background: activeSection === n.id ? '#ffd700' : '#1a1a2e', color: activeSection === n.id ? '#000' : '#ffffffdd', fontSize: 11, whiteSpace: 'nowrap', fontWeight: activeSection === n.id ? 'bold' : 'normal' }}>
                 {n.label}
               </button>
             ))}
@@ -612,17 +612,17 @@ export default function AdminPanel() {
                 <div style={sectionHdr()}>TREASURY HEALTH</div>
                 <div style={{ background: '#111', borderRadius: 8, padding: 10 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <span style={{ color: '#aaa', fontSize: 12 }}>Balance</span>
+                    <span style={{ color: '#ffffffdd', fontSize: 12 }}>Balance</span>
                     <span style={{ color: '#ffd700', fontSize: 13, fontWeight: 'bold' }}>{treasuryBalance.toFixed(3)} SOL</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <span style={{ color: '#aaa', fontSize: 12 }}>Daily paid out</span>
+                    <span style={{ color: '#ffffffdd', fontSize: 12 }}>Daily paid out</span>
                     <span style={{ color: '#f87171', fontSize: 12 }}>{dailyPaidOut.toFixed(3)} / {dailyCap} SOL</span>
                   </div>
                   <div style={{ background: '#222', borderRadius: 4, height: 6, overflow: 'hidden' }}>
                     <div style={{ width: `${pctUsed}%`, height: '100%', background: pctUsed > 80 ? '#f87171' : '#4ade80', transition: 'width 0.3s' }} />
                   </div>
-                  <div style={{ color: '#555', fontSize: 11, marginTop: 4 }}>
+                  <div style={{ color: '#ffffff99', fontSize: 11, marginTop: 4 }}>
                     {((dailyCap - dailyPaidOut) / 0.01).toFixed(0)} QP plays remaining today
                   </div>
                 </div>
@@ -654,21 +654,21 @@ export default function AdminPanel() {
                   </button>
                 </div>
 
-                <div style={{ fontSize: 11, color: '#888', marginBottom: 2 }}>Card Costs (SOL)</div>
+                <div style={{ fontSize: 11, color: '#ffffffcc', marginBottom: 2 }}>Card Costs (SOL)</div>
                 <div style={{ display: 'flex', gap: 4 }}>
                   {[['QP', costQP, setCostQP], ['HS', costHS, setCostHS], ['MG', costMG, setCostMG]].map(([l, v, s]) => (
                     <div key={l as string} style={{ flex: 1 }}>
-                      <div style={{ color: '#666', fontSize: 10, marginBottom: 2 }}>{l as string}</div>
+                      <div style={{ color: '#ffffffcc', fontSize: 10, marginBottom: 2 }}>{l as string}</div>
                       <input value={v as string} onChange={e => (s as any)(e.target.value)} style={input()} />
                     </div>
                   ))}
                 </div>
 
-                <div style={{ fontSize: 11, color: '#888', marginTop: 4, marginBottom: 2 }}>Win Rates (%)</div>
+                <div style={{ fontSize: 11, color: '#ffffffcc', marginTop: 4, marginBottom: 2 }}>Win Rates (%)</div>
                 <div style={{ display: 'flex', gap: 4 }}>
                   {[['QP', thrQP, setThrQP], ['HS', thrHS, setThrHS], ['MG', thrMG, setThrMG]].map(([l, v, s]) => (
                     <div key={l as string} style={{ flex: 1 }}>
-                      <div style={{ color: '#666', fontSize: 10, marginBottom: 2 }}>{l as string}</div>
+                      <div style={{ color: '#ffffffcc', fontSize: 10, marginBottom: 2 }}>{l as string}</div>
                       <input value={v as string} onChange={e => (s as any)(e.target.value)} style={input()} />
                     </div>
                   ))}
@@ -676,20 +676,20 @@ export default function AdminPanel() {
 
                 <div style={{ display: 'flex', gap: 6 }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 11, color: '#888', marginBottom: 2 }}>House Fee %</div>
+                    <div style={{ fontSize: 11, color: '#ffffffcc', marginBottom: 2 }}>House Fee %</div>
                     <input value={feePct} onChange={e => setFeePct(e.target.value)} style={input()} />
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 11, color: '#888', marginBottom: 2 }}>Min Treasury (SOL)</div>
+                    <div style={{ fontSize: 11, color: '#ffffffcc', marginBottom: 2 }}>Min Treasury (SOL)</div>
                     <input value={minTreasury} onChange={e => setMinTreasury(e.target.value)} style={input()} />
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 11, color: '#888', marginBottom: 2 }}>Daily Cap (SOL)</div>
+                    <div style={{ fontSize: 11, color: '#ffffffcc', marginBottom: 2 }}>Daily Cap (SOL)</div>
                     <input value={dailyCapInput} onChange={e => setDailyCapInput(e.target.value)} style={input()} />
                   </div>
                 </div>
 
-                <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>Card Controls</div>
+                <div style={{ fontSize: 11, color: '#ffffffcc', marginTop: 4 }}>Card Controls</div>
                 {[['QuickPick', enableQP, setEnableQP], ['HotShot', enableHS, setEnableHS], ['MegaGold', enableMG, setEnableMG]].map(([l, v, s]) => (
                   <div key={l as string} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0' }}>
                     <span style={{ color: '#ccc', fontSize: 12 }}>{l as string}</span>
@@ -707,7 +707,7 @@ export default function AdminPanel() {
                 </div>
 
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 11, color: '#888', marginBottom: 2 }}>Free Play Cooldown (hours)</div>
+                  <div style={{ fontSize: 11, color: '#ffffffcc', marginBottom: 2 }}>Free Play Cooldown (hours)</div>
                   <input value={cooldownHrs} onChange={e => setCooldownHrs(e.target.value)} style={input()} />
                 </div>
 
@@ -725,11 +725,11 @@ export default function AdminPanel() {
                   ['🥉 3rd', p3Sol, setP3Sol, p3Skr, setP3Skr],
                 ].map(([label, sol, setSol, skr, setSkr]) => (
                   <div key={label as string} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                    <span style={{ color: '#aaa', fontSize: 12, width: 36, flexShrink: 0 }}>{label as string}</span>
+                    <span style={{ color: '#ffffffdd', fontSize: 12, width: 36, flexShrink: 0 }}>{label as string}</span>
                     <input value={sol as string} onChange={e => (setSol as any)(e.target.value)} style={input({ flex: 1 })} placeholder="SOL" />
-                    <span style={{ color: '#555', fontSize: 11 }}>SOL</span>
+                    <span style={{ color: '#ffffff99', fontSize: 11 }}>SOL</span>
                     <input value={skr as string} onChange={e => (setSkr as any)(e.target.value)} style={input({ flex: 1 })} placeholder="SKR" />
-                    <span style={{ color: '#555', fontSize: 11 }}>SKR</span>
+                    <span style={{ color: '#ffffff99', fontSize: 11 }}>SKR</span>
                   </div>
                 ))}
                 <button onClick={saveGameSettings} style={btn('#4ade80', '#000')}>Save SOL Prizes</button>
@@ -741,9 +741,9 @@ export default function AdminPanel() {
                   ['🥉 3rd', s3Skr, setS3Skr],
                 ].map(([label, v, sv]) => (
                   <div key={label as string} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                    <span style={{ color: '#aaa', fontSize: 12, width: 36, flexShrink: 0 }}>{label as string}</span>
+                    <span style={{ color: '#ffffffdd', fontSize: 12, width: 36, flexShrink: 0 }}>{label as string}</span>
                     <input value={v as string} onChange={e => (sv as any)(e.target.value)} style={input({ flex: 1 })} placeholder="SKR" />
-                    <span style={{ color: '#555', fontSize: 11 }}>SKR</span>
+                    <span style={{ color: '#ffffff99', fontSize: 11 }}>SKR</span>
                   </div>
                 ))}
                 <button onClick={saveGameSettings} style={btn('#00d4ff', '#000')}>Save Sweep Prizes</button>
@@ -762,7 +762,7 @@ export default function AdminPanel() {
                   rows={3}
                   style={{ ...input(), resize: 'none', fontFamily: 'monospace' }}
                 />
-                <div style={{ fontSize: 11, color: '#555' }}>{bannerText.length}/100 characters</div>
+                <div style={{ fontSize: 11, color: '#ffffff99' }}>{bannerText.length}/100 characters</div>
                 {bannerText && (
                   <div style={{ padding: '8px 10px', background: '#ffd700', color: '#000', borderRadius: 6, fontSize: 12, fontWeight: 'bold' }}>
                     📢 {bannerText}
@@ -780,15 +780,15 @@ export default function AdminPanel() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div style={sectionHdr()}>MONTHLY SOL WINNERS</div>
                 {winners.length === 0 ? (
-                  <div style={{ color: '#555', fontSize: 12 }}>No data — loading...</div>
+                  <div style={{ color: '#ffffff99', fontSize: 12 }}>No data — loading...</div>
                 ) : winners.map((w, i) => (
                   <div key={w.wallet} style={{ background: '#111', borderRadius: 8, padding: 8 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ color: '#ffd700', fontSize: 12 }}>{['🥇','🥈','🥉'][i]} {w.displayName || `${w.wallet.slice(0,8)}...`}</span>
-                      <span style={{ color: '#aaa', fontSize: 11 }}>{w.pointsThisMonth} pts</span>
+                      <span style={{ color: '#ffffffdd', fontSize: 11 }}>{w.pointsThisMonth} pts</span>
                     </div>
                     <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
-                      <span style={{ color: '#555', fontSize: 10, flex: 1, wordBreak: 'break-all' }}>{w.wallet}</span>
+                      <span style={{ color: '#ffffff99', fontSize: 10, flex: 1, wordBreak: 'break-all' }}>{w.wallet}</span>
                       <button onClick={() => copy(w.wallet)} style={btn('#333', '#fff')}>Copy</button>
                     </div>
                   </div>
@@ -796,7 +796,7 @@ export default function AdminPanel() {
                 {winners.length > 0 && (
                   <>
                     <button onClick={() => copy(winners.map((w: any) => w.wallet).join('\n'))} style={btn('#555')}>Copy All 3 Addresses</button>
-                    <div style={{ background: '#111', borderRadius: 8, padding: 8, fontSize: 11, color: '#aaa', lineHeight: 1.7 }}>
+                    <div style={{ background: '#111', borderRadius: 8, padding: 8, fontSize: 11, color: '#ffffffdd', lineHeight: 1.7 }}>
                       <div style={{ color: '#ffd700', marginBottom: 4 }}>Payout Reminder (send from Phantom):</div>
                       1st: {p1Sol} SOL + {p1Skr} SKR<br />
                       2nd: {p2Sol} SOL + {p2Skr} SKR<br />
@@ -810,15 +810,15 @@ export default function AdminPanel() {
 
                 <div style={sectionHdr('#00d4ff')}>MONTHLY SWEEP WINNERS</div>
                 {sweepWinners.length === 0 ? (
-                  <div style={{ color: '#555', fontSize: 12 }}>No sweep activity yet</div>
+                  <div style={{ color: '#ffffff99', fontSize: 12 }}>No sweep activity yet</div>
                 ) : sweepWinners.map((w, i) => (
                   <div key={w.wallet} style={{ background: '#111', borderRadius: 8, padding: 8 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ color: '#00d4ff', fontSize: 12 }}>{['🥇','🥈','🥉'][i]} {w.displayName || `${w.wallet.slice(0,8)}...`}</span>
-                      <span style={{ color: '#aaa', fontSize: 11 }}>{w.sweepPointsThisMonth} sweep pts</span>
+                      <span style={{ color: '#ffffffdd', fontSize: 11 }}>{w.sweepPointsThisMonth} sweep pts</span>
                     </div>
                     <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
-                      <span style={{ color: '#555', fontSize: 10, flex: 1, wordBreak: 'break-all' }}>{w.wallet}</span>
+                      <span style={{ color: '#ffffff99', fontSize: 10, flex: 1, wordBreak: 'break-all' }}>{w.wallet}</span>
                       <button onClick={() => copy(w.wallet)} style={btn('#333', '#fff')}>Copy</button>
                     </div>
                   </div>
@@ -826,7 +826,7 @@ export default function AdminPanel() {
                 {sweepWinners.length > 0 && (
                   <>
                     <button onClick={() => copy(sweepWinners.map((w: any) => w.wallet).join('\n'))} style={btn('#555')}>Copy All 3 Addresses</button>
-                    <div style={{ background: '#111', borderRadius: 8, padding: 8, fontSize: 11, color: '#aaa', lineHeight: 1.7 }}>
+                    <div style={{ background: '#111', borderRadius: 8, padding: 8, fontSize: 11, color: '#ffffffdd', lineHeight: 1.7 }}>
                       <div style={{ color: '#00d4ff', marginBottom: 4 }}>Send SKR from Phantom:</div>
                       1st: {s1Skr} SKR<br />
                       2nd: {s2Skr} SKR<br />
@@ -872,7 +872,7 @@ export default function AdminPanel() {
                         ['Referred By', lookupResult.referredBy ? `${lookupResult.referredBy.slice(0,10)}...` : '—'],
                       ].map(([l, v]) => (
                         <div key={l as string} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
-                          <span style={{ color: '#888' }}>{l as string}</span>
+                          <span style={{ color: '#ffffffcc' }}>{l as string}</span>
                           <span style={{ color: '#ccc' }}>{String(v)}</span>
                         </div>
                       ))}
@@ -882,7 +882,7 @@ export default function AdminPanel() {
                 {/* Copy full wallet from lookup result */}
                 {lookupResult && !lookupResult.error && lookupResult.wallet && (
                   <div style={{ display: 'flex', gap: 6 }}>
-                    <div style={{ flex: 1, background: '#0a0a1a', borderRadius: 6, padding: '6px 8px', fontSize: 10, color: '#aaa', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                    <div style={{ flex: 1, background: '#0a0a1a', borderRadius: 6, padding: '6px 8px', fontSize: 10, color: '#ffffffdd', fontFamily: 'monospace', wordBreak: 'break-all' }}>
                       {lookupResult.wallet}
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -913,10 +913,10 @@ export default function AdminPanel() {
                         <div key={r.wallet} style={{ background: '#111', borderRadius: 6, padding: '6px 8px', fontSize: 11 }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
                             <span style={{ color: '#ffd700', fontWeight: 'bold' }}>{r.displayName || '(no name)'}</span>
-                            <span style={{ color: '#555', fontSize: 10 }}>{r.pointsThisMonth} pts</span>
+                            <span style={{ color: '#ffffff99', fontSize: 10 }}>{r.pointsThisMonth} pts</span>
                           </div>
                           <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                            <span style={{ color: '#555', fontSize: 10, flex: 1, fontFamily: 'monospace', wordBreak: 'break-all' }}>{r.wallet}</span>
+                            <span style={{ color: '#ffffff99', fontSize: 10, flex: 1, fontFamily: 'monospace', wordBreak: 'break-all' }}>{r.wallet}</span>
                             <button onClick={() => copy(r.wallet)} style={{ ...btn('#333'), padding: '2px 6px', fontSize: 10 }}>Copy</button>
                             <button onClick={() => { setLookupInput(r.wallet); lookupPlayer() }} style={{ ...btn('#555'), padding: '2px 6px', fontSize: 10 }}>View</button>
                             <button onClick={() => { setPointsWallet(r.wallet); setActiveSection('points') }} style={{ ...btn('#7c3aed'), padding: '2px 6px', fontSize: 10 }}>+Pts</button>
@@ -926,7 +926,7 @@ export default function AdminPanel() {
                     </div>
                   )}
                   {nameResults.length === 0 && nameSearch && !nameSearching && (
-                    <div style={{ color: '#555', fontSize: 11 }}>No results — hit Find to search</div>
+                    <div style={{ color: '#ffffff99', fontSize: 11 }}>No results — hit Find to search</div>
                   )}
                 </div>
 
@@ -972,20 +972,20 @@ export default function AdminPanel() {
                               style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 8px', cursor: 'pointer' }}
                             >
                               <div>
-                                <span style={{ color: p.displayName ? '#ffd700' : '#888', fontSize: 11, fontWeight: 'bold', fontFamily: p.displayName ? undefined : 'monospace' }}>
+                                <span style={{ color: p.displayName ? '#ffd700' : '#ffffffcc', fontSize: 11, fontWeight: 'bold', fontFamily: p.displayName ? undefined : 'monospace' }}>
                                   {p.displayName || (p.wallet ? `${p.wallet.slice(0,4)}...${p.wallet.slice(-4)}` : '—')}
                                 </span>
-                                <span style={{ color: '#555', fontSize: 10, marginLeft: 6 }}>{p.cardsScratched} cards · {p.wins}W · {p.winRate}%</span>
+                                <span style={{ color: '#ffffff99', fontSize: 10, marginLeft: 6 }}>{p.cardsScratched} cards · {p.wins}W · {p.winRate}%</span>
                               </div>
-                              <span style={{ color: '#aaa', fontSize: 10 }}>{p.pointsAllTime} pts</span>
+                              <span style={{ color: '#ffffffdd', fontSize: 10 }}>{p.pointsAllTime} pts</span>
                             </div>
                             {expandedPda === p.pda && (
                               <div style={{ padding: '6px 8px', borderTop: '1px solid #1a1a2e', display: 'flex', flexDirection: 'column', gap: 3 }}>
                                 {([['Spent', `${p.totalSpent} SOL`], ['Won', `${p.totalWon} SOL`], ['SOL pts (month)', p.pointsThisMonth], ['Sweep pts (month)', p.sweepPointsThisMonth], ['Free plays', p.freePlaysUsed], ['Free wins', p.freePlayWins], ['Referrals made', p.referralsCount], ['Referred', p.hasBeenReferred ? '✅' : '❌'], ['Bonus paid', p.referralBonusPaid ? '✅' : '❌']] as [string,any][]).map(([l,v]) => (
-                                  <div key={l} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10 }}><span style={{ color: '#555' }}>{l}</span><span style={{ color: '#bbb' }}>{String(v)}</span></div>
+                                  <div key={l} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10 }}><span style={{ color: '#ffffff99' }}>{l}</span><span style={{ color: '#bbb' }}>{String(v)}</span></div>
                                 ))}
                                 <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
-                                  <span style={{ color: '#444', fontSize: 9, fontFamily: 'monospace', flex: 1, wordBreak: 'break-all' }}>{p.pda}</span>
+                                  <span style={{ color: '#ffffff88', fontSize: 9, fontFamily: 'monospace', flex: 1, wordBreak: 'break-all' }}>{p.pda}</span>
                                   <button onClick={() => copy(p.pda)} style={{ ...btn('#333'), padding: '2px 5px', fontSize: 9 }}>Copy PDA</button>
                                   <a href={`https://solscan.io/account/${p.pda}`} target="_blank" rel="noreferrer" style={{ ...btn('#1a1a3e', '#00d4ff'), padding: '2px 5px', fontSize: 9, textDecoration: 'none', border: '1px solid #00d4ff33' }}>Solscan</a>
                                 </div>
@@ -994,10 +994,10 @@ export default function AdminPanel() {
                           </div>
                         ))}
                         {filtered.length > 50 && (
-                          <div style={{ color: '#555', fontSize: 11, textAlign: 'center', padding: 4 }}>Showing 50 of {filtered.length} — use filter to narrow</div>
+                          <div style={{ color: '#ffffff99', fontSize: 11, textAlign: 'center', padding: 4 }}>Showing 50 of {filtered.length} — use filter to narrow</div>
                         )}
                         {filtered.length === 0 && (
-                          <div style={{ color: '#555', fontSize: 11 }}>No players match filter</div>
+                          <div style={{ color: '#ffffff99', fontSize: 11 }}>No players match filter</div>
                         )}
                       </div>
                     </>
@@ -1027,22 +1027,22 @@ export default function AdminPanel() {
                               ) : (
                                 <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#222', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>👤</div>
                               )}
-                              <div style={{ color: playersResult.displayName ? '#ffd700' : '#888', fontSize: 13, fontWeight: 'bold', fontFamily: playersResult.displayName ? undefined : 'monospace' }}>
+                              <div style={{ color: playersResult.displayName ? '#ffd700' : '#ffffffcc', fontSize: 13, fontWeight: 'bold', fontFamily: playersResult.displayName ? undefined : 'monospace' }}>
                                 {playersResult.displayName || (playersResult.wallet ? `${playersResult.wallet.slice(0,6)}...${playersResult.wallet.slice(-4)}` : '—')}
                               </div>
                             </div>
                             <div style={{ marginBottom: 6 }}>
-                              <div style={{ color: '#555', fontSize: 10, marginBottom: 2 }}>WALLET</div>
+                              <div style={{ color: '#ffffff99', fontSize: 10, marginBottom: 2 }}>WALLET</div>
                               <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                                <span style={{ color: '#aaa', fontSize: 10, fontFamily: 'monospace', flex: 1, wordBreak: 'break-all' }}>{playersResult.wallet}</span>
+                                <span style={{ color: '#ffffffdd', fontSize: 10, fontFamily: 'monospace', flex: 1, wordBreak: 'break-all' }}>{playersResult.wallet}</span>
                                 <button onClick={() => copy(playersResult.wallet)} style={{ ...btn('#333'), padding: '2px 6px', fontSize: 10 }}>Copy</button>
                                 <a href={`https://solscan.io/account/${playersResult.wallet}`} target="_blank" rel="noreferrer" style={{ ...btn('#1a1a3e', '#00d4ff'), padding: '2px 6px', fontSize: 10, textDecoration: 'none', border: '1px solid #00d4ff44' }}>Solscan</a>
                               </div>
                             </div>
                             <div>
-                              <div style={{ color: '#555', fontSize: 10, marginBottom: 2 }}>PROFILE PDA</div>
+                              <div style={{ color: '#ffffff99', fontSize: 10, marginBottom: 2 }}>PROFILE PDA</div>
                               <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                                <span style={{ color: '#aaa', fontSize: 10, fontFamily: 'monospace', flex: 1, wordBreak: 'break-all' }}>{playersResult.pda}</span>
+                                <span style={{ color: '#ffffffdd', fontSize: 10, fontFamily: 'monospace', flex: 1, wordBreak: 'break-all' }}>{playersResult.pda}</span>
                                 <button onClick={() => copy(playersResult.pda)} style={{ ...btn('#333'), padding: '2px 6px', fontSize: 10 }}>Copy</button>
                                 <a href={`https://solscan.io/account/${playersResult.pda}`} target="_blank" rel="noreferrer" style={{ ...btn('#1a1a3e', '#00d4ff'), padding: '2px 6px', fontSize: 10, textDecoration: 'none', border: '1px solid #00d4ff44' }}>Solscan</a>
                               </div>
@@ -1051,19 +1051,19 @@ export default function AdminPanel() {
                           <div style={{ background: '#111', borderRadius: 8, padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
                             <div style={{ color: '#ffd700', fontSize: 10, fontWeight: 'bold', marginBottom: 2, letterSpacing: 1 }}>GAMEPLAY</div>
                             {([['Cards', playersResult.cardsScratched], ['Wins', playersResult.wins], ['Win Rate', `${playersResult.winRate}%`], ['Spent', `${playersResult.totalSpent} SOL`], ['Won', `${playersResult.totalWon} SOL`], ['Free Plays', playersResult.freePlaysUsed], ['Free Wins', playersResult.freePlayWins]] as [string,any][]).map(([l,v]) => (
-                              <div key={l} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}><span style={{ color: '#666' }}>{l}</span><span style={{ color: '#ccc' }}>{String(v)}</span></div>
+                              <div key={l} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}><span style={{ color: '#ffffffcc' }}>{l}</span><span style={{ color: '#ccc' }}>{String(v)}</span></div>
                             ))}
                           </div>
                           <div style={{ background: '#111', borderRadius: 8, padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
                             <div style={{ color: '#ffd700', fontSize: 10, fontWeight: 'bold', marginBottom: 2, letterSpacing: 1 }}>POINTS</div>
                             {([['SOL pts (month)', playersResult.pointsThisMonth], ['SOL pts (all time)', playersResult.pointsAllTime], ['Sweep pts (month)', playersResult.sweepPointsThisMonth], ['Sweep pts (all time)', playersResult.sweepPointsAllTime]] as [string,any][]).map(([l,v]) => (
-                              <div key={l} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}><span style={{ color: '#666' }}>{l}</span><span style={{ color: '#ccc' }}>{String(v)}</span></div>
+                              <div key={l} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}><span style={{ color: '#ffffffcc' }}>{l}</span><span style={{ color: '#ccc' }}>{String(v)}</span></div>
                             ))}
                           </div>
                           <div style={{ background: '#111', borderRadius: 8, padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
                             <div style={{ color: '#ffd700', fontSize: 10, fontWeight: 'bold', marginBottom: 2, letterSpacing: 1 }}>REFERRALS</div>
                             {([['Referred', playersResult.hasBeenReferred ? '✅' : '❌'], ['Bonus Paid', playersResult.referralBonusPaid ? '✅' : '❌'], ['Referrals Made', playersResult.referralsCount], ['Referred By', playersResult.referredBy ? `${playersResult.referredBy.slice(0,10)}...` : '—'], ['Last Win Slot', playersResult.lastWinSlot > 0 ? playersResult.lastWinSlot : '—'], ['Last Free Play', playersResult.lastFreePlayTs > 0 ? new Date(playersResult.lastFreePlayTs * 1000).toLocaleString() : '—']] as [string,any][]).map(([l,v]) => (
-                              <div key={l} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}><span style={{ color: '#666' }}>{l}</span><span style={{ color: '#ccc' }}>{String(v)}</span></div>
+                              <div key={l} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}><span style={{ color: '#ffffffcc' }}>{l}</span><span style={{ color: '#ccc' }}>{String(v)}</span></div>
                             ))}
                           </div>
                           <div style={{ display: 'flex', gap: 6 }}>
@@ -1083,12 +1083,12 @@ export default function AdminPanel() {
             {activeSection === 'points' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <div style={sectionHdr()}>MANUAL POINTS ADJUSTMENT</div>
-                <div style={{ fontSize: 11, color: '#888', lineHeight: 1.5 }}>
+                <div style={{ fontSize: 11, color: '#ffffffcc', lineHeight: 1.5 }}>
                   Add points to any player profile. Use for compensation, missed bonuses, or support requests.<br />
                   <span style={{ color: '#f59e0b' }}>⚠️ Requires program upgrade — deploy updated lib.rs first.</span>
                 </div>
 
-                <div style={{ fontSize: 11, color: '#888', marginTop: 4, marginBottom: 2 }}>Wallet Address</div>
+                <div style={{ fontSize: 11, color: '#ffffffcc', marginTop: 4, marginBottom: 2 }}>Wallet Address</div>
                 <div style={{ display: 'flex', gap: 6 }}>
                   <input
                     value={pointsWallet} onChange={e => { setPointsWallet(e.target.value); setPointsPreview(null) }}
@@ -1112,16 +1112,16 @@ export default function AdminPanel() {
                   ) : (
                     <div style={{ background: '#111', borderRadius: 8, padding: 8, fontSize: 11 }}>
                       <div style={{ color: '#ffd700', marginBottom: 4 }}>{pointsPreview.displayName || 'Anonymous'}</div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#888' }}>Points this month</span><span style={{ color: '#ccc' }}>{pointsPreview.pointsThisMonth}</span></div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#888' }}>Points all time</span><span style={{ color: '#ccc' }}>{pointsPreview.pointsAllTime}</span></div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#888' }}>Referrals count</span><span style={{ color: '#ccc' }}>{pointsPreview.referralsCount}</span></div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#ffffffcc' }}>Points this month</span><span style={{ color: '#ccc' }}>{pointsPreview.pointsThisMonth}</span></div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#ffffffcc' }}>Points all time</span><span style={{ color: '#ccc' }}>{pointsPreview.pointsAllTime}</span></div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#ffffffcc' }}>Referrals count</span><span style={{ color: '#ccc' }}>{pointsPreview.referralsCount}</span></div>
                     </div>
                   )
                 )}
 
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 11, color: '#888', marginBottom: 2 }}>Points to add</div>
+                    <div style={{ fontSize: 11, color: '#ffffffcc', marginBottom: 2 }}>Points to add</div>
                     <input value={pointsAmount} onChange={e => setPointsAmount(e.target.value)} style={input()} placeholder="e.g. 100" />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingTop: 16 }}>
@@ -1134,7 +1134,7 @@ export default function AdminPanel() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderTop: '1px solid #1a1a2e', marginTop: 2 }}>
                   <div>
                     <div style={{ color: '#ccc', fontSize: 12 }}>Also increment referrals_count</div>
-                    <div style={{ color: '#555', fontSize: 10 }}>Use when fixing a missed referral credit (+1 friend)</div>
+                    <div style={{ color: '#ffffff99', fontSize: 10 }}>Use when fixing a missed referral credit (+1 friend)</div>
                   </div>
                   <button onClick={() => setPointsAddReferral(!pointsAddReferral)} style={{ padding: '4px 10px', border: 'none', borderRadius: 6, cursor: 'pointer', background: pointsAddReferral ? '#4ade80' : '#333', color: pointsAddReferral ? '#000' : '#fff', fontSize: 11, fontWeight: 'bold' }}>
                     {pointsAddReferral ? 'YES' : 'NO'}
@@ -1151,7 +1151,7 @@ export default function AdminPanel() {
             {activeSection === 'referrals' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div style={sectionHdr('#00d4ff')}>UNCREDITED REFERRALS</div>
-                <div style={{ fontSize: 11, color: '#888', lineHeight: 1.6 }}>
+                <div style={{ fontSize: 11, color: '#ffffffcc', lineHeight: 1.6 }}>
                   Finds wallets that were referred but whose referrer hasn't been credited yet. Click "Credit Referrer" to add 100 pts + referral count to the referrer via adminAdjustPoints.
                 </div>
                 <div style={{ fontSize: 11, color: '#ccc', background: '#0d1f0d', border: '1px solid #1a3a1a', borderRadius: 6, padding: '7px 10px', lineHeight: 1.5 }}>
@@ -1173,10 +1173,10 @@ export default function AdminPanel() {
                       {uncreditedReferrals.map((r) => (
                         <div key={r.wallet} style={{ background: '#111', borderRadius: 8, padding: 8, fontSize: 11 }}>
                           <div style={{ color: '#ffd700', marginBottom: 4 }}>{r.displayName || 'Anonymous'} · {r.cardsScratched} cards scratched</div>
-                          <div style={{ color: '#888', marginBottom: 2 }}>
+                          <div style={{ color: '#ffffffcc', marginBottom: 2 }}>
                             Referee: <span style={{ color: '#ccc', fontFamily: 'monospace' }}>{r.wallet.slice(0, 8)}...{r.wallet.slice(-4)}</span>
                           </div>
-                          <div style={{ color: '#888', marginBottom: 6 }}>
+                          <div style={{ color: '#ffffffcc', marginBottom: 6 }}>
                             Referrer: <span style={{ color: '#00d4ff', fontFamily: 'monospace' }}>{r.referredBy?.slice(0, 8)}...{r.referredBy?.slice(-4)}</span>
                           </div>
                           <div style={{ display: 'flex', gap: 4 }}>
@@ -1217,16 +1217,16 @@ export default function AdminPanel() {
                   {/* Sweep leaderboard */}
                   <div style={sectionHdr('#00d4ff')}>SWEEP LEADERBOARD</div>
                   {sweepWinners.length === 0 ? (
-                    <div style={{ color: '#555', fontSize: 11 }}>No sweep activity this month</div>
+                    <div style={{ color: '#ffffff99', fontSize: 11 }}>No sweep activity this month</div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                       {sweepWinners.map((w, i) => (
                         <div key={w.wallet} style={{ background: '#111', borderRadius: 8, padding: '8px 10px' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
                             <span style={{ color: '#00d4ff', fontSize: 12 }}>{['🥇','🥈','🥉'][i]} {w.displayName || 'Anonymous'}</span>
-                            <span style={{ color: '#aaa', fontSize: 11 }}>{w.sweepPointsThisMonth} pts</span>
+                            <span style={{ color: '#ffffffdd', fontSize: 11 }}>{w.sweepPointsThisMonth} pts</span>
                           </div>
-                          <div style={{ color: '#555', fontSize: 10, fontFamily: 'monospace', wordBreak: 'break-all' }}>{w.wallet}</div>
+                          <div style={{ color: '#ffffff99', fontSize: 10, fontFamily: 'monospace', wordBreak: 'break-all' }}>{w.wallet}</div>
                         </div>
                       ))}
                     </div>
@@ -1238,16 +1238,16 @@ export default function AdminPanel() {
                   {/* SOL leaderboard */}
                   <div style={{ ...sectionHdr(), marginTop: 4 }}>SOL LEADERBOARD</div>
                   {winners.length === 0 ? (
-                    <div style={{ color: '#555', fontSize: 11 }}>No data yet — panel just opened?</div>
+                    <div style={{ color: '#ffffff99', fontSize: 11 }}>No data yet — panel just opened?</div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                       {winners.map((w, i) => (
                         <div key={w.wallet} style={{ background: '#111', borderRadius: 8, padding: '8px 10px' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
                             <span style={{ color: '#ffd700', fontSize: 12 }}>{['🥇','🥈','🥉'][i]} {w.displayName || 'Anonymous'}</span>
-                            <span style={{ color: '#aaa', fontSize: 11 }}>{w.pointsThisMonth} pts</span>
+                            <span style={{ color: '#ffffffdd', fontSize: 11 }}>{w.pointsThisMonth} pts</span>
                           </div>
-                          <div style={{ color: '#555', fontSize: 10, fontFamily: 'monospace', wordBreak: 'break-all' }}>{w.wallet}</div>
+                          <div style={{ color: '#ffffff99', fontSize: 10, fontFamily: 'monospace', wordBreak: 'break-all' }}>{w.wallet}</div>
                         </div>
                       ))}
                     </div>
@@ -1259,7 +1259,7 @@ export default function AdminPanel() {
                   {/* Month reset warning */}
                   <div style={{ marginTop: 4, padding: '10px 12px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: 10 }}>
                     <div style={{ color: '#f87171', fontWeight: 'bold', fontSize: 11, marginBottom: 6 }}>⚠️ MONTH RESET WARNING</div>
-                    <div style={{ color: '#aaa', fontSize: 11, marginBottom: 4 }}>Current month started: <span style={{ color: '#fff' }}>{monthStartDate}</span></div>
+                    <div style={{ color: '#ffffffdd', fontSize: 11, marginBottom: 4 }}>Current month started: <span style={{ color: '#fff' }}>{monthStartDate}</span></div>
                     <div style={{ color: '#f87171', fontSize: 11, lineHeight: 1.5 }}>
                       Resetting points will affect the leaderboard — make sure prizes are sent first before triggering any reset.
                     </div>
@@ -1279,10 +1279,10 @@ export default function AdminPanel() {
                   </button>
                 </div>
                 {!activityLoaded && !activityLoading && (
-                  <div style={{ color: '#555', fontSize: 11 }}>Click Refresh to load the last 100 transactions.</div>
+                  <div style={{ color: '#ffffff99', fontSize: 11 }}>Click Refresh to load the last 100 transactions.</div>
                 )}
                 {activityLoaded && activity.length === 0 && (
-                  <div style={{ color: '#555', fontSize: 11 }}>No transactions found.</div>
+                  <div style={{ color: '#ffffff99', fontSize: 11 }}>No transactions found.</div>
                 )}
                 {activity.length > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 420, overflowY: 'auto' }}>
@@ -1298,12 +1298,12 @@ export default function AdminPanel() {
                       const short = row.wallet ? `${row.wallet.slice(0, 4)}...${row.wallet.slice(-4)}` : '—'
                       return (
                         <div key={row.sig} style={{ background: '#111', borderRadius: 8, padding: '7px 10px', display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
-                          <span style={{ color: '#555', minWidth: 52, flexShrink: 0 }}>{ago}</span>
+                          <span style={{ color: '#ffffff99', minWidth: 52, flexShrink: 0 }}>{ago}</span>
                           <a href={`https://solscan.io/account/${row.wallet}`} target="_blank" rel="noreferrer"
                              style={{ color: '#ccc', fontFamily: 'monospace', flex: 1, minWidth: 0, textDecoration: 'none' }}>
                             {short}
                           </a>
-                          <button onClick={() => copy(row.wallet)} title="Copy wallet" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#444', fontSize: 11, padding: '0 2px', flexShrink: 0 }}>⎘</button>
+                          <button onClick={() => copy(row.wallet)} title="Copy wallet" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ffffff88', fontSize: 11, padding: '0 2px', flexShrink: 0 }}>⎘</button>
                           {row.type === 'WIN' && (
                             <span style={{ color: '#4ade80', fontFamily: 'monospace', minWidth: 110, textAlign: 'right', flexShrink: 0, fontSize: 10 }}>
                               {`🏆${row.cardLabel ? ` ${row.cardLabel}` : ''} +${row.prize.toFixed(3)}◎`}
@@ -1325,7 +1325,7 @@ export default function AdminPanel() {
                               <span style={{ color: '#f87171', fontSize: 9, fontWeight: 'bold' }}>L</span>
                             </span>
                           )}
-                          <a href={`https://solscan.io/tx/${row.sig}`} target="_blank" rel="noreferrer" style={{ color: '#555', fontSize: 11, textDecoration: 'none', flexShrink: 0 }}>↗</a>
+                          <a href={`https://solscan.io/tx/${row.sig}`} target="_blank" rel="noreferrer" style={{ color: '#ffffff99', fontSize: 11, textDecoration: 'none', flexShrink: 0 }}>↗</a>
                         </div>
                       )
                     })}

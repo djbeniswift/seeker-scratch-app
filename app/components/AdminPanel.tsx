@@ -360,6 +360,7 @@ export default function AdminPanel() {
         const wins = a.account.wins ?? 0
         return {
           pda: a.publicKey.toBase58(),
+          wallet: a.account.owner?.toBase58() || '',
           displayName: a.account.displayName || null,
           cardsScratched: cards,
           wins,
@@ -942,7 +943,7 @@ export default function AdminPanel() {
             {activeSection === 'players' && (() => {
               const filtered = allPlayers.filter(p => {
                 const q = playersFilter.toLowerCase()
-                return !q || (p.displayName || '').toLowerCase().includes(q) || p.pda.toLowerCase().includes(q)
+                return !q || (p.displayName || '').toLowerCase().includes(q) || p.pda.toLowerCase().includes(q) || p.wallet.toLowerCase().includes(q)
               })
               return (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -971,7 +972,9 @@ export default function AdminPanel() {
                               style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 8px', cursor: 'pointer' }}
                             >
                               <div>
-                                <span style={{ color: '#ffd700', fontSize: 11, fontWeight: 'bold' }}>{p.displayName || 'Anonymous'}</span>
+                                <span style={{ color: p.displayName ? '#ffd700' : '#888', fontSize: 11, fontWeight: 'bold', fontFamily: p.displayName ? undefined : 'monospace' }}>
+                                  {p.displayName || (p.wallet ? `${p.wallet.slice(0,4)}...${p.wallet.slice(-4)}` : '—')}
+                                </span>
                                 <span style={{ color: '#555', fontSize: 10, marginLeft: 6 }}>{p.cardsScratched} cards · {p.wins}W · {p.winRate}%</span>
                               </div>
                               <span style={{ color: '#aaa', fontSize: 10 }}>{p.pointsAllTime} pts</span>
@@ -1024,8 +1027,8 @@ export default function AdminPanel() {
                               ) : (
                                 <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#222', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>👤</div>
                               )}
-                              <div style={{ color: '#ffd700', fontSize: 13, fontWeight: 'bold' }}>
-                                {playersResult.displayName || 'Anonymous'}
+                              <div style={{ color: playersResult.displayName ? '#ffd700' : '#888', fontSize: 13, fontWeight: 'bold', fontFamily: playersResult.displayName ? undefined : 'monospace' }}>
+                                {playersResult.displayName || (playersResult.wallet ? `${playersResult.wallet.slice(0,6)}...${playersResult.wallet.slice(-4)}` : '—')}
                               </div>
                             </div>
                             <div style={{ marginBottom: 6 }}>

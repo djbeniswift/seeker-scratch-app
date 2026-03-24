@@ -15,7 +15,7 @@ const KNOWN_WALLETS = [
   'GTpPckfLivFsNZphqoBYknrwhwuTEHK49WQXyjRuszAn',
 ]
 
-export default function RanksTab({ connection, wallet, publicKey }: any) {
+export default function RanksTab({ connection, wallet, publicKey, masterConfig }: any) {
   const [players, setPlayers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState<'month' | 'alltime'>('month')
@@ -87,6 +87,11 @@ export default function RanksTab({ connection, wallet, publicKey }: any) {
   const myPda = publicKey ? getProfilePda(publicKey).toBase58() : null
   const medals = ['🥇', '🥈', '🥉']
   const solPrizes = ['0.25 SOL + 500 SKR', '0.15 SOL + 250 SKR', '0.05 SOL + 100 SKR']
+  const sweepPrizes = [
+    `+ ${(masterConfig?.sweep1stSkr ?? 500).toLocaleString()} SKR`,
+    `+ ${(masterConfig?.sweep2ndSkr ?? 250).toLocaleString()} SKR`,
+    `+ ${(masterConfig?.sweep3rdSkr ?? 100).toLocaleString()} SKR`,
+  ]
   const solSorted = [...players].sort((a, b) =>
     period === 'month' ? b.pointsThisMonth - a.pointsThisMonth : b.pointsAllTime - a.pointsAllTime
   )
@@ -155,8 +160,20 @@ export default function RanksTab({ connection, wallet, publicKey }: any) {
         </div>
       )}
       {leagueTab === 'sweep' && (
-        <div style={{ background: 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.2)', borderRadius: 10, padding: 12, marginBottom: 16, textAlign: 'center', color: '#ffffffdd', fontSize: 13 }}>
-          🎟️ Free daily play • Earn sweep points • Win SKR each month
+        <div style={{ background: 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.2)', borderRadius: 10, padding: 12, marginBottom: 16 }}>
+          <div style={{ textAlign: 'center', color: '#ffffffdd', fontSize: 13, marginBottom: 10 }}>🎟️ Free daily play • Earn sweep points • Win SKR each month</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, textAlign: 'center' }}>
+            {[
+              { place: '🥇 1st', skr: masterConfig?.sweep1stSkr ?? 500 },
+              { place: '🥈 2nd', skr: masterConfig?.sweep2ndSkr ?? 250 },
+              { place: '🥉 3rd', skr: masterConfig?.sweep3rdSkr ?? 100 },
+            ].map(({ place, skr }) => (
+              <div key={place}>
+                <div style={{ color: '#00d4ff', fontSize: 13, fontFamily: "'Bebas Neue', sans-serif" }}>{place}</div>
+                <div style={{ color: '#00d4ff', fontSize: 12 }}>+ {skr.toLocaleString()} SKR</div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -194,6 +211,9 @@ export default function RanksTab({ connection, wallet, publicKey }: any) {
                   <div style={{ color: '#ffffffdd', fontSize: 13, letterSpacing: 1 }}>{pointsLabel}</div>
                   {leagueTab === 'sol' && period === 'month' && i < 3 && (
                     <div style={{ color: '#00d4ff', fontSize: 11, marginTop: 2 }}>{solPrizes[i]}</div>
+                  )}
+                  {leagueTab === 'sweep' && i < 3 && (
+                    <div style={{ color: '#00d4ff', fontSize: 11, marginTop: 2 }}>{sweepPrizes[i]}</div>
                   )}
                 </div>
               </div>

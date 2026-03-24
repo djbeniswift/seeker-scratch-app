@@ -868,7 +868,7 @@ export default function Home() {
 
         {/* RANKS TAB */}
         {activeNav === 'ranks' && (
-          <RanksTab connection={connection} wallet={wallet} publicKey={wallet.publicKey} />
+          <RanksTab connection={connection} wallet={wallet} publicKey={wallet.publicKey} masterConfig={masterConfig} />
         )}
         {/* PRIZES TAB */}
         {activeNav === 'prizes' && (

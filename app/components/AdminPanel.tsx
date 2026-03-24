@@ -1151,8 +1151,11 @@ export default function AdminPanel() {
             {activeSection === 'referrals' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div style={sectionHdr('#00d4ff')}>UNCREDITED REFERRALS</div>
-                <div style={{ fontSize: 11, color: '#888', lineHeight: 1.5 }}>
+                <div style={{ fontSize: 11, color: '#888', lineHeight: 1.6 }}>
                   Finds wallets that were referred but whose referrer hasn't been credited yet. Click "Credit Referrer" to add 100 pts + referral count to the referrer via adminAdjustPoints.
+                </div>
+                <div style={{ fontSize: 11, color: '#ccc', background: '#0d1f0d', border: '1px solid #1a3a1a', borderRadius: 6, padding: '7px 10px', lineHeight: 1.5 }}>
+                  🎁 Both the <span style={{ color: '#4ade80', fontWeight: 'bold' }}>referrer</span> and the <span style={{ color: '#4ade80', fontWeight: 'bold' }}>referee</span> receive <span style={{ color: '#ffd700', fontWeight: 'bold' }}>100 bonus points</span> for each successful referral.
                 </div>
                 <div style={{ fontSize: 10, color: '#f59e0b', lineHeight: 1.4 }}>
                   ⚠️ After crediting, entries stay in the list (referralBonusPaid flag can only be set by the player's own transaction). Keep a manual log to avoid double-crediting.

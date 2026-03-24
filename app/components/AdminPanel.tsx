@@ -207,7 +207,7 @@ export default function AdminPanel({ onSettingsSaved }: { onSettingsSaved?: () =
       const rProg = new Program(IDL as any, PROGRAM_ID, rp)
       const accounts = await (rProg.account as any).playerProfile.all()
       const profiles = accounts.map((a: any) => ({
-        wallet: a.account.owner?.toBase58() || a.publicKey.toBase58(),
+        wallet: a.publicKey.toBase58(), // PDA address — real player wallet resolved by cron
         displayName: a.account.displayName || null,
         pointsThisMonth: a.account.pointsThisMonth.toNumber(),
         sweepPointsThisMonth: a.account.sweepPointsThisMonth?.toNumber() ?? 0,
@@ -1289,6 +1289,7 @@ export default function AdminPanel({ onSettingsSaved }: { onSettingsSaved?: () =
               )
               const monthStartDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
                 .toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+              const shortAddr = (addr: string) => `${addr.slice(0,4)}...${addr.slice(-4)}`
               return (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
@@ -1300,11 +1301,14 @@ export default function AdminPanel({ onSettingsSaved }: { onSettingsSaved?: () =
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                       {sweepWinners.map((w, i) => (
                         <div key={w.wallet} style={{ background: '#111', borderRadius: 8, padding: '8px 10px' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-                            <span style={{ color: '#00d4ff', fontSize: 12 }}>{['🥇','🥈','🥉'][i]} {w.displayName || 'Anonymous'}</span>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                            <span style={{ color: '#00d4ff', fontSize: 13, fontWeight: 'bold' }}>{['🥇','🥈','🥉'][i]} {w.displayName || 'Anonymous'}</span>
                             <span style={{ color: '#ffffffdd', fontSize: 11 }}>{w.sweepPointsThisMonth} pts</span>
                           </div>
-                          <div style={{ color: '#ffffff99', fontSize: 10, fontFamily: 'monospace', wordBreak: 'break-all' }}>{w.wallet}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{ color: '#ffffff55', fontSize: 10, fontFamily: 'monospace' }}>{shortAddr(w.wallet)}</span>
+                            <button onClick={() => copy(w.wallet)} style={{ background: 'none', border: '1px solid #ffffff33', borderRadius: 4, color: '#ffffff99', fontSize: 9, padding: '1px 5px', cursor: 'pointer' }}>copy PDA</button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -1321,11 +1325,14 @@ export default function AdminPanel({ onSettingsSaved }: { onSettingsSaved?: () =
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                       {winners.map((w, i) => (
                         <div key={w.wallet} style={{ background: '#111', borderRadius: 8, padding: '8px 10px' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-                            <span style={{ color: '#ffd700', fontSize: 12 }}>{['🥇','🥈','🥉'][i]} {w.displayName || 'Anonymous'}</span>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                            <span style={{ color: '#ffd700', fontSize: 13, fontWeight: 'bold' }}>{['🥇','🥈','🥉'][i]} {w.displayName || 'Anonymous'}</span>
                             <span style={{ color: '#ffffffdd', fontSize: 11 }}>{w.pointsThisMonth} pts</span>
                           </div>
-                          <div style={{ color: '#ffffff99', fontSize: 10, fontFamily: 'monospace', wordBreak: 'break-all' }}>{w.wallet}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{ color: '#ffffff55', fontSize: 10, fontFamily: 'monospace' }}>{shortAddr(w.wallet)}</span>
+                            <button onClick={() => copy(w.wallet)} style={{ background: 'none', border: '1px solid #ffffff33', borderRadius: 4, color: '#ffffff99', fontSize: 9, padding: '1px 5px', cursor: 'pointer' }}>copy PDA</button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -1333,6 +1340,10 @@ export default function AdminPanel({ onSettingsSaved }: { onSettingsSaved?: () =
                   <button onClick={copySol} style={btn('#ffd700', '#000')}>
                     Copy SOL Wallets
                   </button>
+
+                  <div style={{ color: '#ffffff44', fontSize: 10, fontStyle: 'italic' }}>
+                    * PDA addresses shown. Player wallets resolved by cron at month end.
+                  </div>
 
                   {/* Month reset warning */}
                   <div style={{ marginTop: 4, padding: '10px 12px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: 10 }}>

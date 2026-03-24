@@ -169,7 +169,8 @@ export function useScratchProgram() {
         bannerActive: data.bannerActive,
       })
     } catch {
-      setMasterConfig(null) // not yet initialized
+      // Swallow error — keep existing masterConfig state.
+      // Setting null here caused the countdown to reset to 86400 on any RPC hiccup.
     }
   }, [connection, masterConfigPda])
 
@@ -312,7 +313,7 @@ export function useScratchProgram() {
             bannerText: mc.bannerText,
             bannerActive: mc.bannerActive,
           })
-        } catch { setMasterConfig(null) }
+        } catch { /* keep existing masterConfig — don't reset to null on decode/network error */ }
       } else {
         setMasterConfig(null)
       }

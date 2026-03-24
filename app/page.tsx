@@ -58,7 +58,7 @@ function formatBuyError(err: any): string {
 }
 import WalletButton from './components/WalletButton'
 import ScratchReveal from './components/ScratchReveal'
-import { useScratchProgram } from './hooks/useScratchProgram'
+import { useScratchProgram, isRateLimitError } from './hooks/useScratchProgram'
 import { LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js'
 import { Program, AnchorProvider } from '@coral-xyz/anchor'
 import { IDL, PROGRAM_ID, MONTHLY_PRIZE_SEED } from './lib/constants'
@@ -204,6 +204,8 @@ export default function Home() {
         setTxError('The game is temporarily paused. Please try again soon.')
       } else if (msg.includes('TreasuryTooLow') || msg.includes('6003')) {
         setTxError('Prize pool is refilling. Please try again in a moment.')
+      } else if (isRateLimitError(err)) {
+        setTxError('Too many requests — please wait a moment and try again.')
       } else if (/user rejected|rejected the request|cancelled/i.test(msg)) {
         // Silent — user cancelled
       } else {

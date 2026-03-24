@@ -24,7 +24,8 @@ function isRateLimitError(err: any): boolean {
   return err?.message?.includes('429') ||
     err?.message?.includes('rate limit') ||
     err?.message?.includes('-32429') ||
-    err?.code === -32429
+    err?.code === -32429 ||
+    err?.error?.code === -32429
 }
 
 // On rate-limit: immediately switch to fallback RPC, no delay.
@@ -34,9 +35,12 @@ async function withRateLimitRetry<T>(primary: () => Promise<T>, fallback: () => 
     return await primary()
   } catch (err: any) {
     if (!isRateLimitError(err)) throw err
+    console.log('[RateLimitRetry] Helius rate limited — switching to fallback RPC')
     return fallback()
   }
 }
+
+export { isRateLimitError }
 
 // Retry blockhash fetch — switches to fallback RPC on rate-limit, exponential
 // backoff on other transient errors.
@@ -47,7 +51,7 @@ async function getBlockhashWithRetry(connection: any, commitment: string) {
       return await conn.getLatestBlockhash(commitment)
     } catch (err: any) {
       if (attempt === 3) throw err
-      if (isRateLimitError(err) && attempt < 2) continue // next iteration uses fallback
+      if (isRateLimitError(err) && attempt < 2) { console.log('[BlockhashRetry] Helius rate limited — switching to fallback RPC'); continue } // next iteration uses fallback
       await new Promise(r => setTimeout(r, 600 * Math.pow(2, attempt)))
     }
   }

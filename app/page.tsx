@@ -172,7 +172,6 @@ export default function Home() {
     const update = () => {
       const lastPlay = profile?.lastFreePlayTimestamp ?? 0
       const cooldown = masterConfig?.freePlayCooldownSeconds ?? 86400
-      console.log('[countdown] cooldown used:', cooldown, '| masterConfig.freePlayCooldownSeconds:', masterConfig?.freePlayCooldownSeconds)
       const remaining = Math.max(0, (lastPlay + cooldown) - Math.floor(Date.now() / 1000))
       setFreePlayTimeLeft(remaining)
     }
@@ -187,7 +186,6 @@ export default function Home() {
     if (!masterConfig) return
     const lastPlay = profile?.lastFreePlayTimestamp ?? 0
     const cooldown = masterConfig.freePlayCooldownSeconds ?? 86400
-    console.log('[countdown-mc-watch] masterConfig changed, cooldown:', cooldown)
     const remaining = Math.max(0, (lastPlay + cooldown) - Math.floor(Date.now() / 1000))
     setFreePlayTimeLeft(remaining)
   // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -138,8 +138,8 @@ export default function ReferPage() {
             REFER & EARN
           </div>
           <div style={{ color: '#aaa', fontSize: 13, marginTop: 8 }}>
-            Earn <span style={{ color: 'var(--gold)', fontWeight: 'bold' }}>100 points</span> for every friend who plays 0.1 SOL worth of cards.
-            They get <span style={{ color: '#00d4ff', fontWeight: 'bold' }}>10 bonus points</span> too.
+            Earn <span style={{ color: 'var(--gold)', fontWeight: 'bold' }}>100 bonus points</span> for every friend who plays 0.1 SOL worth of cards.
+            They get <span style={{ color: 'var(--gold)', fontWeight: 'bold' }}>100 bonus points</span> too.
           </div>
         </div>
 

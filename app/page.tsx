@@ -1,6 +1,6 @@
 'use client'
 // v1.1
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useWallet, useConnection } from '@solana/wallet-adapter-react'
 
 function formatBuyError(err: any): string {
@@ -113,6 +113,19 @@ export default function Home() {
   const [unclaimedPrize, setUnclaimedPrize] = useState<{ amount: number; place: number } | null>(null)
   const [unclaimedDismissed, setUnclaimedDismissed] = useState(false)
   const { muted, toggleMute, unlockAudio, playScratch, playSmallWin, playBigWin, playLoss } = useSound()
+
+  // Promo countdown tick — only active when bannerText starts with "COUNTDOWN:"
+  const [promoSecsLeft, setPromoSecsLeft] = useState(0)
+  useEffect(() => {
+    const raw = masterConfig?.bannerText ?? ''
+    if (!raw.startsWith('COUNTDOWN:')) { setPromoSecsLeft(0); return }
+    const datePart = raw.slice('COUNTDOWN:'.length).split('|')[0]
+    const endMs = new Date(datePart + 'T23:59:59').getTime()
+    const tick = () => setPromoSecsLeft(Math.max(0, Math.floor((endMs - Date.now()) / 1000)))
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [masterConfig?.bannerText])
 
   useEffect(() => {
     setMounted(true)
@@ -338,17 +351,45 @@ export default function Home() {
   return (
     <>
       <div className="app">
-        {/* Announcement Banner */}
-        {masterConfig?.bannerActive && masterConfig?.bannerText && (
-          <div style={{
-            background: '#ffd700', color: '#0a0a0f',
-            padding: '10px 16px', textAlign: 'center',
-            fontSize: 13, fontWeight: 'bold', fontFamily: 'monospace',
-            letterSpacing: 0.5, lineHeight: 1.4,
-          }}>
-            📢 {masterConfig.bannerText}
-          </div>
-        )}
+        {/* Announcement / Promo Countdown Banner */}
+        {masterConfig?.bannerActive && masterConfig?.bannerText && (() => {
+          const raw: string = masterConfig.bannerText
+          if (raw.startsWith('COUNTDOWN:')) {
+            const [datePart, ...msgParts] = raw.slice('COUNTDOWN:'.length).split('|')
+            const msg = msgParts.join('|')
+            const d = Math.floor(promoSecsLeft / 86400)
+            const h = Math.floor((promoSecsLeft % 86400) / 3600)
+            const m = Math.floor((promoSecsLeft % 3600) / 60)
+            const s = promoSecsLeft % 60
+            const pad = (n: number) => String(n).padStart(2, '0')
+            return (
+              <div style={{
+                background: 'linear-gradient(90deg, #7c3aed, #c026d3)',
+                color: '#fff', padding: '10px 16px', textAlign: 'center',
+                fontFamily: 'monospace', lineHeight: 1.5,
+              }}>
+                {msg && <div style={{ fontSize: 13, fontWeight: 'bold', letterSpacing: 0.5 }}>🎉 {msg}</div>}
+                {promoSecsLeft > 0 ? (
+                  <div style={{ fontSize: 12, opacity: 0.9, marginTop: 2 }}>
+                    Ends in: {d > 0 ? `${d}d ` : ''}{pad(h)}:{pad(m)}:{pad(s)}
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 12, opacity: 0.9, marginTop: 2 }}>Promo has ended</div>
+                )}
+              </div>
+            )
+          }
+          return (
+            <div style={{
+              background: '#ffd700', color: '#0a0a0f',
+              padding: '10px 16px', textAlign: 'center',
+              fontSize: 13, fontWeight: 'bold', fontFamily: 'monospace',
+              letterSpacing: 0.5, lineHeight: 1.4,
+            }}>
+              📢 {raw}
+            </div>
+          )
+        })()}
         <header>
           <div className="logo">
             <div className="logo-icon">🎰</div>

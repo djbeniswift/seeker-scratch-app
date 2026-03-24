@@ -79,6 +79,14 @@ export default function AdminPanel() {
   const [bannerText, setBannerText] = useState('')
   const [bannerActive, setBannerActive] = useState(false)
 
+  // Promo countdown (admin-side only — encodes into bannerText)
+  const defaultPromoEnd = () => {
+    const d = new Date(); d.setDate(d.getDate() + 7)
+    return d.toISOString().slice(0, 10)
+  }
+  const [promoEndDate, setPromoEndDate] = useState(defaultPromoEnd)
+  const [promoMsg, setPromoMsg] = useState('🎉 10 FREE PLAYS PER DAY — Limited Week Promo!')
+
   // Winners
   const [winners, setWinners] = useState<any[]>([])
   const [sweepWinners, setSweepWinners] = useState<any[]>([])
@@ -771,6 +779,48 @@ export default function AdminPanel() {
                 <div style={{ display: 'flex', gap: 6 }}>
                   <button onClick={() => { setBannerActive(true); saveGameSettings() }} style={btn('#4ade80', '#000')}>Show Banner</button>
                   <button onClick={() => { setBannerActive(false); saveGameSettings() }} style={btn('#ef4444')}>Hide Banner</button>
+                </div>
+
+                {/* ── PROMO COUNTDOWN ── */}
+                <div style={{ marginTop: 8, padding: '10px 12px', background: 'rgba(255,215,0,0.06)', border: '1px solid rgba(255,215,0,0.2)', borderRadius: 8 }}>
+                  <div style={{ fontSize: 11, color: '#ffd700', fontWeight: 'bold', marginBottom: 8, letterSpacing: 1 }}>PROMO COUNTDOWN</div>
+                  <div style={{ fontSize: 11, color: '#ffffff99', marginBottom: 6 }}>Sets a live countdown banner. End date is when the promo expires.</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <div>
+                      <div style={{ fontSize: 11, color: '#ffffffcc', marginBottom: 2 }}>Promo end date</div>
+                      <input
+                        type="date"
+                        value={promoEndDate}
+                        onChange={e => setPromoEndDate(e.target.value)}
+                        style={{ ...input(), colorScheme: 'dark' }}
+                      />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, color: '#ffffffcc', marginBottom: 2 }}>Message (shown above countdown)</div>
+                      <input
+                        value={promoMsg}
+                        onChange={e => setPromoMsg(e.target.value.slice(0, 80))}
+                        maxLength={80}
+                        placeholder="e.g. 10 FREE PLAYS PER DAY — Week Promo!"
+                        style={input()}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button
+                        onClick={() => {
+                          setBannerText(`COUNTDOWN:${promoEndDate}|${promoMsg}`)
+                          setBannerActive(true)
+                          setTimeout(() => saveGameSettings(), 50)
+                        }}
+                        style={btn('#ffd700', '#000')}
+                      >
+                        Activate Countdown
+                      </button>
+                    </div>
+                    <div style={{ fontSize: 10, color: '#ffffff55' }}>
+                      Clicking "Activate Countdown" overwrites the banner text above and shows the countdown to all users. Use "Hide Banner" to turn it off.
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

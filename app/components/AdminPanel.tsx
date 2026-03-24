@@ -524,30 +524,35 @@ export default function AdminPanel() {
       }
       const txs: any[] = await res.json()
       const rows: any[] = txs.map((tx: any) => {
-        const transfers: any[] = tx.nativeTransfers ?? []
-        let inflow = 0, outflow = 0
-        for (const t of transfers) {
+        // nativeBalanceChange captures the true net SOL change including prize payouts
+        // via direct lamport manipulation (invisible in nativeTransfers)
+        let netChange = 0
+        for (const ad of (tx.accountData ?? []) as any[]) {
+          if (ad.account === treasuryAddr) { netChange = ad.nativeBalanceChange / LAMPORTS_PER_SOL; break }
+        }
+        // nativeTransfers inflow = system-program payment from player → used for card type detection
+        let inflow = 0
+        for (const t of (tx.nativeTransfers ?? []) as any[]) {
           if (t.toUserAccount === treasuryAddr) inflow += t.amount / LAMPORTS_PER_SOL
-          if (t.fromUserAccount === treasuryAddr) outflow += t.amount / LAMPORTS_PER_SOL
         }
-        const delta = inflow - outflow
-        const abs = Math.abs(delta)
-        let type: string, color: string, cardLabel: string | null, won: boolean | null
-        if (delta < -0.0005) {
-          type = 'WIN'; color = '#4ade80'; cardLabel = null; won = true
-        } else if (abs < 0.0005) {
-          type = 'FREE'; color = '#22d3ee'; cardLabel = null; won = null
-        } else if (delta > 0.5) {
-          type = 'FUND'; color = '#fbbf24'; cardLabel = null; won = null
+        const cardKey = (inflow > 0.006 && inflow < 0.015) ? 'QP'
+          : (inflow > 0.03 && inflow < 0.07) ? 'HS'
+          : (inflow > 0.07 && inflow < 0.15) ? 'MG' : null
+
+        let type: string, color: string, cardLabel: string | null, prize: number
+        if (netChange < -0.0005) {
+          // Treasury net lost SOL → player won; prize ≈ card inflow + |netChange|
+          type = 'WIN'; color = '#4ade80'; prize = inflow + Math.abs(netChange)
+          cardLabel = cardKey
+        } else if (Math.abs(netChange) < 0.0005 && inflow < 0.0005) {
+          type = 'FREE'; color = '#22d3ee'; cardLabel = null; prize = 0
+        } else if (netChange > 0.5) {
+          type = 'FUND'; color = '#fbbf24'; cardLabel = null; prize = 0
         } else {
-          type = 'SCRATCH'; color = '#60a5fa'
-          won = outflow > 0.0005
-          if (inflow > 0.006 && inflow < 0.015) cardLabel = 'QP 0.01◎'
-          else if (inflow > 0.03 && inflow < 0.07) cardLabel = 'HS 0.05◎'
-          else if (inflow > 0.07 && inflow < 0.15) cardLabel = 'MG 0.10◎'
-          else cardLabel = null
+          type = 'SCRATCH'; color = '#60a5fa'; prize = 0
+          cardLabel = cardKey ? `${cardKey} ${cardKey === 'QP' ? '0.01' : cardKey === 'HS' ? '0.05' : '0.10'}◎` : null
         }
-        return { sig: tx.signature, blockTime: tx.timestamp, wallet: tx.feePayer ?? '', type, color, delta, inflow, outflow, cardLabel, won }
+        return { sig: tx.signature, blockTime: tx.timestamp, wallet: tx.feePayer ?? '', type, color, netChange, inflow, cardLabel, prize }
       })
       setActivity(rows)
       setActivityLoaded(true)
@@ -1294,24 +1299,24 @@ export default function AdminPanel() {
                           </a>
                           <button onClick={() => copy(row.wallet)} title="Copy wallet" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#444', fontSize: 11, padding: '0 2px', flexShrink: 0 }}>⎘</button>
                           {row.type === 'WIN' && (
-                            <span style={{ color: '#4ade80', fontFamily: 'monospace', minWidth: 100, textAlign: 'right', flexShrink: 0, fontSize: 10 }}>
-                              {'🏆 '}+{Math.abs(row.delta).toFixed(4)}◎
+                            <span style={{ color: '#4ade80', fontFamily: 'monospace', minWidth: 110, textAlign: 'right', flexShrink: 0, fontSize: 10 }}>
+                              {`🏆${row.cardLabel ? ` ${row.cardLabel}` : ''} +${row.prize.toFixed(3)}◎`}
                             </span>
                           )}
                           {row.type === 'FREE' && (
-                            <span style={{ color: '#22d3ee', fontWeight: 'bold', minWidth: 100, textAlign: 'right', flexShrink: 0, fontSize: 10 }}>
+                            <span style={{ color: '#22d3ee', fontWeight: 'bold', minWidth: 110, textAlign: 'right', flexShrink: 0, fontSize: 10 }}>
                               FREE
                             </span>
                           )}
                           {row.type === 'FUND' && (
-                            <span style={{ color: '#fbbf24', fontFamily: 'monospace', minWidth: 100, textAlign: 'right', flexShrink: 0, fontSize: 10 }}>
-                              FUND +{row.delta.toFixed(2)}◎
+                            <span style={{ color: '#fbbf24', fontFamily: 'monospace', minWidth: 110, textAlign: 'right', flexShrink: 0, fontSize: 10 }}>
+                              FUND +{row.netChange.toFixed(2)}◎
                             </span>
                           )}
                           {row.type === 'SCRATCH' && (
-                            <span style={{ minWidth: 100, textAlign: 'right', flexShrink: 0, fontSize: 10, display: 'flex', gap: 4, justifyContent: 'flex-end', alignItems: 'center' }}>
-                              <span style={{ color: '#60a5fa' }}>{row.cardLabel ?? `+${row.delta.toFixed(4)}`}</span>
-                              <span style={{ color: row.won ? '#4ade80' : '#f87171', fontSize: 9, fontWeight: 'bold' }}>{row.won ? 'W' : 'L'}</span>
+                            <span style={{ minWidth: 110, textAlign: 'right', flexShrink: 0, fontSize: 10, display: 'flex', gap: 4, justifyContent: 'flex-end', alignItems: 'center' }}>
+                              <span style={{ color: '#60a5fa' }}>{row.cardLabel ?? `+${row.netChange.toFixed(4)}`}</span>
+                              <span style={{ color: '#f87171', fontSize: 9, fontWeight: 'bold' }}>L</span>
                             </span>
                           )}
                           <a href={`https://solscan.io/tx/${row.sig}`} target="_blank" rel="noreferrer" style={{ color: '#555', fontSize: 11, textDecoration: 'none', flexShrink: 0 }}>↗</a>

@@ -165,18 +165,33 @@ export default function Home() {
     check()
   }, [wallet.publicKey?.toBase58()])
 
-  // Countdown to next free play
+  // Countdown to next free play — depends on full masterConfig object so effect
+  // re-runs as soon as masterConfig loads (null → object) even if the nested
+  // freePlayCooldownSeconds value hasn't been seen before by React.
   useEffect(() => {
     const update = () => {
       const lastPlay = profile?.lastFreePlayTimestamp ?? 0
       const cooldown = masterConfig?.freePlayCooldownSeconds ?? 86400
+      console.log('[countdown] cooldown used:', cooldown, '| masterConfig.freePlayCooldownSeconds:', masterConfig?.freePlayCooldownSeconds)
       const remaining = Math.max(0, (lastPlay + cooldown) - Math.floor(Date.now() / 1000))
       setFreePlayTimeLeft(remaining)
     }
     update()
     const id = setInterval(update, 1000)
     return () => clearInterval(id)
-  }, [profile?.lastFreePlayTimestamp, masterConfig?.freePlayCooldownSeconds])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.lastFreePlayTimestamp, masterConfig?.freePlayCooldownSeconds, masterConfig])
+
+  // Force countdown recalculation the moment masterConfig first loads or changes
+  useEffect(() => {
+    if (!masterConfig) return
+    const lastPlay = profile?.lastFreePlayTimestamp ?? 0
+    const cooldown = masterConfig.freePlayCooldownSeconds ?? 86400
+    console.log('[countdown-mc-watch] masterConfig changed, cooldown:', cooldown)
+    const remaining = Math.max(0, (lastPlay + cooldown) - Math.floor(Date.now() / 1000))
+    setFreePlayTimeLeft(remaining)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [masterConfig])
 
   // Auto-refresh chain data every 60s so admin setting changes (cooldown, banner, etc.)
   // propagate to all open browser sessions without needing a manual page reload.

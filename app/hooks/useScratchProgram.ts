@@ -155,6 +155,8 @@ export function useScratchProgram() {
       const readProvider = new AnchorProvider(connection, {} as any, { commitment: 'confirmed' })
       const readProgram = new Program(IDL as any, PROGRAM_ID, readProvider)
       const data = await (readProgram.account as any).masterConfig.fetch(masterConfigPda)
+      console.log('[fetchMasterConfig] keys:', Object.keys(data))
+      console.log('[fetchMasterConfig] freePlayCooldownSeconds raw:', data.freePlayCooldownSeconds, 'type:', typeof data.freePlayCooldownSeconds)
       setMasterConfigSafe({
         costQuickpick: data.costQuickpick.toNumber() / LAMPORTS_PER_SOL,
         costHotshot: data.costHotshot.toNumber() / LAMPORTS_PER_SOL,
@@ -300,6 +302,8 @@ export function useScratchProgram() {
       if (mcInfo && mcInfo.data.length >= 8) {
         try {
           const mc = coder.decode('MasterConfig', mcInfo.data)
+          console.log('[fetchAll] masterConfig keys:', Object.keys(mc))
+          console.log('[fetchAll] freePlayCooldownSeconds raw:', mc.freePlayCooldownSeconds, 'type:', typeof mc.freePlayCooldownSeconds)
           setMasterConfigSafe({
             costQuickpick: mc.costQuickpick.toNumber() / LAMPORTS_PER_SOL,
             costHotshot: mc.costHotshot.toNumber() / LAMPORTS_PER_SOL,

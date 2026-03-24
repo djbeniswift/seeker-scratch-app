@@ -243,9 +243,7 @@ pub mod seeker_scratch {
         };
 
         let win_value = random % 10000;
-        let cooldown_active = profile.last_win_slot > 0
-            && clock.slot.saturating_sub(profile.last_win_slot) < 50;
-        let won = win_value < win_threshold && !cooldown_active;
+        let won = win_value < win_threshold;
 
         if won {
             let prize_random = pseudo_random(seed.wrapping_add(12345));
@@ -271,7 +269,6 @@ pub mod seeker_scratch {
 
             profile.total_won = profile.total_won.checked_add(prize).ok_or(ScratchError::Overflow)?;
             profile.wins = profile.wins.checked_add(1).ok_or(ScratchError::Overflow)?;
-            profile.last_win_slot = clock.slot;
         } else {
             treasury.total_profit = treasury.total_profit.checked_add(treasury_amount).ok_or(ScratchError::Overflow)?;
         }

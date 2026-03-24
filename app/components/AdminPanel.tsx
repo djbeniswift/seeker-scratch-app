@@ -299,7 +299,10 @@ export default function AdminPanel({ onSettingsSaved }: { onSettingsSaved?: () =
         masterConfig: masterConfigPda, treasury: treasuryPda, admin: publicKey, systemProgram: SystemProgram.programId,
       }).rpc())
       settingsLoadedRef.current = false // allow loadData to refresh form fields after save
+      // Wait 1s for RPC to propagate, then refresh main page + admin panel
+      await new Promise(r => setTimeout(r, 1000))
       onSettingsSaved?.()
+      await loadData()
       setS('✅ Game settings saved!')
     } catch (e: any) { setS(`❌ ${e.message?.slice(0, 80)}`) }
   }

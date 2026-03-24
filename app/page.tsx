@@ -178,6 +178,14 @@ export default function Home() {
     return () => clearInterval(id)
   }, [profile?.lastFreePlayTimestamp, masterConfig?.freePlayCooldownSeconds])
 
+  // Auto-refresh chain data every 60s so admin setting changes (cooldown, banner, etc.)
+  // propagate to all open browser sessions without needing a manual page reload.
+  useEffect(() => {
+    const id = setInterval(() => { fetchAll() }, 60000)
+    return () => clearInterval(id)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
 
   const handleBuyCard = async (cardType: string) => {
     if (!wallet.connected) { alert("Please connect your wallet first"); return }

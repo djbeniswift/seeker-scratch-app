@@ -708,7 +708,7 @@ export default function Home() {
                         ) : (
                           <>
                             <div style={{ fontSize: 18, color: '#888', fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1 }}>
-                              Better luck tomorrow!
+                              Better luck next time!
                             </div>
                             <div style={{ fontSize: 13, color: '#00d4ff', marginTop: 4 }}>
                               +{freeScratchState.sweepPoints} SWEEP POINT for playing

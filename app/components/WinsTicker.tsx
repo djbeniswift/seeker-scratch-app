@@ -11,7 +11,6 @@ type Win = {
   cardType: string
   amount: string
   timeAgo: string
-  sig: string
 }
 
 function timeAgo(ts: number) {
@@ -44,7 +43,6 @@ async function heliusFetch(body: object): Promise<any> {
 
 export default function WinsTicker() {
   const [wins, setWins] = useState<Win[]>([])
-  const [idx, setIdx] = useState(0)
 
   useEffect(() => {
     async function fetchWins() {
@@ -68,18 +66,11 @@ export default function WinsTicker() {
           })
           if (!tx) continue
 
-          // Only process paid card buys — skip free scratches and other instructions
+          // Only paid card buys — skip free scratches and other instructions
           const logs: string[] = tx.meta?.logMessages || []
           if (!logs.some((l: string) => l.includes('Instruction: BuyAndScratch'))) continue
 
-          // Win detection: player (account[0]) net balance must be positive
-          const pre0: number = tx.meta?.preBalances?.[0] || 0
-          const post0: number = tx.meta?.postBalances?.[0] || 0
-          const netChange = post0 - pre0
-          if (netChange <= 0) continue
-
-          // Determine card type and card cost from inner CPI transfers
-          // buyAndScratch always CPIs: player→house (3% fee) and player→treasury (97%)
+          // Determine card type from house fee CPI (3% of card cost)
           const allInner: any[] = (tx.meta?.innerInstructions || [])
             .flatMap((ix: any) => ix.instructions || [])
           const transfers = allInner.filter((i: any) => i.parsed?.type === 'transfer')
@@ -88,24 +79,28 @@ export default function WinsTicker() {
           const treasuryTx = transfers.find((t: any) => t.parsed?.info?.destination === TREASURY)
 
           const houseFeeLamports: number = houseTx?.parsed?.info?.lamports || 0
-          const treasuryLamports: number = treasuryTx?.parsed?.info?.lamports || 0
-          const cardCostLamports = houseFeeLamports + treasuryLamports
-          if (cardCostLamports === 0) continue
+          const treasuryReceivedLamports: number = treasuryTx?.parsed?.info?.lamports || 0
+          if (houseFeeLamports === 0) continue
 
-          // House fee is 3% of card cost:
-          //   QuickPick  = 10M → house fee ≈ 300K
-          //   HotShot    = 50M → house fee ≈ 1.5M
-          //   MegaGold   = 100M → house fee ≈ 3M
+          // Card type from house fee: QP ~300K, HotShot ~1.5M, MegaGold ~3M
           let cardType: string
           if (houseFeeLamports >= 2_000_000) cardType = 'MEGA GOLD'
           else if (houseFeeLamports >= 1_000_000) cardType = 'HOT SHOT'
           else cardType = 'QUICK PICK'
 
-          // Prize = net balance change + card cost paid (ignores ~5K tx fee — acceptable)
-          const prizeLamports = netChange + cardCostLamports
-          const prizeSOL = (prizeLamports / 1e9).toFixed(3)
-
+          // Exact prize via treasury balance delta — immune to Phantom priority fees.
+          // Treasury net = received from player − prize paid out
+          // → prize = received − (post_treasury − pre_treasury)
           const keys = tx.transaction?.message?.accountKeys || []
+          const treasuryIdx = keys.findIndex((k: any) => (k?.pubkey || k) === TREASURY)
+          if (treasuryIdx < 0) continue
+
+          const preTreasury: number = tx.meta?.preBalances?.[treasuryIdx] || 0
+          const postTreasury: number = tx.meta?.postBalances?.[treasuryIdx] || 0
+          const prizeLamports = treasuryReceivedLamports - (postTreasury - preTreasury)
+          if (prizeLamports <= 0) continue // loss — treasury kept everything
+
+          const prizeSOL = (prizeLamports / 1e9).toFixed(3)
           const playerKey: string = keys[0]?.pubkey || keys[0] || ''
 
           found.push({
@@ -113,7 +108,6 @@ export default function WinsTicker() {
             cardType,
             amount: prizeSOL,
             timeAgo: timeAgo(tx.blockTime || 0),
-            sig: s.signature,
           })
 
           if (found.length >= 10) break
@@ -130,15 +124,14 @@ export default function WinsTicker() {
     return () => clearInterval(interval)
   }, [])
 
-  useEffect(() => {
-    if (wins.length === 0) return
-    const t = setInterval(() => setIdx(i => (i + 1) % wins.length), 3000)
-    return () => clearInterval(t)
-  }, [wins])
-
   if (wins.length === 0) return null
 
-  const win = wins[idx]
+  // Duplicate the list so the scroll loops seamlessly
+  const items = [...wins, ...wins]
+
+  const itemWidth = 320 // px per item (approx)
+  const totalWidth = wins.length * itemWidth
+  const durationSeconds = wins.length * 4 // ~4s per item
 
   return (
     <div style={{
@@ -146,24 +139,44 @@ export default function WinsTicker() {
       background: 'rgba(0, 255, 136, 0.05)',
       border: '1px solid rgba(0, 255, 136, 0.2)',
       borderRadius: '8px',
-      padding: '10px 16px',
+      padding: '10px 0',
       marginBottom: '16px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      fontSize: '13px',
-      color: '#00ff88',
-      fontFamily: 'monospace',
       overflow: 'hidden',
+      position: 'relative',
     }}>
-      <span style={{ fontSize: '16px' }}>🏆</span>
-      <span style={{ color: '#ffffffee' }}>{win.wallet}</span>
-      <span>won</span>
-      <span style={{ fontWeight: 'bold', color: '#00ff88' }}>{win.amount} SOL</span>
-      <span style={{ color: '#ffffffcc' }}>on</span>
-      <span style={{ fontWeight: 'bold', color: '#ffffffee', letterSpacing: 1 }}>{win.cardType}</span>
-      <span style={{ color: '#ffffffcc' }}>·</span>
-      <span style={{ color: '#ffffffcc' }}>{win.timeAgo}</span>
+      <style>{`
+        @keyframes ticker-scroll {
+          0%   { transform: translateX(0); }
+          100% { transform: translateX(-${totalWidth}px); }
+        }
+      `}</style>
+      <div style={{
+        display: 'flex',
+        width: 'max-content',
+        animation: `ticker-scroll ${durationSeconds}s linear infinite`,
+      }}>
+        {items.map((win, i) => (
+          <span key={i} style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            width: `${itemWidth}px`,
+            fontSize: '13px',
+            fontFamily: 'monospace',
+            whiteSpace: 'nowrap',
+            paddingRight: '32px',
+          }}>
+            <span style={{ fontSize: '15px' }}>🏆</span>
+            <span style={{ color: '#ffffffee' }}>{win.wallet}</span>
+            <span style={{ color: '#00ff88' }}>won</span>
+            <span style={{ fontWeight: 'bold', color: '#00ff88' }}>{win.amount} SOL</span>
+            <span style={{ color: '#ffffffcc' }}>on</span>
+            <span style={{ fontWeight: 'bold', color: '#ffffffee', letterSpacing: 1 }}>{win.cardType}</span>
+            <span style={{ color: '#ffffff55' }}>·</span>
+            <span style={{ color: '#ffffffaa' }}>{win.timeAgo}</span>
+          </span>
+        ))}
+      </div>
     </div>
   )
 }

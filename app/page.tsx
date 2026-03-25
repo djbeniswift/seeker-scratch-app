@@ -495,6 +495,8 @@ export default function Home() {
           </div>
         </div>
 
+        <WinsTicker />
+
         <div className="stats-row">
           <div className="stat-cell">
             <div className="stat-value text-gold">{treasury ? treasury.totalCardsSold : '…'}</div>
@@ -795,8 +797,6 @@ export default function Home() {
                     </div>
                   </div>
                 )}
-
-                <WinsTicker />
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                   <h2 style={{ fontSize: 14, color: 'var(--muted)', fontFamily: 'monospace', margin: 0 }}>CHOOSE YOUR CARD</h2>

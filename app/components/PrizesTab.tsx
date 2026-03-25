@@ -5,7 +5,7 @@ import { PublicKey } from '@solana/web3.js'
 import { PROGRAM_ID, MASTER_CONFIG_SEED, MONTHLY_PRIZE_SEED, TREASURY_SEED, IDL } from '../lib/constants'
 import Confetti from './Confetti'
 
-export default function PrizesTab({ connection, wallet, publicKey, unclaimedPrize, onClaimed }: any) {
+export default function PrizesTab({ connection, wallet, publicKey, unclaimedPrize, onClaimed, rentLamports = 4_200_000 }: any) {
   const [mc, setMc] = useState<any>(null)
   const [claiming, setClaiming] = useState(false)
   const [claimed, setClaimed] = useState(false)
@@ -211,7 +211,7 @@ export default function PrizesTab({ connection, wallet, publicKey, unclaimedPriz
           ))}
         </div>
         <div style={{ marginTop: 12, padding: 10, background: 'rgba(0,212,255,0.05)', border: '1px solid rgba(0,212,255,0.15)', borderRadius: 8, color: '#ffffffdd', fontSize: 12, textAlign: 'center' }}>
-          🎟️ Use your free daily play to earn sweep points. A one-time ~0.004 SOL account setup fee applies on first play only.
+          🎟️ Use your free daily play to earn sweep points. A one-time ~{(rentLamports / 1e9).toFixed(4)} SOL account setup fee applies on first play only.
         </div>
       </div>
     </div>

@@ -88,9 +88,9 @@ export default function RanksTab({ connection, wallet, publicKey, masterConfig }
   const medals = ['🥇', '🥈', '🥉']
   const solPrizes = ['0.25 SOL + 500 SKR', '0.15 SOL + 250 SKR', '0.05 SOL + 100 SKR']
   const sweepPrizes = [
-    `+ ${(masterConfig?.sweep1stSkr ?? 500).toLocaleString()} SKR`,
-    `+ ${(masterConfig?.sweep2ndSkr ?? 250).toLocaleString()} SKR`,
-    `+ ${(masterConfig?.sweep3rdSkr ?? 100).toLocaleString()} SKR`,
+    `+ ${(masterConfig?.sweep1stSkr || 500).toLocaleString()} SKR`,
+    `+ ${(masterConfig?.sweep2ndSkr || 250).toLocaleString()} SKR`,
+    `+ ${(masterConfig?.sweep3rdSkr || 100).toLocaleString()} SKR`,
   ]
   const solSorted = [...players].sort((a, b) =>
     period === 'month' ? b.pointsThisMonth - a.pointsThisMonth : b.pointsAllTime - a.pointsAllTime
@@ -164,9 +164,9 @@ export default function RanksTab({ connection, wallet, publicKey, masterConfig }
           <div style={{ textAlign: 'center', color: '#ffffffdd', fontSize: 13, marginBottom: 10 }}>🎟️ Free daily play • Earn sweep points • Win SKR each month</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, textAlign: 'center' }}>
             {[
-              { place: '🥇 1st', skr: masterConfig?.sweep1stSkr ?? 500 },
-              { place: '🥈 2nd', skr: masterConfig?.sweep2ndSkr ?? 250 },
-              { place: '🥉 3rd', skr: masterConfig?.sweep3rdSkr ?? 100 },
+              { place: '🥇 1st', skr: masterConfig?.sweep1stSkr || 500 },
+              { place: '🥈 2nd', skr: masterConfig?.sweep2ndSkr || 250 },
+              { place: '🥉 3rd', skr: masterConfig?.sweep3rdSkr || 100 },
             ].map(({ place, skr }) => (
               <div key={place}>
                 <div style={{ color: '#00d4ff', fontSize: 13, fontFamily: "'Bebas Neue', sans-serif" }}>{place}</div>

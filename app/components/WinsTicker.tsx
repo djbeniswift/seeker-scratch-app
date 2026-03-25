@@ -51,11 +51,11 @@ export default function WinsTicker() {
         const { result: sigs } = await heliusFetch({
           jsonrpc: '2.0', id: 1,
           method: 'getSignaturesForAddress',
-          params: [PROGRAM_ID, { limit: 50 }],
+          params: [PROGRAM_ID, { limit: 150 }],
         })
         if (!sigs) return
 
-        const goodSigs = (sigs as any[]).filter(s => !s.err).slice(0, 50)
+        const goodSigs = (sigs as any[]).filter(s => !s.err).slice(0, 150)
         if (goodSigs.length === 0) return
 
         // Fire all getTransaction requests in parallel — ~300ms vs ~20s sequential

@@ -47,23 +47,31 @@ export default function WinsTicker() {
   useEffect(() => {
     async function fetchWins() {
       try {
+        // Call 1: get recent signatures
         const { result: sigs } = await heliusFetch({
           jsonrpc: '2.0', id: 1,
           method: 'getSignaturesForAddress',
-          params: [PROGRAM_ID, { limit: 100 }],
+          params: [PROGRAM_ID, { limit: 50 }],
         })
         if (!sigs) return
 
-        const found: Win[] = []
+        const goodSigs = (sigs as any[]).filter(s => !s.err).slice(0, 50)
+        if (goodSigs.length === 0) return
 
-        for (const s of sigs) {
-          if (s.err) continue
-
-          const { result: tx } = await heliusFetch({
+        // Fire all getTransaction requests in parallel — ~300ms vs ~20s sequential
+        const txResults = await Promise.all(
+          goodSigs.map((s: any) => heliusFetch({
             jsonrpc: '2.0', id: 1,
             method: 'getTransaction',
             params: [s.signature, { encoding: 'jsonParsed', maxSupportedTransactionVersion: 0 }],
-          })
+          }))
+        )
+
+        const found: Win[] = []
+
+        for (const item of txResults) {
+          if (found.length >= 10) break
+          const tx = item.result
           if (!tx) continue
 
           // Only paid card buys — skip free scratches and other instructions
@@ -89,8 +97,7 @@ export default function WinsTicker() {
           else cardType = 'QUICK PICK'
 
           // Exact prize via treasury balance delta — immune to Phantom priority fees.
-          // Treasury net = received from player − prize paid out
-          // → prize = received − (post_treasury − pre_treasury)
+          // prize = treasuryReceived − (postTreasury − preTreasury)
           const keys = tx.transaction?.message?.accountKeys || []
           const treasuryIdx = keys.findIndex((k: any) => (k?.pubkey || k) === TREASURY)
           if (treasuryIdx < 0) continue
@@ -98,7 +105,7 @@ export default function WinsTicker() {
           const preTreasury: number = tx.meta?.preBalances?.[treasuryIdx] || 0
           const postTreasury: number = tx.meta?.postBalances?.[treasuryIdx] || 0
           const prizeLamports = treasuryReceivedLamports - (postTreasury - preTreasury)
-          if (prizeLamports <= 0) continue // loss — treasury kept everything
+          if (prizeLamports <= 0) continue
 
           const prizeSOL = (prizeLamports / 1e9).toFixed(3)
           const playerKey: string = keys[0]?.pubkey || keys[0] || ''
@@ -109,8 +116,6 @@ export default function WinsTicker() {
             amount: prizeSOL,
             timeAgo: timeAgo(tx.blockTime || 0),
           })
-
-          if (found.length >= 10) break
         }
 
         if (found.length > 0) setWins(found)

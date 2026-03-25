@@ -241,6 +241,23 @@ export default function Home() {
       const msg = err?.message || ''
       if (msg.includes('insufficient lamports') || msg.includes('Insufficient funds') || msg.includes('0x1')) {
         setTxError('Not enough SOL in your wallet. Please add funds and try again.')
+      } else if (msg.includes('"Custom":6400') || msg.includes('"Custom": 6400')) {
+        // Error 6400 is not a known program error — often means the transaction cost more
+        // than available (Phantom priority fees, stale balance, etc.)
+        const cardCostLamports = cardType === 'MegaGold'
+          ? Math.round((masterConfig?.costMegagold || 0.1) * 1e9)
+          : cardType === 'HotShot'
+          ? Math.round((masterConfig?.costHotshot || 0.05) * 1e9)
+          : Math.round((masterConfig?.costQuickpick || 0.01) * 1e9)
+        const neededLamports = cardCostLamports + 100_000 // buffer for tx fee
+        const shortfallLamports = neededLamports - balanceBefore
+        if (shortfallLamports > 0) {
+          const shortfallSol = (shortfallLamports / 1e9).toFixed(4)
+          setTxError(`Not enough SOL — please add at least ${shortfallSol} SOL to your wallet and try again.`)
+        } else {
+          const neededSol = (neededLamports / 1e9).toFixed(4)
+          setTxError(`Transaction failed. Make sure your wallet has at least ${neededSol} SOL, then try again. If the problem persists, try disabling auto-priority fees in your wallet settings.`)
+        }
       } else if (msg.includes('GamePaused') || msg.includes('6000')) {
         setTxError('The game is temporarily paused. Please try again soon.')
       } else if (msg.includes('TreasuryTooLow') || msg.includes('6003')) {

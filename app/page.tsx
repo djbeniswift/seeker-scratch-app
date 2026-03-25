@@ -117,7 +117,7 @@ export default function Home() {
 
   useEffect(() => {
     connection.getMinimumBalanceForRentExemption(320)
-      .then(setRentLamports)
+      .then(r => setRentLamports(Math.max(r + 900_000, 4_200_000))) // add ~0.001 SOL buffer; floor at 0.0042
       .catch(() => {}) // fail open — keep default 4_200_000
   }, [connection])
 

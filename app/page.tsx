@@ -68,6 +68,7 @@ import ReferTab from './components/ReferTab'
 import ProfileTab from './components/ProfileTab'
 import RanksTab from './components/RanksTab'
 import PrizesTab from './components/PrizesTab'
+import WinsTicker from './components/WinsTicker'
 import Confetti from './components/Confetti'
 import { useSound } from './hooks/useSound'
 
@@ -794,6 +795,8 @@ export default function Home() {
                     </div>
                   </div>
                 )}
+
+                <WinsTicker />
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                   <h2 style={{ fontSize: 14, color: 'var(--muted)', fontFamily: 'monospace', margin: 0 }}>CHOOSE YOUR CARD</h2>

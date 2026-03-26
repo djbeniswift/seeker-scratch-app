@@ -237,6 +237,36 @@ export default function Home() {
 
     const balanceBefore = await connection.getBalance(wallet.publicKey)
     console.log('Balance before:', balanceBefore)
+
+    // Pre-flight balance check — catches low-balance cases before hitting the wallet
+    {
+      const GAS_BUFFER = 100_000
+      const cardName = cardType === 'MegaGold' ? 'MegaGold' : cardType === 'HotShot' ? 'HotShot' : 'QuickPick'
+      const cardCostLamports = cardType === 'MegaGold'
+        ? Math.round((masterConfig?.costMegagold || 0.1) * 1e9)
+        : cardType === 'HotShot'
+        ? Math.round((masterConfig?.costHotshot || 0.05) * 1e9)
+        : Math.round((masterConfig?.costQuickpick || 0.01) * 1e9)
+      if (!profile) {
+        const needed = cardCostLamports + rentLamports + GAS_BUFFER
+        if (balanceBefore < needed) {
+          const neededSol = (needed / 1e9).toFixed(4)
+          const rentSol = (rentLamports / 1e9).toFixed(4)
+          setTxError(`⚠️ You need ~${neededSol} SOL to play ${cardName}. This includes a one-time ~${rentSol} SOL account setup fee.`)
+          setIsWaitingForChain(false)
+          return
+        }
+      } else {
+        const needed = cardCostLamports + GAS_BUFFER
+        if (balanceBefore < needed) {
+          const neededSol = (needed / 1e9).toFixed(4)
+          setTxError(`⚠️ You need ~${neededSol} SOL to play ${cardName}.`)
+          setIsWaitingForChain(false)
+          return
+        }
+      }
+    }
+
     setIsWaitingForChain(true)
     try { await buyCard(cardType, pendingReferrer ?? undefined) } catch (err: any) {
       const msg = err?.message || ''
@@ -250,7 +280,7 @@ export default function Home() {
           : cardType === 'HotShot'
           ? Math.round((masterConfig?.costHotshot || 0.05) * 1e9)
           : Math.round((masterConfig?.costQuickpick || 0.01) * 1e9)
-        const neededLamports = cardCostLamports + 100_000 // buffer for tx fee
+        const neededLamports = cardCostLamports + 100_000
         const shortfallLamports = neededLamports - balanceBefore
         if (shortfallLamports > 0) {
           const shortfallSol = (shortfallLamports / 1e9).toFixed(4)
@@ -329,11 +359,15 @@ export default function Home() {
 
   const handleFreeScratch = async () => {
     if (!wallet.connected) { alert('Please connect your wallet first'); return }
-    if (!profile && walletBalance * 1e9 < rentLamports) {
-      const needed = (rentLamports / 1e9).toFixed(4)
-      const have = walletBalance.toFixed(4)
-      const shortfall = ((rentLamports / 1e9) - walletBalance).toFixed(4)
-      setTxError(`Your wallet needs at least ${needed} SOL for the one-time account setup. You currently have ${have} SOL — please add at least ${shortfall} more SOL and try again.`)
+    const walletLamports = walletBalance * 1e9
+    const GAS_BUFFER = 100_000
+    const WALLET_MIN = 890_880 // Solana rent-exempt minimum for a 0-byte account
+    if (!profile && walletLamports < rentLamports) {
+      setTxError(`⚠️ You need ~${(rentLamports / 1e9).toFixed(4)} SOL for your first free play. This one-time setup fee creates your player account on-chain.`)
+      return
+    }
+    if (profile && walletLamports < WALLET_MIN + GAS_BUFFER) {
+      setTxError(`⚠️ Your wallet balance is too low to cover the tiny network fee. Try adding a small amount of SOL and play again.`)
       return
     }
     unlockAudio()
@@ -767,8 +801,7 @@ export default function Home() {
                             <>
                               {!profile && wallet.publicKey && walletBalance * 1e9 < rentLamports ? (
                                 <div style={{ fontSize: 11, fontFamily: 'monospace', color: '#ffcc00', lineHeight: 1.5 }}>
-                                  ⚠️ Account setup requires ~{(rentLamports / 1e9).toFixed(4)} SOL.<br />
-                                  Your wallet has {walletBalance.toFixed(4)} SOL — please add at least {((rentLamports / 1e9) - walletBalance).toFixed(4)} more SOL to play.
+                                  ⚠️ You need ~{(rentLamports / 1e9).toFixed(4)} SOL for your first free play. This one-time setup fee creates your player account on-chain.
                                 </div>
                               ) : (
                                 <div style={{ fontSize: 11, color: '#ffffffdd', fontFamily: 'monospace' }}>Play free daily. One-time ~{(rentLamports / 1e9).toFixed(4)} SOL setup fee for new players.</div>
@@ -976,7 +1009,7 @@ export default function Home() {
         textAlign: 'center', padding: '8px 16px 72px',
         fontSize: 11, color: 'rgba(255,255,255,0.8)', fontFamily: 'monospace', lineHeight: 1.6,
       }}>
-        Free to play daily. A one-time ~{(rentLamports / 1e9).toFixed(4)} SOL account setup fee applies on first play only{!profile && wallet.publicKey && walletBalance * 1e9 < rentLamports ? ` (your wallet has ${walletBalance.toFixed(4)} SOL — add at least ${((rentLamports / 1e9) - walletBalance).toFixed(4)} more to get started)` : ''}.<br />
+        Free to play daily. A one-time ~{(rentLamports / 1e9).toFixed(4)} SOL account setup fee applies on first play only.<br />
         Seeker Scratch is a sweepstakes game. 18+ only. Void where prohibited by law.
       </div>
       <AdminPanel onSettingsSaved={fetchAll} />

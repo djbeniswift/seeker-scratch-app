@@ -40,3 +40,17 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 public/KaraFun_2.13.1.dmg
+
+# Keypairs and wallets — NEVER commit these
+*keypair*.json
+*-keypair.json
+*wallet*.json
+admin*.json
+id.json
+
+# Backup files
+*.bak
+
+# Duplicate IDL files (keep only app/lib/idl.json)
+idl*.json
+"idl (*).json"

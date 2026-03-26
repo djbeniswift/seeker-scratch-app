@@ -758,7 +758,14 @@ export default function Home() {
                           <div style={{ fontSize: 13, color: '#00d4ff', marginBottom: 4, fontFamily: 'monospace', letterSpacing: 1 }}>🎟️ FREE DAILY PLAY</div>
                           {freePlayTimeLeft === 0 ? (
                             <>
-                              <div style={{ fontSize: 11, color: '#ffffffdd', fontFamily: 'monospace' }}>Play free daily. One-time ~{(rentLamports / 1e9).toFixed(4)} SOL setup fee for new players.</div>
+                              {!profile && wallet.publicKey && walletBalance * 1e9 < rentLamports ? (
+                                <div style={{ fontSize: 11, fontFamily: 'monospace', color: '#ffcc00', lineHeight: 1.5 }}>
+                                  ⚠️ Account setup requires ~{(rentLamports / 1e9).toFixed(4)} SOL.<br />
+                                  Your wallet has {walletBalance.toFixed(4)} SOL — please add at least {((rentLamports / 1e9) - walletBalance).toFixed(4)} more SOL to play.
+                                </div>
+                              ) : (
+                                <div style={{ fontSize: 11, color: '#ffffffdd', fontFamily: 'monospace' }}>Play free daily. One-time ~{(rentLamports / 1e9).toFixed(4)} SOL setup fee for new players.</div>
+                              )}
                             </>
                           ) : (
                             <div style={{ fontSize: 11, color: '#ffffffdd', fontFamily: 'monospace' }}>
@@ -962,7 +969,7 @@ export default function Home() {
         textAlign: 'center', padding: '8px 16px 72px',
         fontSize: 11, color: 'rgba(255,255,255,0.8)', fontFamily: 'monospace', lineHeight: 1.6,
       }}>
-        Free to play daily. A one-time ~{(rentLamports / 1e9).toFixed(4)} SOL account setup fee applies on first play only.<br />
+        Free to play daily. A one-time ~{(rentLamports / 1e9).toFixed(4)} SOL account setup fee applies on first play only{!profile && wallet.publicKey && walletBalance * 1e9 < rentLamports ? ` (your wallet has ${walletBalance.toFixed(4)} SOL — add at least ${((rentLamports / 1e9) - walletBalance).toFixed(4)} more to get started)` : ''}.<br />
         Seeker Scratch is a sweepstakes game. 18+ only. Void where prohibited by law.
       </div>
       <AdminPanel onSettingsSaved={fetchAll} />

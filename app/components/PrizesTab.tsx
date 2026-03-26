@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { Program, AnchorProvider } from '@coral-xyz/anchor'
-import { PublicKey } from '@solana/web3.js'
+import { PublicKey, Transaction, TransactionMessage, VersionedTransaction } from '@solana/web3.js'
 import { PROGRAM_ID, MASTER_CONFIG_SEED, MONTHLY_PRIZE_SEED, TREASURY_SEED, IDL } from '../lib/constants'
 import Confetti from './Confetti'
 
@@ -41,15 +41,57 @@ export default function PrizesTab({ connection, wallet, publicKey, unclaimedPriz
     setClaiming(true)
     setClaimError(null)
     try {
-      const provider = new AnchorProvider(connection, wallet as any, { commitment: 'confirmed' })
-      const prog = new Program(IDL as any, PROGRAM_ID, provider)
+      // Use a read-only provider to build the instruction — prevents Anchor from
+      // injecting the MWA session key as a required signer ("Missing signature" error)
+      const rp = new AnchorProvider(connection, {
+        publicKey,
+        signTransaction: async (tx: any) => tx,
+        signAllTransactions: async (txs: any) => txs,
+      } as any, { commitment: 'confirmed' })
+      const prog = new Program(IDL as any, PROGRAM_ID, rp)
       const [monthlyPrizePda] = PublicKey.findProgramAddressSync([MONTHLY_PRIZE_SEED], PROGRAM_ID)
       const [treasuryPda] = PublicKey.findProgramAddressSync([TREASURY_SEED], PROGRAM_ID)
-      await (prog.methods as any).claimMonthlyPrize().accounts({
+
+      const ix = await (prog.methods as any).claimMonthlyPrize().accounts({
         monthlyPrize: monthlyPrizePda,
         treasury: treasuryPda,
         claimant: publicKey,
-      }).rpc({ commitment: 'confirmed' })
+      }).instruction()
+
+      const { blockhash } = await connection.getLatestBlockhash('confirmed')
+      const isMWA = (wallet as any).wallet?.adapter?.name === 'Mobile Wallet Adapter'
+
+      let sig: string
+      if (isMWA) {
+        const tx = new Transaction()
+        tx.add(ix)
+        tx.feePayer = publicKey
+        tx.recentBlockhash = blockhash
+        const origSerialize = (tx as any).serialize.bind(tx)
+        ;(tx as any).serialize = (config?: any) =>
+          origSerialize({ requireAllSignatures: false, verifySignatures: false, ...config })
+        if (!tx.signatures.find((s: any) => s.publicKey.equals(publicKey))) {
+          tx.signatures.unshift({ publicKey, signature: null })
+        }
+        const signedTx = await wallet.signTransaction!(tx as any)
+        const serialized = (signedTx as any).serialize({ requireAllSignatures: false, verifySignatures: false })
+        sig = await connection.sendRawTransaction(serialized, { skipPreflight: true, maxRetries: 5 })
+      } else {
+        const message = new TransactionMessage({
+          payerKey: publicKey,
+          recentBlockhash: blockhash,
+          instructions: [ix],
+        }).compileToV0Message()
+        const vtx = new VersionedTransaction(message)
+        if (!wallet.signTransaction) {
+          sig = await wallet.sendTransaction(vtx as any, connection, { skipPreflight: true })
+        } else {
+          const signedVtx = await wallet.signTransaction(vtx as any)
+          sig = await connection.sendRawTransaction((signedVtx as any).serialize(), { skipPreflight: true })
+        }
+      }
+
+      await connection.confirmTransaction(sig, 'confirmed')
       setClaimed(true)
       setShowConfetti(true)
       setTimeout(() => setShowConfetti(false), 5000)

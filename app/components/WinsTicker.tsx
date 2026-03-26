@@ -178,8 +178,6 @@ export default function WinsTicker() {
             <span style={{ fontWeight: 'bold', color: '#00ff88' }}>{win.amount} SOL</span>
             <span style={{ color: '#ffffffcc' }}>on</span>
             <span style={{ fontWeight: 'bold', color: '#ffffffee', letterSpacing: 1 }}>{win.cardType}</span>
-            <span style={{ color: '#ffffff55' }}>·</span>
-            <span style={{ color: '#ffffffaa' }}>{win.timeAgo}</span>
           </span>
         ))}
       </div>

@@ -329,6 +329,13 @@ export default function Home() {
 
   const handleFreeScratch = async () => {
     if (!wallet.connected) { alert('Please connect your wallet first'); return }
+    if (!profile && walletBalance * 1e9 < rentLamports) {
+      const needed = (rentLamports / 1e9).toFixed(4)
+      const have = walletBalance.toFixed(4)
+      const shortfall = ((rentLamports / 1e9) - walletBalance).toFixed(4)
+      setTxError(`Your wallet needs at least ${needed} SOL for the one-time account setup. You currently have ${have} SOL — please add at least ${shortfall} more SOL and try again.`)
+      return
+    }
     unlockAudio()
     setFreeScratchState(null)
     setTxError(null)

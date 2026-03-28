@@ -135,10 +135,10 @@ export default function WinsTicker() {
   // Duplicate the list so the scroll loops seamlessly
   const items = [...wins, ...wins]
 
-  // 500px gives enough room for the longest possible item text + gap between items
-  const itemWidth = 500
+  // 320px fits the longest item text with a small separator gap
+  const itemWidth = 320
   const totalWidth = wins.length * itemWidth
-  const durationSeconds = wins.length * 7 // ~7s per item — slower, easier to read
+  const durationSeconds = wins.length * 4 // ~4s per item
 
   return (
     <div style={{
@@ -171,7 +171,7 @@ export default function WinsTicker() {
             fontSize: '13px',
             fontFamily: 'monospace',
             whiteSpace: 'nowrap',
-            paddingRight: '80px',
+            paddingRight: '40px',
           }}>
             <span style={{ fontSize: '15px' }}>🏆</span>
             <span style={{ color: '#ffffffee' }}>{win.wallet}</span>

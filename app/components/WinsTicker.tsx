@@ -76,8 +76,7 @@ export default function WinsTicker() {
 
           const logs: string[] = tx.meta?.logMessages || []
           const isBuyAndScratch = logs.some((l: string) => l.includes('Instruction: BuyAndScratch'))
-          const isMonthlyPrize = logs.some((l: string) => l.includes('Instruction: ClaimMonthlyPrize'))
-          if (!isBuyAndScratch && !isMonthlyPrize) continue
+          if (!isBuyAndScratch) continue
 
           const keys = tx.transaction?.message?.accountKeys || []
           const treasuryIdx = keys.findIndex((k: any) => (k?.pubkey || k) === TREASURY)
@@ -86,35 +85,26 @@ export default function WinsTicker() {
           const preTreasury: number = tx.meta?.preBalances?.[treasuryIdx] || 0
           const postTreasury: number = tx.meta?.postBalances?.[treasuryIdx] || 0
 
+          // BuyAndScratch: use CPI transfer amounts
+          const allInner: any[] = (tx.meta?.innerInstructions || [])
+            .flatMap((ix: any) => ix.instructions || [])
+          const transfers = allInner.filter((i: any) => i.parsed?.type === 'transfer')
+
+          const houseTx = transfers.find((t: any) => t.parsed?.info?.destination === HOUSE_WALLET)
+          const treasuryTx = transfers.find((t: any) => t.parsed?.info?.destination === TREASURY)
+
+          const houseFeeLamports: number = houseTx?.parsed?.info?.lamports || 0
+          const treasuryReceivedLamports: number = treasuryTx?.parsed?.info?.lamports || 0
+          if (houseFeeLamports === 0) continue
+
+          // Card type from house fee: QP ~300K, HotShot ~1.5M, MegaGold ~3M
           let cardType: string
-          let prizeLamports: number
+          if (houseFeeLamports >= 2_000_000) cardType = 'MEGA GOLD'
+          else if (houseFeeLamports >= 1_000_000) cardType = 'HOT SHOT'
+          else cardType = 'QUICK PICK'
 
-          if (isMonthlyPrize) {
-            // ClaimMonthlyPrize: treasury pays out directly (no CPI transfers).
-            // Treasury balance simply drops by the prize amount.
-            prizeLamports = preTreasury - postTreasury
-            cardType = 'MONTHLY PRIZE'
-          } else {
-            // BuyAndScratch: use CPI transfer amounts
-            const allInner: any[] = (tx.meta?.innerInstructions || [])
-              .flatMap((ix: any) => ix.instructions || [])
-            const transfers = allInner.filter((i: any) => i.parsed?.type === 'transfer')
-
-            const houseTx = transfers.find((t: any) => t.parsed?.info?.destination === HOUSE_WALLET)
-            const treasuryTx = transfers.find((t: any) => t.parsed?.info?.destination === TREASURY)
-
-            const houseFeeLamports: number = houseTx?.parsed?.info?.lamports || 0
-            const treasuryReceivedLamports: number = treasuryTx?.parsed?.info?.lamports || 0
-            if (houseFeeLamports === 0) continue
-
-            // Card type from house fee: QP ~300K, HotShot ~1.5M, MegaGold ~3M
-            if (houseFeeLamports >= 2_000_000) cardType = 'MEGA GOLD'
-            else if (houseFeeLamports >= 1_000_000) cardType = 'HOT SHOT'
-            else cardType = 'QUICK PICK'
-
-            // prize = treasuryReceived − (postTreasury − preTreasury)
-            prizeLamports = treasuryReceivedLamports - (postTreasury - preTreasury)
-          }
+          // prize = treasuryReceived − (postTreasury − preTreasury)
+          const prizeLamports = treasuryReceivedLamports - (postTreasury - preTreasury)
 
           if (prizeLamports <= 0) continue
 

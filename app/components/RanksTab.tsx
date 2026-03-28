@@ -14,6 +14,7 @@ const KNOWN_WALLETS = [
   '6RhLQikkjzace4ti4D458iSmKofbPdMGNB7VKHmWwYPP',
   'GTpPckfLivFsNZphqoBYknrwhwuTEHK49WQXyjRuszAn',
 ]
+const ADMIN_WALLET = '6RhLQikkjzace4ti4D458iSmKofbPdMGNB7VKHmWwYPP'
 
 export default function RanksTab({ connection, wallet, publicKey, masterConfig }: any) {
   const [players, setPlayers] = useState<any[]>([])
@@ -41,8 +42,11 @@ export default function RanksTab({ connection, wallet, publicKey, masterConfig }
       try {
         const accounts = await (program.account as any).playerProfile.all()
         for (const acc of accounts) {
+          const rawOwner = acc.account.owner?.toBase58() ?? ''
+          const ownerWallet = (rawOwner && rawOwner !== '11111111111111111111111111111111') ? rawOwner : null
           profiles.push({
             wallet: acc.publicKey.toBase58(),
+            ownerWallet,
             displayName: acc.account.displayName || null,
             pfpUrl: acc.account.pfpUrl || null,
             pointsThisMonth: acc.account.pointsThisMonth.toNumber(),
@@ -85,6 +89,7 @@ export default function RanksTab({ connection, wallet, publicKey, masterConfig }
   useEffect(() => { fetchLeaderboard() }, [])
 
   const myPda = publicKey ? getProfilePda(publicKey).toBase58() : null
+  const isAdmin = publicKey?.toBase58() === ADMIN_WALLET
   const medals = ['🥇', '🥈', '🥉']
   const solPrizes = ['0.25 SOL + 500 SKR', '0.15 SOL + 250 SKR', '0.05 SOL + 100 SKR']
   const sweepPrizes = [
@@ -205,6 +210,11 @@ export default function RanksTab({ connection, wallet, publicKey, masterConfig }
                   <div style={{ color: isMe ? accent : '#fff', fontSize: 14, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {player.displayName || shortWallet} {isMe && '(YOU)'}
                   </div>
+                  {isAdmin && (
+                    <div style={{ fontSize: 9, color: '#ff9900cc', fontFamily: 'monospace', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {player.ownerWallet ?? player.wallet}
+                    </div>
+                  )}
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
                   <div style={{ color: accent, fontSize: 18, fontFamily: "'Bebas Neue', sans-serif" }}>{points.toLocaleString()}</div>

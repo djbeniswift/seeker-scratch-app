@@ -466,6 +466,22 @@ pub mod seeker_scratch {
         }
         Ok(())
     }
+
+    /// Admin-only: zero out monthly points for a single player profile.
+    /// Called by the cron job for every profile after set_monthly_winners succeeds.
+    pub fn reset_monthly_points(ctx: Context<ResetMonthlyPoints>) -> Result<()> {
+        let profile = &mut ctx.accounts.player_profile;
+        profile.points_this_month = 0;
+        profile.sweep_points_this_month = 0;
+        Ok(())
+    }
+
+    /// Admin-only: record the current timestamp as the start of a new month on
+    /// the treasury. Called once by the cron job alongside the point resets.
+    pub fn set_month_start(ctx: Context<SetMonthStart>) -> Result<()> {
+        ctx.accounts.treasury.month_start = Clock::get()?.unix_timestamp;
+        Ok(())
+    }
 }
 
 fn pseudo_random(seed: u64) -> u64 {
@@ -866,6 +882,30 @@ pub struct AdminAdjustPoints<'info> {
     /// CHECK: Used as PDA seed for the profile to adjust
     pub player_key: AccountInfo<'info>,
     #[account(seeds = [b"scratch_treasury_v2"], bump = treasury.bump)]
+    pub treasury: Account<'info, Treasury>,
+    #[account(mut, address = treasury.admin)]
+    pub admin: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct ResetMonthlyPoints<'info> {
+    #[account(
+        mut,
+        seeds = [b"scratch_profile", player_key.key().as_ref()],
+        bump
+    )]
+    pub player_profile: Account<'info, PlayerProfile>,
+    /// CHECK: Used as PDA seed to locate the profile being reset
+    pub player_key: AccountInfo<'info>,
+    #[account(seeds = [b"scratch_treasury_v2"], bump = treasury.bump)]
+    pub treasury: Account<'info, Treasury>,
+    #[account(mut, address = treasury.admin)]
+    pub admin: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct SetMonthStart<'info> {
+    #[account(mut, seeds = [b"scratch_treasury_v2"], bump = treasury.bump)]
     pub treasury: Account<'info, Treasury>,
     #[account(mut, address = treasury.admin)]
     pub admin: Signer<'info>,

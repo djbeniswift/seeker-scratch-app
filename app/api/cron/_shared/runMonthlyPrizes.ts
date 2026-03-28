@@ -227,6 +227,53 @@ export async function runMonthlyPrizes() {
 
   console.log(`[runMonthlyPrizes] setMonthlyWinners tx: ${tx}`)
 
+  // Reset monthly points for every profile now that winners are locked in.
+  // resolveWalletFromPda gives us the player_key needed by the on-chain PDA seed check.
+  // Failures are logged and skipped — a missed reset is non-critical (player keeps
+  // their points until next cron run, which is fine).
+  console.log(`[runMonthlyPrizes] Resetting monthly points for ${profiles.length} profiles...`)
+  let resetCount = 0
+  let resetErrors = 0
+  for (const p of profiles) {
+    const wallet = await resolveWalletFromPda(connection, p.publicKey)
+    if (!wallet) {
+      console.warn(`[runMonthlyPrizes] Could not resolve wallet for ${p.publicKey.toBase58()} — skipping reset`)
+      resetErrors++
+      continue
+    }
+    try {
+      await (program.methods as any)
+        .resetMonthlyPoints()
+        .accounts({
+          playerProfile: p.publicKey,
+          playerKey: wallet,
+          treasury: treasuryPda,
+          admin: adminKeypair.publicKey,
+        })
+        .rpc({ commitment: 'confirmed' })
+      resetCount++
+    } catch (err: any) {
+      console.error(`[runMonthlyPrizes] resetMonthlyPoints failed for ${p.publicKey.toBase58()}:`, err?.message ?? err)
+      resetErrors++
+    }
+  }
+  console.log(`[runMonthlyPrizes] Points reset complete: ${resetCount} succeeded, ${resetErrors} failed/skipped`)
+
+  // Set month_start on treasury to mark the beginning of the new period.
+  try {
+    const monthStartTx = await (program.methods as any)
+      .setMonthStart()
+      .accounts({
+        treasury: treasuryPda,
+        admin: adminKeypair.publicKey,
+      })
+      .rpc({ commitment: 'confirmed' })
+    console.log(`[runMonthlyPrizes] setMonthStart tx: ${monthStartTx}`)
+  } catch (err: any) {
+    console.error(`[runMonthlyPrizes] setMonthStart failed:`, err?.message ?? err)
+    // Non-fatal — continue to sweep resolution and email
+  }
+
   // Resolve sweep leaderboard wallets (same fault-tolerant approach)
   const sweepResolved: (PublicKey | null)[] = []
   for (const p of sweepSorted) {

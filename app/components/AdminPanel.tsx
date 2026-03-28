@@ -3,7 +3,7 @@ import { useWallet, useConnection } from '@solana/wallet-adapter-react'
 import { Program, AnchorProvider, BN } from '@coral-xyz/anchor'
 import { PublicKey, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js'
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { PROGRAM_ID, TREASURY_SEED, MASTER_CONFIG_SEED, GAME_CONFIG_SEED, PROFILE_SEED, IDL } from '../lib/constants'
+import { PROGRAM_ID, TREASURY_SEED, MASTER_CONFIG_SEED, GAME_CONFIG_SEED, PROFILE_SEED, MONTHLY_PRIZE_SEED, IDL } from '../lib/constants'
 
 const ADMIN = '6RhLQikkjzace4ti4D458iSmKofbPdMGNB7VKHmWwYPP'
 
@@ -91,6 +91,12 @@ export default function AdminPanel({ onSettingsSaved }: { onSettingsSaved?: () =
   const [winners, setWinners] = useState<any[]>([])
   const [sweepWinners, setSweepWinners] = useState<any[]>([])
 
+  // Month End — Test Mode
+  const [testWallet1, setTestWallet1] = useState('')
+  const [testWallet2, setTestWallet2] = useState('')
+  const [testWallet3, setTestWallet3] = useState('')
+  const [testModeStatus, setTestModeStatus] = useState('')
+
   // Player lookup
   const [lookupInput, setLookupInput] = useState('')
   const [lookupResult, setLookupResult] = useState<any>(null)
@@ -126,6 +132,7 @@ export default function AdminPanel({ onSettingsSaved }: { onSettingsSaved?: () =
   const [treasuryPda] = PublicKey.findProgramAddressSync([TREASURY_SEED], PROGRAM_ID)
   const [masterConfigPda] = PublicKey.findProgramAddressSync([MASTER_CONFIG_SEED], PROGRAM_ID)
   const [gameConfigPda] = PublicKey.findProgramAddressSync([GAME_CONFIG_SEED], PROGRAM_ID)
+  const [monthlyPrizePda] = PublicKey.findProgramAddressSync([MONTHLY_PRIZE_SEED], PROGRAM_ID)
 
   useEffect(() => { setMounted(true) }, [])
 
@@ -602,6 +609,27 @@ export default function AdminPanel({ onSettingsSaved }: { onSettingsSaved?: () =
       setActivityLoaded(true)
     } catch (e: any) { setS(`❌ Activity load failed: ${e.message?.slice(0, 80)}`) }
     setActivityLoading(false)
+  }
+
+  const runTestMode = async () => {
+    try {
+      setTestModeStatus('⏳ Setting test winners...')
+      const program = getProgram(); if (!program) return setTestModeStatus('❌ No wallet connected')
+      let w1: PublicKey, w2: PublicKey, w3: PublicKey
+      try {
+        w1 = new PublicKey(testWallet1.trim())
+        w2 = new PublicKey(testWallet2.trim())
+        w3 = new PublicKey(testWallet3.trim())
+      } catch {
+        return setTestModeStatus('❌ Invalid wallet address — check all three fields')
+      }
+      const TEST_AMOUNT = new BN(1_000_000)
+      await (program.methods as any)
+        .setMonthlyWinners([w1, w2, w3], [TEST_AMOUNT, TEST_AMOUNT, TEST_AMOUNT])
+        .accounts({ monthlyPrize: monthlyPrizePda, treasury: treasuryPda, admin: publicKey, systemProgram: SystemProgram.programId })
+        .rpc({ commitment: 'confirmed' })
+      setTestModeStatus('✅ Test winners set! Each wallet can now claim 0.001 SOL from the Prizes tab.')
+    } catch (e: any) { setTestModeStatus(`❌ ${e.message?.slice(0, 120)}`) }
   }
 
   const copy = (text: string) => { navigator.clipboard.writeText(text).catch(() => {}) }
@@ -1351,6 +1379,38 @@ export default function AdminPanel({ onSettingsSaved }: { onSettingsSaved?: () =
                     <div style={{ color: '#ffffffdd', fontSize: 11, marginBottom: 4 }}>Current month started: <span style={{ color: '#fff' }}>{monthStartDate}</span></div>
                     <div style={{ color: '#f87171', fontSize: 11, lineHeight: 1.5 }}>
                       Resetting points will affect the leaderboard — make sure prizes are sent first before triggering any reset.
+                    </div>
+                  </div>
+
+                  {/* Test Mode */}
+                  <div style={{ marginTop: 8, padding: '10px 12px', background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 10 }}>
+                    <div style={{ color: '#fbbf24', fontWeight: 'bold', fontSize: 11, marginBottom: 6 }}>
+                      ⚠️ TEST MODE — Sets real on-chain winners with 0.001 SOL each. Use your own wallets only. Does not reset points or trigger the winner email.
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {(['1st Place Wallet', '2nd Place Wallet', '3rd Place Wallet'] as const).map((label, i) => (
+                        <div key={label}>
+                          <div style={{ color: '#ffffff99', fontSize: 10, marginBottom: 2 }}>{label}</div>
+                          <input
+                            style={input({ fontFamily: 'monospace', fontSize: 11 })}
+                            placeholder="Enter wallet address..."
+                            value={[testWallet1, testWallet2, testWallet3][i]}
+                            onChange={e => [setTestWallet1, setTestWallet2, setTestWallet3][i](e.target.value)}
+                          />
+                        </div>
+                      ))}
+                      <button
+                        onClick={runTestMode}
+                        disabled={!testWallet1 || !testWallet2 || !testWallet3}
+                        style={{ ...btn('#fbbf24', '#000'), marginTop: 2, opacity: (!testWallet1 || !testWallet2 || !testWallet3) ? 0.5 : 1 }}
+                      >
+                        Run Test
+                      </button>
+                      {testModeStatus && (
+                        <div style={{ fontSize: 11, color: testModeStatus.startsWith('✅') ? '#4ade80' : testModeStatus.startsWith('⏳') ? '#fbbf24' : '#f87171', fontFamily: 'monospace', lineHeight: 1.4 }}>
+                          {testModeStatus}
+                        </div>
+                      )}
                     </div>
                   </div>
 

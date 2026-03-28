@@ -179,6 +179,24 @@ export const IDL = {
         { name: "points", type: "u64" },
         { name: "addReferral", type: "bool" }
       ]
+    },
+    {
+      name: "resetMonthlyPoints",
+      accounts: [
+        { name: "playerProfile", isMut: true, isSigner: false },
+        { name: "playerKey", isMut: false, isSigner: false },
+        { name: "treasury", isMut: false, isSigner: false },
+        { name: "admin", isMut: true, isSigner: true }
+      ],
+      args: []
+    },
+    {
+      name: "setMonthStart",
+      accounts: [
+        { name: "treasury", isMut: true, isSigner: false },
+        { name: "admin", isMut: true, isSigner: true }
+      ],
+      args: []
     }
   ],
   accounts: [

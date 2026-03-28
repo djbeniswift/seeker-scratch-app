@@ -372,29 +372,34 @@ export default function AdminPanel({ onSettingsSaved }: { onSettingsSaved?: () =
     try {
       const rp = readProvider()
       const rProg = new Program(IDL as any, PROGRAM_ID, rp)
-      let profilePda: PublicKey
-      try {
-        const key = new PublicKey(lookupInput.trim())
-        const [pda] = PublicKey.findProgramAddressSync([PROFILE_SEED, key.toBuffer()], PROGRAM_ID)
-        profilePda = pda
-      } catch { setLookupResult({ error: 'Invalid pubkey' }); return }
-      try {
-        const data = await (rProg.account as any).playerProfile.fetch(profilePda)
-        setLookupResult({
-          wallet: data.owner?.toBase58(),
-          displayName: data.displayName,
-          cardsScratched: data.cardsScratched,
-          totalSpent: (data.totalSpent.toNumber() / LAMPORTS_PER_SOL).toFixed(3),
-          totalWon: (data.totalWon.toNumber() / LAMPORTS_PER_SOL).toFixed(3),
-          pointsThisMonth: data.pointsThisMonth.toNumber(),
-          pointsAllTime: data.pointsAllTime.toNumber(),
-          sweepPointsThisMonth: data.sweepPointsThisMonth?.toNumber() ?? 0,
-          sweepPointsAllTime: data.sweepPointsAllTime?.toNumber() ?? 0,
-          freePlaysUsed: data.freePlaysUsed ?? 0,
-          hasBeenReferred: data.hasBeenReferred,
-          referredBy: data.referredBy?.toBase58(),
-        })
-      } catch { setLookupResult({ error: 'Profile not found' }) }
+      let key: PublicKey
+      try { key = new PublicKey(lookupInput.trim()) }
+      catch { setLookupResult({ error: 'Invalid pubkey' }); return }
+
+      // Try the input directly as a profile PDA first (handles copy-pasted PDA addresses).
+      // If that fails, treat input as a wallet address and derive the PDA.
+      let data: any = null
+      try { data = await (rProg.account as any).playerProfile.fetch(key) } catch {}
+      if (!data) {
+        const [derived] = PublicKey.findProgramAddressSync([PROFILE_SEED, key.toBuffer()], PROGRAM_ID)
+        try { data = await (rProg.account as any).playerProfile.fetch(derived) } catch {}
+      }
+      if (!data) { setLookupResult({ error: 'Profile not found' }); return }
+
+      setLookupResult({
+        wallet: data.owner?.toBase58(),
+        displayName: data.displayName,
+        cardsScratched: data.cardsScratched,
+        totalSpent: (data.totalSpent.toNumber() / LAMPORTS_PER_SOL).toFixed(3),
+        totalWon: (data.totalWon.toNumber() / LAMPORTS_PER_SOL).toFixed(3),
+        pointsThisMonth: data.pointsThisMonth.toNumber(),
+        pointsAllTime: data.pointsAllTime.toNumber(),
+        sweepPointsThisMonth: data.sweepPointsThisMonth?.toNumber() ?? 0,
+        sweepPointsAllTime: data.sweepPointsAllTime?.toNumber() ?? 0,
+        freePlaysUsed: data.freePlaysUsed ?? 0,
+        hasBeenReferred: data.hasBeenReferred,
+        referredBy: data.referredBy?.toBase58(),
+      })
     } catch (e: any) { setLookupResult({ error: e.message }) }
   }
 

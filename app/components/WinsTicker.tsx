@@ -135,8 +135,8 @@ export default function WinsTicker() {
   // Duplicate the list so the scroll loops seamlessly
   const items = [...wins, ...wins]
 
-  // 320px fits the longest item text with a small separator gap
-  const itemWidth = 320
+  // 400px fits the longest item text with a small separator gap
+  const itemWidth = 400
   const totalWidth = wins.length * itemWidth
   const durationSeconds = wins.length * 4 // ~4s per item
 

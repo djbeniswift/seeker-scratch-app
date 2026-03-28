@@ -491,16 +491,22 @@ export default function AdminPanel({ onSettingsSaved }: { onSettingsSaved?: () =
       const rProg = new Program(IDL as any, PROGRAM_ID, rp)
       const accounts = await (rProg.account as any).playerProfile.all()
       const matches = accounts
-        .map((a: any) => ({
-          wallet: a.account.owner?.toBase58() || a.publicKey.toBase58(),
-          displayName: a.account.displayName || '',
-          pointsThisMonth: a.account.pointsThisMonth.toNumber(),
-          pointsAllTime: a.account.pointsAllTime.toNumber(),
-          referralsCount: a.account.referralsCount,
-        }))
+        .map((a: any) => {
+          const rawOwner = a.account.owner?.toBase58() ?? ''
+          const wallet = (rawOwner && rawOwner !== '11111111111111111111111111111111') ? rawOwner : a.publicKey.toBase58()
+          return {
+            wallet,
+            pda: a.publicKey.toBase58(),
+            displayName: a.account.displayName || '',
+            pointsThisMonth: a.account.pointsThisMonth.toNumber(),
+            pointsAllTime: a.account.pointsAllTime.toNumber(),
+            referralsCount: a.account.referralsCount,
+          }
+        })
         .filter((p: any) =>
           p.displayName.toLowerCase().includes(term) ||
-          p.wallet.toLowerCase().includes(term)
+          p.wallet.toLowerCase().includes(term) ||
+          p.pda.toLowerCase().includes(term)
         )
         .slice(0, 20)
       setNameResults(matches)

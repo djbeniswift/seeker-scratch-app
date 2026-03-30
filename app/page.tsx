@@ -240,7 +240,7 @@ export default function Home() {
 
     // Pre-flight balance check — catches low-balance cases before hitting the wallet
     {
-      const GAS_BUFFER = 2_100_000 // 100k base + 2M safety buffer
+      const GAS_BUFFER = 100_000 // ~0.0001 SOL for transaction fees
       const cardName = cardType === 'MegaGold' ? 'MegaGold' : cardType === 'HotShot' ? 'HotShot' : 'QuickPick'
       const cardCostLamports = cardType === 'MegaGold'
         ? Math.round((masterConfig?.costMegagold || 0.1) * 1e9)
@@ -360,7 +360,7 @@ export default function Home() {
   const handleFreeScratch = async () => {
     if (!wallet.connected) { alert('Please connect your wallet first'); return }
     const walletLamports = walletBalance * 1e9
-    const GAS_BUFFER = 2_100_000 // 100k base + 2M safety buffer
+    const GAS_BUFFER = 100_000 // ~0.0001 SOL for transaction fees
     const WALLET_MIN = 890_880 // Solana rent-exempt minimum for a 0-byte account
     if (!profile && walletLamports < rentLamports) {
       setTxError(`⚠️ You need ~${(rentLamports / 1e9).toFixed(4)} SOL for your first free play. This one-time setup fee creates your player account on-chain.`)

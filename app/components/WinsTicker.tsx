@@ -47,11 +47,11 @@ export default function WinsTicker() {
   useEffect(() => {
     async function fetchWins() {
       try {
-        // Call 1: get recent signatures — fetch 500 to find enough BuyAndScratch wins
+        // Query house wallet — only BuyAndScratch pays a house fee, so free plays never appear
         const { result: sigs } = await heliusFetch({
           jsonrpc: '2.0', id: 1,
           method: 'getSignaturesForAddress',
-          params: [PROGRAM_ID, { limit: 500 }],
+          params: [HOUSE_WALLET, { limit: 150 }],
         })
         if (!sigs) return
 
@@ -59,65 +59,61 @@ export default function WinsTicker() {
         if (goodSigs.length === 0) return
 
         const found: Win[] = []
-        const BATCH_SIZE = 50
 
-        // Process in batches of 50 to avoid rate limiting, stop once 10 wins found
-        for (let i = 0; i < goodSigs.length && found.length < 10; i += BATCH_SIZE) {
-          const batch = goodSigs.slice(i, i + BATCH_SIZE)
-          const txResults = await Promise.all(
-            batch.map((s: any) => heliusFetch({
-              jsonrpc: '2.0', id: 1,
-              method: 'getTransaction',
-              params: [s.signature, { encoding: 'jsonParsed', maxSupportedTransactionVersion: 0 }],
-            }))
-          )
+        // All sigs are paid plays — fire in parallel
+        const txResults = await Promise.all(
+          goodSigs.slice(0, 150).map((s: any) => heliusFetch({
+            jsonrpc: '2.0', id: 1,
+            method: 'getTransaction',
+            params: [s.signature, { encoding: 'jsonParsed', maxSupportedTransactionVersion: 0 }],
+          }))
+        )
 
-          for (const item of txResults) {
-            if (found.length >= 10) break
-            const tx = item.result
-            if (!tx) continue
+        for (const item of txResults) {
+          if (found.length >= 10) break
+          const tx = item.result
+          if (!tx) continue
 
-            const logs: string[] = tx.meta?.logMessages || []
-            const isBuyAndScratch = logs.some((l: string) => l.includes('Instruction: BuyAndScratch'))
-            if (!isBuyAndScratch) continue
+          const logs: string[] = tx.meta?.logMessages || []
+          const isBuyAndScratch = logs.some((l: string) => l.includes('Instruction: BuyAndScratch'))
+          if (!isBuyAndScratch) continue
 
-            const keys = tx.transaction?.message?.accountKeys || []
-            const treasuryIdx = keys.findIndex((k: any) => (k?.pubkey || k) === TREASURY)
-            if (treasuryIdx < 0) continue
+          const keys = tx.transaction?.message?.accountKeys || []
+          const treasuryIdx = keys.findIndex((k: any) => (k?.pubkey || k) === TREASURY)
+          if (treasuryIdx < 0) continue
 
-            const preTreasury: number = tx.meta?.preBalances?.[treasuryIdx] || 0
-            const postTreasury: number = tx.meta?.postBalances?.[treasuryIdx] || 0
+          const preTreasury: number = tx.meta?.preBalances?.[treasuryIdx] || 0
+          const postTreasury: number = tx.meta?.postBalances?.[treasuryIdx] || 0
 
-            const allInner: any[] = (tx.meta?.innerInstructions || [])
-              .flatMap((ix: any) => ix.instructions || [])
-            const transfers = allInner.filter((i: any) => i.parsed?.type === 'transfer')
+          const allInner: any[] = (tx.meta?.innerInstructions || [])
+            .flatMap((ix: any) => ix.instructions || [])
+          const transfers = allInner.filter((i: any) => i.parsed?.type === 'transfer')
 
-            const houseTx = transfers.find((t: any) => t.parsed?.info?.destination === HOUSE_WALLET)
-            const treasuryTx = transfers.find((t: any) => t.parsed?.info?.destination === TREASURY)
+          const houseTx = transfers.find((t: any) => t.parsed?.info?.destination === HOUSE_WALLET)
+          const treasuryTx = transfers.find((t: any) => t.parsed?.info?.destination === TREASURY)
 
-            const houseFeeLamports: number = houseTx?.parsed?.info?.lamports || 0
-            const treasuryReceivedLamports: number = treasuryTx?.parsed?.info?.lamports || 0
-            if (houseFeeLamports === 0) continue
+          const houseFeeLamports: number = houseTx?.parsed?.info?.lamports || 0
+          const treasuryReceivedLamports: number = treasuryTx?.parsed?.info?.lamports || 0
+          if (houseFeeLamports === 0) continue
 
-            let cardType: string
-            if (houseFeeLamports >= 2_000_000) cardType = 'MEGA GOLD'
-            else if (houseFeeLamports >= 1_000_000) cardType = 'HOT SHOT'
-            else cardType = 'QUICK PICK'
+          let cardType: string
+          if (houseFeeLamports >= 2_000_000) cardType = 'MEGA GOLD'
+          else if (houseFeeLamports >= 1_000_000) cardType = 'HOT SHOT'
+          else cardType = 'QUICK PICK'
 
-            const prizeLamports = treasuryReceivedLamports - (postTreasury - preTreasury)
+          const prizeLamports = treasuryReceivedLamports - (postTreasury - preTreasury)
 
-            if (prizeLamports <= 12_000_000) continue // hide 0.012 SOL wins
+          if (prizeLamports <= 12_000_000) continue // hide 0.012 SOL wins
 
-            const prizeSOL = (prizeLamports / 1e9).toFixed(3)
-            const playerKey: string = keys[0]?.pubkey || keys[0] || ''
+          const prizeSOL = (prizeLamports / 1e9).toFixed(3)
+          const playerKey: string = keys[0]?.pubkey || keys[0] || ''
 
-            found.push({
-              wallet: shortWallet(playerKey.toString()),
-              cardType,
-              amount: prizeSOL,
-              timeAgo: timeAgo(tx.blockTime || 0),
-            })
-          }
+          found.push({
+            wallet: shortWallet(playerKey.toString()),
+            cardType,
+            amount: prizeSOL,
+            timeAgo: timeAgo(tx.blockTime || 0),
+          })
         }
 
         if (found.length > 0) setWins(found)

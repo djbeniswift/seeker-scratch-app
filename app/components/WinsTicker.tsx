@@ -47,76 +47,77 @@ export default function WinsTicker() {
   useEffect(() => {
     async function fetchWins() {
       try {
-        // Call 1: get recent signatures
+        // Call 1: get recent signatures — fetch 500 to find enough BuyAndScratch wins
         const { result: sigs } = await heliusFetch({
           jsonrpc: '2.0', id: 1,
           method: 'getSignaturesForAddress',
-          params: [PROGRAM_ID, { limit: 150 }],
+          params: [PROGRAM_ID, { limit: 500 }],
         })
         if (!sigs) return
 
-        const goodSigs = (sigs as any[]).filter(s => !s.err).slice(0, 150)
+        const goodSigs = (sigs as any[]).filter(s => !s.err)
         if (goodSigs.length === 0) return
 
-        // Fire all getTransaction requests in parallel — ~300ms vs ~20s sequential
-        const txResults = await Promise.all(
-          goodSigs.map((s: any) => heliusFetch({
-            jsonrpc: '2.0', id: 1,
-            method: 'getTransaction',
-            params: [s.signature, { encoding: 'jsonParsed', maxSupportedTransactionVersion: 0 }],
-          }))
-        )
-
         const found: Win[] = []
+        const BATCH_SIZE = 50
 
-        for (const item of txResults) {
-          if (found.length >= 10) break
-          const tx = item.result
-          if (!tx) continue
+        // Process in batches of 50 to avoid rate limiting, stop once 10 wins found
+        for (let i = 0; i < goodSigs.length && found.length < 10; i += BATCH_SIZE) {
+          const batch = goodSigs.slice(i, i + BATCH_SIZE)
+          const txResults = await Promise.all(
+            batch.map((s: any) => heliusFetch({
+              jsonrpc: '2.0', id: 1,
+              method: 'getTransaction',
+              params: [s.signature, { encoding: 'jsonParsed', maxSupportedTransactionVersion: 0 }],
+            }))
+          )
 
-          const logs: string[] = tx.meta?.logMessages || []
-          const isBuyAndScratch = logs.some((l: string) => l.includes('Instruction: BuyAndScratch'))
-          if (!isBuyAndScratch) continue
+          for (const item of txResults) {
+            if (found.length >= 10) break
+            const tx = item.result
+            if (!tx) continue
 
-          const keys = tx.transaction?.message?.accountKeys || []
-          const treasuryIdx = keys.findIndex((k: any) => (k?.pubkey || k) === TREASURY)
-          if (treasuryIdx < 0) continue
+            const logs: string[] = tx.meta?.logMessages || []
+            const isBuyAndScratch = logs.some((l: string) => l.includes('Instruction: BuyAndScratch'))
+            if (!isBuyAndScratch) continue
 
-          const preTreasury: number = tx.meta?.preBalances?.[treasuryIdx] || 0
-          const postTreasury: number = tx.meta?.postBalances?.[treasuryIdx] || 0
+            const keys = tx.transaction?.message?.accountKeys || []
+            const treasuryIdx = keys.findIndex((k: any) => (k?.pubkey || k) === TREASURY)
+            if (treasuryIdx < 0) continue
 
-          // BuyAndScratch: use CPI transfer amounts
-          const allInner: any[] = (tx.meta?.innerInstructions || [])
-            .flatMap((ix: any) => ix.instructions || [])
-          const transfers = allInner.filter((i: any) => i.parsed?.type === 'transfer')
+            const preTreasury: number = tx.meta?.preBalances?.[treasuryIdx] || 0
+            const postTreasury: number = tx.meta?.postBalances?.[treasuryIdx] || 0
 
-          const houseTx = transfers.find((t: any) => t.parsed?.info?.destination === HOUSE_WALLET)
-          const treasuryTx = transfers.find((t: any) => t.parsed?.info?.destination === TREASURY)
+            const allInner: any[] = (tx.meta?.innerInstructions || [])
+              .flatMap((ix: any) => ix.instructions || [])
+            const transfers = allInner.filter((i: any) => i.parsed?.type === 'transfer')
 
-          const houseFeeLamports: number = houseTx?.parsed?.info?.lamports || 0
-          const treasuryReceivedLamports: number = treasuryTx?.parsed?.info?.lamports || 0
-          if (houseFeeLamports === 0) continue
+            const houseTx = transfers.find((t: any) => t.parsed?.info?.destination === HOUSE_WALLET)
+            const treasuryTx = transfers.find((t: any) => t.parsed?.info?.destination === TREASURY)
 
-          // Card type from house fee: QP ~300K, HotShot ~1.5M, MegaGold ~3M
-          let cardType: string
-          if (houseFeeLamports >= 2_000_000) cardType = 'MEGA GOLD'
-          else if (houseFeeLamports >= 1_000_000) cardType = 'HOT SHOT'
-          else cardType = 'QUICK PICK'
+            const houseFeeLamports: number = houseTx?.parsed?.info?.lamports || 0
+            const treasuryReceivedLamports: number = treasuryTx?.parsed?.info?.lamports || 0
+            if (houseFeeLamports === 0) continue
 
-          // prize = treasuryReceived − (postTreasury − preTreasury)
-          const prizeLamports = treasuryReceivedLamports - (postTreasury - preTreasury)
+            let cardType: string
+            if (houseFeeLamports >= 2_000_000) cardType = 'MEGA GOLD'
+            else if (houseFeeLamports >= 1_000_000) cardType = 'HOT SHOT'
+            else cardType = 'QUICK PICK'
 
-          if (prizeLamports <= 12_000_000) continue // hide 0.012 SOL wins
+            const prizeLamports = treasuryReceivedLamports - (postTreasury - preTreasury)
 
-          const prizeSOL = (prizeLamports / 1e9).toFixed(3)
-          const playerKey: string = keys[0]?.pubkey || keys[0] || ''
+            if (prizeLamports <= 12_000_000) continue // hide 0.012 SOL wins
 
-          found.push({
-            wallet: shortWallet(playerKey.toString()),
-            cardType,
-            amount: prizeSOL,
-            timeAgo: timeAgo(tx.blockTime || 0),
-          })
+            const prizeSOL = (prizeLamports / 1e9).toFixed(3)
+            const playerKey: string = keys[0]?.pubkey || keys[0] || ''
+
+            found.push({
+              wallet: shortWallet(playerKey.toString()),
+              cardType,
+              amount: prizeSOL,
+              timeAgo: timeAgo(tx.blockTime || 0),
+            })
+          }
         }
 
         if (found.length > 0) setWins(found)

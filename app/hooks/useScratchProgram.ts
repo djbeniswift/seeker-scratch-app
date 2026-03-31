@@ -477,7 +477,7 @@ export function useScratchProgram() {
       console.log('Profile PDA:', profilePda.toBase58())
 
       // Get referrer profile PDA — fall back to admin's profile (always a valid PlayerProfile) if no referrer
-      const ADMIN_PUBKEY = new PublicKey('6RhLQikkjzace4ti4D458iSmKofbPdMGNB7VKHmWwYPP')
+      const ADMIN_PUBKEY = new PublicKey('HqdMKswjwXAkSe6rDuStz2fRxKvoAnghpNTvG4p5yjs1')
       let referrerProfilePda: PublicKey = getProfilePda(ADMIN_PUBKEY)
       let shouldRegisterReferral = false
       let shouldCreditReferrer = false
@@ -711,7 +711,7 @@ export function useScratchProgram() {
         }).catch(() => {})
 
         // Auto-pause if the admin wallet is the one buying
-        const ADMIN_KEY = '6RhLQikkjzace4ti4D458iSmKofbPdMGNB7VKHmWwYPP'
+        const ADMIN_KEY = 'HqdMKswjwXAkSe6rDuStz2fRxKvoAnghpNTvG4p5yjs1'
         if (publicKey.toBase58() === ADMIN_KEY) {
           try {
             await (program.methods as any).setPaused(true).accounts({

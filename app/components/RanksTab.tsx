@@ -21,6 +21,7 @@ export default function RanksTab({ connection, wallet, publicKey, masterConfig }
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState<'month' | 'alltime'>('month')
   const [leagueTab, setLeagueTab] = useState<'sol' | 'sweep'>('sol')
+  const [resolvedWallets, setResolvedWallets] = useState<Record<string, string>>({})
 
   const getProfilePda = (owner: PublicKey) => {
     const [pda] = PublicKey.findProgramAddressSync([PROFILE_SEED, owner.toBuffer()], PROGRAM_ID)
@@ -86,7 +87,36 @@ export default function RanksTab({ connection, wallet, publicKey, masterConfig }
     }
   }
 
+  // When admin is connected, resolve real wallet addresses for each profile PDA
+  // by fetching the most recent tx and reading accounts[0] (always the fee payer)
+  const resolveWalletsForAdmin = async (playerList: any[]) => {
+    const BATCH_SIZE = 20
+    for (let i = 0; i < playerList.length; i += BATCH_SIZE) {
+      const batch = playerList.slice(i, i + BATCH_SIZE)
+      const results: Record<string, string> = {}
+      await Promise.all(batch.map(async (player) => {
+        if (player.ownerWallet) { results[player.wallet] = player.ownerWallet; return }
+        try {
+          const sigs = await connection.getSignaturesForAddress(new PublicKey(player.wallet), { limit: 1 })
+          if (!sigs.length) return
+          const tx = await connection.getParsedTransaction(sigs[0].signature, { maxSupportedTransactionVersion: 0 })
+          if (!tx) return
+          const keys = tx.transaction.message.accountKeys
+          const feePayer = (keys[0] as any).pubkey?.toBase58() ?? (keys[0] as any).toBase58?.()
+          if (feePayer) results[player.wallet] = feePayer
+        } catch {}
+      }))
+      setResolvedWallets(prev => ({ ...prev, ...results }))
+    }
+  }
+
   useEffect(() => { fetchLeaderboard() }, [])
+
+  useEffect(() => {
+    if (publicKey?.toBase58() === ADMIN_WALLET && players.length > 0) {
+      resolveWalletsForAdmin(players)
+    }
+  }, [players, publicKey])
 
   const myPda = publicKey ? getProfilePda(publicKey).toBase58() : null
   const isAdmin = publicKey?.toBase58() === ADMIN_WALLET
@@ -214,7 +244,7 @@ export default function RanksTab({ connection, wallet, publicKey, masterConfig }
                   </div>
                   {isAdmin && (
                     <div style={{ fontSize: 9, color: '#ff9900cc', fontFamily: 'monospace', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {player.ownerWallet ?? player.wallet}
+                      {resolvedWallets[player.wallet] ?? '...'}
                     </div>
                   )}
                 </div>

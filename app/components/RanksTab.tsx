@@ -87,23 +87,35 @@ export default function RanksTab({ connection, wallet, publicKey, masterConfig }
     }
   }
 
-  // When admin is connected, resolve real wallet addresses for each profile PDA
-  // by fetching the most recent tx and reading accounts[0] (always the fee payer)
+  // When admin is connected, resolve real wallet addresses for each profile PDA.
+  // Fetches recent txs and verifies by re-deriving the PDA from the fee payer —
+  // this filters out txs where the PDA appears as a referrer (fee payer is someone else).
   const resolveWalletsForAdmin = async (playerList: any[]) => {
-    const BATCH_SIZE = 20
+    const BATCH_SIZE = 10
     for (let i = 0; i < playerList.length; i += BATCH_SIZE) {
       const batch = playerList.slice(i, i + BATCH_SIZE)
       const results: Record<string, string> = {}
       await Promise.all(batch.map(async (player) => {
         if (player.ownerWallet) { results[player.wallet] = player.ownerWallet; return }
         try {
-          const sigs = await connection.getSignaturesForAddress(new PublicKey(player.wallet), { limit: 1 })
+          const pdaPubkey = new PublicKey(player.wallet)
+          const sigs = await connection.getSignaturesForAddress(pdaPubkey, { limit: 20 })
           if (!sigs.length) return
-          const tx = await connection.getParsedTransaction(sigs[0].signature, { maxSupportedTransactionVersion: 0 })
-          if (!tx) return
-          const keys = tx.transaction.message.accountKeys
-          const feePayer = (keys[0] as any).pubkey?.toBase58() ?? (keys[0] as any).toBase58?.()
-          if (feePayer) results[player.wallet] = feePayer
+          const txs = await Promise.all(
+            sigs.map((s: any) => connection.getParsedTransaction(s.signature, { maxSupportedTransactionVersion: 0 }).catch(() => null))
+          )
+          for (const tx of txs) {
+            if (!tx) continue
+            const keys = tx.transaction.message.accountKeys
+            const feePayerRaw = keys[0]
+            const feePayer: PublicKey = (feePayerRaw as any).pubkey ?? feePayerRaw
+            // Verify: the fee payer is the profile owner if their derived PDA matches
+            const [derivedPda] = PublicKey.findProgramAddressSync([PROFILE_SEED, feePayer.toBytes()], PROGRAM_ID)
+            if (derivedPda.toBase58() === player.wallet) {
+              results[player.wallet] = feePayer.toBase58()
+              break
+            }
+          }
         } catch {}
       }))
       setResolvedWallets(prev => ({ ...prev, ...results }))

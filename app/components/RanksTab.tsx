@@ -255,8 +255,18 @@ export default function RanksTab({ connection, wallet, publicKey, masterConfig }
                     {player.displayName || shortWallet} {isMe && '(YOU)'}
                   </div>
                   {isAdmin && (
-                    <div style={{ fontSize: 9, color: '#ff9900cc', fontFamily: 'monospace', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {resolvedWallets[player.wallet] ?? '...'}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 1 }}>
+                      <div style={{ fontSize: 9, color: '#ff9900cc', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>
+                        {resolvedWallets[player.wallet] ?? '...'}
+                      </div>
+                      {resolvedWallets[player.wallet] && (
+                        <button
+                          onClick={() => navigator.clipboard.writeText(resolvedWallets[player.wallet])}
+                          style={{ background: 'none', border: '1px solid #ff990055', borderRadius: 3, color: '#ff9900cc', fontSize: 9, padding: '1px 4px', cursor: 'pointer', flexShrink: 0, lineHeight: 1.2 }}
+                        >
+                          copy
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

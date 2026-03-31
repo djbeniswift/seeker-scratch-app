@@ -106,7 +106,7 @@ export default function WinsTicker() {
           // prize = treasuryReceived − (postTreasury − preTreasury)
           const prizeLamports = treasuryReceivedLamports - (postTreasury - preTreasury)
 
-          if (prizeLamports <= 0) continue
+          if (prizeLamports <= 12_000_000) continue // hide 0.012 SOL wins
 
           const prizeSOL = (prizeLamports / 1e9).toFixed(3)
           const playerKey: string = keys[0]?.pubkey || keys[0] || ''

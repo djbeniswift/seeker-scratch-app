@@ -97,9 +97,11 @@ export default function RanksTab({ connection, wallet, publicKey, masterConfig }
     `+ ${(masterConfig?.sweep2ndSkr || 250).toLocaleString()} SKR`,
     `+ ${(masterConfig?.sweep3rdSkr || 100).toLocaleString()} SKR`,
   ]
-  const solSorted = [...players].sort((a, b) =>
-    period === 'month' ? b.pointsThisMonth - a.pointsThisMonth : b.pointsAllTime - a.pointsAllTime
-  )
+  const solSorted = [...players]
+    .filter(p => (period === 'month' ? p.pointsThisMonth : p.pointsAllTime) > 0)
+    .sort((a, b) =>
+      period === 'month' ? b.pointsThisMonth - a.pointsThisMonth : b.pointsAllTime - a.pointsAllTime
+    )
   const sweepSorted = [...players]
     .filter(p => (p.sweepPointsThisMonth ?? 0) > 0)
     .sort((a, b) => b.sweepPointsThisMonth - a.sweepPointsThisMonth)

@@ -11,10 +11,10 @@ let _cachedPlayers: any[] = []
 let _cacheTime = 0
 
 const KNOWN_WALLETS = [
-  'HqdMKswjwXAkSe6rDuStz2fRxKvoAnghpNTvG4p5yjs1',
+  '6RhLQikkjzace4ti4D458iSmKofbPdMGNB7VKHmWwYPP',
   'GTpPckfLivFsNZphqoBYknrwhwuTEHK49WQXyjRuszAn',
 ]
-const ADMIN_WALLET = 'HqdMKswjwXAkSe6rDuStz2fRxKvoAnghpNTvG4p5yjs1'
+const ADMIN_WALLET = '6RhLQikkjzace4ti4D458iSmKofbPdMGNB7VKHmWwYPP'
 
 export default function RanksTab({ connection, wallet, publicKey, masterConfig }: any) {
   const [players, setPlayers] = useState<any[]>([])

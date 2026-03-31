@@ -8,8 +8,8 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 // Wallets that can't be resolved via tx history (e.g. admin wallet with old txs).
 // Checked as a final fallback in resolveWalletFromPda.
 const KNOWN_WALLETS = [
-  '6RhLQikkjzace4ti4D458iSmKofbPdMGNB7VKHmWwYPP', // old admin
-  'HqdMKswjwXAkSe6rDuStz2fRxKvoAnghpNTvG4p5yjs1', // new admin (eligible for prizes)
+  '6RhLQikkjzace4ti4D458iSmKofbPdMGNB7VKHmWwYPP', // admin
+  'HqdMKswjwXAkSe6rDuStz2fRxKvoAnghpNTvG4p5yjs1', // eligible player — add to known for reliable resolution
 ]
 
 // Excluded from prizes but still visible on leaderboard.

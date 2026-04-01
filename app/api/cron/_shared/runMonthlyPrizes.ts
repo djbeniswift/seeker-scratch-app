@@ -43,6 +43,9 @@ const EXCLUDED_WALLETS = [
   'A6CqGe7oeEqctqqiJJn7ep4H64gKUzipKaARssD4hcFx', // playground
   'F6H2mTqL3HvmtRB77w5TTJ48MMjvxaxg2gKxEHyBATpm', // SKR distribution wallet
   'CtrRizJuJJGt76RXEHEhNpWduSFmWwWTrUDAQ1XFpnS7', // admin wallet
+  'G26xR3MmZMvXT1pGmVctNumCDHFqF8BQ5QWL7xXFZfgn', // Seeker phone wallet
+  'GTpPckfLivFsNZphqoBYknrwhwuTEHK49WQXyjRuszAn', // LFG wallet
+  '6NmnJZj7TQGU36iXPG3QZxyerHmGWmierMQY87Y8LL36', // new playground wallet
 ]
 
 // Resolve the player wallet for a profile PDA by checking transaction history.

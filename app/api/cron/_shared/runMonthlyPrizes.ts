@@ -5,6 +5,29 @@ import { IDL, PROGRAM_ID, TREASURY_SEED, MONTHLY_PRIZE_SEED, MASTER_CONFIG_SEED,
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
+
+const FALLBACK_RPC = 'https://api.mainnet-beta.solana.com'
+
+async function withRetry<T>(fn: () => Promise<T>, label: string, retries = 4): Promise<T> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn()
+    } catch (err: any) {
+      const msg = err?.message ?? ''
+      const is429 = msg.includes('429') || msg.includes('Too Many Requests') || msg.includes('rate limit')
+      if (is429 && i < retries - 1) {
+        const delay = 1000 * Math.pow(2, i) // 1s, 2s, 4s, 8s
+        console.warn(`[${label}] 429 rate limit — retrying in ${delay}ms (attempt ${i + 1}/${retries})`)
+        await sleep(delay)
+        continue
+      }
+      throw err
+    }
+  }
+  throw new Error(`[${label}] exhausted retries`)
+}
+
 // Wallets that can't be resolved via tx history (e.g. admin wallet with old txs).
 // Checked as a final fallback in resolveWalletFromPda.
 const KNOWN_WALLETS = [
@@ -34,8 +57,10 @@ async function resolveWalletFromPda(connection: Connection, profilePda: PublicKe
 
   let sigs: Awaited<ReturnType<typeof connection.getSignaturesForAddress>>
   try {
-    // Fetch up to 10 sigs; reverse so oldest (account creation tx) is tried first
-    sigs = await connection.getSignaturesForAddress(profilePda, { limit: 10 }, 'confirmed')
+    sigs = await withRetry(
+      () => connection.getSignaturesForAddress(profilePda, { limit: 10 }, 'confirmed'),
+      `resolveWallet:sigs:${pdaStr.slice(0, 8)}`
+    )
   } catch (err) {
     console.error(`[resolveWallet] Failed to fetch signatures for ${pdaStr}:`, err)
     return null
@@ -53,10 +78,10 @@ async function resolveWalletFromPda(connection: Connection, profilePda: PublicKe
   for (const { signature } of ordered) {
     try {
       console.log(`[resolveWallet] Checking tx ${signature}`)
-      const tx = await connection.getParsedTransaction(signature, {
-        commitment: 'confirmed',
-        maxSupportedTransactionVersion: 0,
-      })
+      const tx = await withRetry(
+        () => connection.getParsedTransaction(signature, { commitment: 'confirmed', maxSupportedTransactionVersion: 0 }),
+        `resolveWallet:tx:${signature.slice(0, 8)}`
+      )
       const accounts = (tx?.transaction?.message as any)?.accountKeys ?? []
       if (accounts.length === 0) {
         console.log(`[resolveWallet] Tx ${signature} has no accounts, skipping`)
@@ -144,8 +169,36 @@ export async function runMonthlyPrizes() {
     masterConfig.sweep3rdSkr ? masterConfig.sweep3rdSkr.toNumber() : 100,
   ]
 
-  // Fetch all profiles once — reused for both SOL and sweep leaderboards
-  const profiles = await (program.account as any).playerProfile.all()
+  // Fetch all profiles — retry with exponential backoff, fall back to public RPC on persistent 429
+  let profiles: any[]
+  try {
+    profiles = await withRetry(
+      () => (program.account as any).playerProfile.all(),
+      'fetchProfiles:helius'
+    )
+  } catch (err: any) {
+    const is429 = (err?.message ?? '').includes('429') || (err?.message ?? '').includes('Too Many Requests')
+    if (is429) {
+      console.warn('[runMonthlyPrizes] Helius still rate-limiting after retries — switching to fallback RPC')
+      const fallbackConnection = new Connection(FALLBACK_RPC, 'confirmed')
+      const fallbackProvider = new AnchorProvider(
+        fallbackConnection,
+        {
+          publicKey: adminKeypair.publicKey,
+          signTransaction: async (tx: any) => { tx.sign(adminKeypair); return tx },
+          signAllTransactions: async (txs: any) => txs.map((tx: any) => { tx.sign(adminKeypair); return tx }),
+        } as any,
+        { commitment: 'confirmed' }
+      )
+      const fallbackProgram = new Program(IDL as any, PROGRAM_ID, fallbackProvider)
+      profiles = await withRetry(
+        () => (fallbackProgram.account as any).playerProfile.all(),
+        'fetchProfiles:fallback'
+      )
+    } else {
+      throw err
+    }
+  }
 
   // Derive excluded profile PDAs from wallet addresses so we can filter by PDA pubkey
   const excludedPdaSet = new Set(
@@ -243,20 +296,24 @@ export async function runMonthlyPrizes() {
       continue
     }
     try {
-      await (program.methods as any)
-        .resetMonthlyPoints()
-        .accounts({
-          playerProfile: p.publicKey,
-          playerKey: wallet,
-          treasury: treasuryPda,
-          admin: adminKeypair.publicKey,
-        })
-        .rpc({ commitment: 'confirmed' })
+      await withRetry(
+        () => (program.methods as any)
+          .resetMonthlyPoints()
+          .accounts({
+            playerProfile: p.publicKey,
+            playerKey: wallet,
+            treasury: treasuryPda,
+            admin: adminKeypair.publicKey,
+          })
+          .rpc({ commitment: 'confirmed' }),
+        `resetMonthlyPoints:${p.publicKey.toBase58().slice(0, 8)}`
+      )
       resetCount++
     } catch (err: any) {
       console.error(`[runMonthlyPrizes] resetMonthlyPoints failed for ${p.publicKey.toBase58()}:`, err?.message ?? err)
       resetErrors++
     }
+    await sleep(200) // avoid hammering RPC
   }
   console.log(`[runMonthlyPrizes] Points reset complete: ${resetCount} succeeded, ${resetErrors} failed/skipped`)
 

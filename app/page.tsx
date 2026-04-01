@@ -359,15 +359,16 @@ export default function Home() {
 
   const handleFreeScratch = async () => {
     if (!wallet.connected) { alert('Please connect your wallet first'); return }
-    const walletLamports = walletBalance * 1e9
+    // Fetch fresh balance — walletBalance state can be stale after spending SOL
+    const freshLamports = wallet.publicKey ? await connection.getBalance(wallet.publicKey) : 0
     const GAS_BUFFER = 100_000 // ~0.0001 SOL for transaction fees
     const WALLET_MIN = 890_880 // Solana rent-exempt minimum for a 0-byte account
-    if (!profile && walletLamports < rentLamports) {
+    if (!profile && freshLamports < rentLamports) {
       setTxError(`⚠️ You need ~${(rentLamports / 1e9).toFixed(4)} SOL for your first free play. This one-time setup fee creates your player account on-chain.`)
       return
     }
-    if (profile && walletLamports < WALLET_MIN + GAS_BUFFER) {
-      setTxError(`⚠️ Your wallet balance is too low to cover the tiny network fee. Try adding a small amount of SOL and play again.`)
+    if (profile && freshLamports < WALLET_MIN + GAS_BUFFER) {
+      setTxError(`⚠️ Your wallet balance is too low to cover the tiny network fee. Please add a small amount of SOL and try again.`)
       return
     }
     unlockAudio()

@@ -1,4 +1,4 @@
-const HELIUS_API_KEY = 'e74081ed-6624-4d7b-9b49-9732a61b29ba'
+const HELIUS_API_KEY = '0b4b8765-216d-4304-b433-34df430427f7'
 const TREASURY_ADDR = 'H5icwcoysjVVVfzKxfJnPFBmn5wzMEzEDSJo66p2LkMv'
 
 export async function GET() {

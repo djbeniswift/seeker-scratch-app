@@ -80,9 +80,6 @@ export default function RanksTab({ connection, wallet, publicKey, masterConfig }
       _cachedPlayers = profiles
       _cacheTime = Date.now()
       setPlayers(profiles)
-      // Auto-switch to ALL TIME if This Month has no players (e.g. after monthly reset)
-      const hasMonthlyPoints = profiles.some(p => p.pointsThisMonth > 0)
-      if (!hasMonthlyPoints) setPeriod('alltime')
     } catch (e) {
       console.error(e)
     } finally {
@@ -142,16 +139,21 @@ export default function RanksTab({ connection, wallet, publicKey, masterConfig }
     `+ ${(masterConfig?.sweep2ndSkr || 250).toLocaleString()} SKR`,
     `+ ${(masterConfig?.sweep3rdSkr || 100).toLocaleString()} SKR`,
   ]
-  const solSorted = [...players]
-    .filter(p => (period === 'month' ? p.pointsThisMonth : p.pointsAllTime) > 0)
-    .sort((a, b) =>
-      period === 'month' ? b.pointsThisMonth - a.pointsThisMonth : b.pointsAllTime - a.pointsAllTime
-    )
-  const sweepSorted = [...players]
-    .filter(p => (p.sweepPointsThisMonth ?? 0) > 0)
-    .sort((a, b) => b.sweepPointsThisMonth - a.sweepPointsThisMonth)
+  const solMonthly = [...players].filter(p => p.pointsThisMonth > 0).sort((a, b) => b.pointsThisMonth - a.pointsThisMonth)
+  const solAllTime = [...players].filter(p => p.pointsAllTime > 0).sort((a, b) => b.pointsAllTime - a.pointsAllTime)
+  // Fall back to all-time when this month is empty (e.g. start of new month after reset)
+  const solSorted = period === 'month' ? (solMonthly.length > 0 ? solMonthly : solAllTime) : solAllTime
+  const solUsingFallback = period === 'month' && solMonthly.length === 0 && solAllTime.length > 0
+
+  const sweepMonthly = [...players].filter(p => (p.sweepPointsThisMonth ?? 0) > 0).sort((a, b) => b.sweepPointsThisMonth - a.sweepPointsThisMonth)
+  const sweepAllTime = [...players].filter(p => (p.sweepPointsAllTime ?? 0) > 0).sort((a, b) => b.sweepPointsAllTime - a.sweepPointsAllTime)
+  const sweepSorted = sweepMonthly.length > 0 ? sweepMonthly : sweepAllTime
+  const sweepUsingFallback = sweepMonthly.length === 0 && sweepAllTime.length > 0
   const sorted = leagueTab === 'sol' ? solSorted : sweepSorted
-  const pointsKey = leagueTab === 'sol' ? (period === 'month' ? 'pointsThisMonth' : 'pointsAllTime') : 'sweepPointsThisMonth'
+  const usingFallback = leagueTab === 'sol' ? solUsingFallback : sweepUsingFallback
+  const solPointsKey = period === 'month' && !solUsingFallback ? 'pointsThisMonth' : 'pointsAllTime'
+  const sweepPointsKey = sweepUsingFallback ? 'sweepPointsAllTime' : 'sweepPointsThisMonth'
+  const pointsKey = leagueTab === 'sol' ? solPointsKey : sweepPointsKey
   const pointsLabel = leagueTab === 'sol' ? 'POINTS' : 'SWEEP PTS'
 
   return (
@@ -230,6 +232,11 @@ export default function RanksTab({ connection, wallet, publicKey, masterConfig }
       )}
 
       {/* Rows */}
+      {usingFallback && !loading && (
+        <div style={{ textAlign: 'center', fontSize: 11, color: '#ffffff66', marginBottom: 8 }}>
+          New month just started — showing all-time rankings
+        </div>
+      )}
       {loading ? (
         <div style={{ textAlign: 'center', padding: 40, color: '#ffffffdd' }}>Loading ranks...</div>
       ) : sorted.length === 0 ? (

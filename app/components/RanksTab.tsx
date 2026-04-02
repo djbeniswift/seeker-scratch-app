@@ -80,6 +80,9 @@ export default function RanksTab({ connection, wallet, publicKey, masterConfig }
       _cachedPlayers = profiles
       _cacheTime = Date.now()
       setPlayers(profiles)
+      // Auto-switch to ALL TIME if This Month has no players (e.g. after monthly reset)
+      const hasMonthlyPoints = profiles.some(p => p.pointsThisMonth > 0)
+      if (!hasMonthlyPoints) setPeriod('alltime')
     } catch (e) {
       console.error(e)
     } finally {

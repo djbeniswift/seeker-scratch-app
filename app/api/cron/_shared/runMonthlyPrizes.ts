@@ -212,19 +212,19 @@ export async function runMonthlyPrizes() {
   )
   const isExcluded = (p: any) => excludedPdaSet.has(p.publicKey.toBase58())
 
-  // SOL leaderboard: top 3 by pointsThisMonth (excluded from prizes but still visible on leaderboard)
+  // SOL leaderboard: top 5 by pointsThisMonth — resolve top 5 so we have backups if any fail
   const sorted = profiles
     .filter((p: any) => p.account.pointsThisMonth.toNumber() > 0 && !isExcluded(p))
     .sort((a: any, b: any) => b.account.pointsThisMonth.toNumber() - a.account.pointsThisMonth.toNumber())
-    .slice(0, 3)
+    .slice(0, 5)
 
   console.log(`[runMonthlyPrizes] Top ${sorted.length} SOL leaderboard players this month (after exclusions)`)
 
-  // Sweep leaderboard: top 3 by sweepPointsThisMonth (excluded from prizes but still visible on leaderboard)
+  // Sweep leaderboard: top 5 by sweepPointsThisMonth
   const sweepSorted = profiles
     .filter((p: any) => (p.account.sweepPointsThisMonth?.toNumber?.() ?? 0) > 0 && !isExcluded(p))
     .sort((a: any, b: any) => (b.account.sweepPointsThisMonth?.toNumber?.() ?? 0) - (a.account.sweepPointsThisMonth?.toNumber?.() ?? 0))
-    .slice(0, 3)
+    .slice(0, 5)
 
   console.log(`[runMonthlyPrizes] Top ${sweepSorted.length} sweep leaderboard players this month`)
 
@@ -232,29 +232,30 @@ export async function runMonthlyPrizes() {
     return { message: 'No players with points this month', winners: [] }
   }
 
-  // Resolve wallets one at a time — catch failures individually so one bad profile
-  // doesn't abort the entire cron job. Failed slots are skipped (zeroed out).
-  const resolved: (PublicKey | null)[] = []
+  // Resolve top 5 wallets — use first 3 that succeed as winners (backups fill in if any fail)
+  const resolvedAll: { wallet: PublicKey; profile: any }[] = []
   for (const p of sorted) {
     const wallet = await resolveWalletFromPda(connection, p.publicKey)
     if (wallet === null) {
-      console.error(`[runMonthlyPrizes] Skipping winner slot — could not resolve wallet for PDA ${p.publicKey.toBase58()}`)
+      console.error(`[runMonthlyPrizes] Could not resolve wallet for PDA ${p.publicKey.toBase58()} — trying next`)
+    } else {
+      resolvedAll.push({ wallet, profile: p })
     }
-    resolved.push(wallet)
   }
+  const top3 = resolvedAll.slice(0, 3)
 
-  // Build padded 3-slot arrays. Slots with unresolved wallets use PublicKey.default + BN(0)
-  // so setMonthlyWinners still receives its required fixed-length arrays.
+  // Build padded 3-slot arrays for setMonthlyWinners
   const winners: [PublicKey, PublicKey, PublicKey] = [
-    resolved[0] ?? PublicKey.default,
-    resolved[1] ?? PublicKey.default,
-    resolved[2] ?? PublicKey.default,
+    top3[0]?.wallet ?? PublicKey.default,
+    top3[1]?.wallet ?? PublicKey.default,
+    top3[2]?.wallet ?? PublicKey.default,
   ]
   const amounts: [BN, BN, BN] = [
-    resolved[0] ? prizeAmounts[0] : new BN(0),
-    resolved[1] ? prizeAmounts[1] : new BN(0),
-    resolved[2] ? prizeAmounts[2] : new BN(0),
+    top3[0] ? prizeAmounts[0] : new BN(0),
+    top3[1] ? prizeAmounts[1] : new BN(0),
+    top3[2] ? prizeAmounts[2] : new BN(0),
   ]
+  const resolved = [top3[0]?.wallet ?? null, top3[1]?.wallet ?? null, top3[2]?.wallet ?? null]
 
   const resolvedCount = resolved.filter(Boolean).length
   console.log(`[runMonthlyPrizes] Resolved ${resolvedCount}/${sorted.length} wallets`)
@@ -284,14 +285,17 @@ export async function runMonthlyPrizes() {
 
   console.log(`[runMonthlyPrizes] setMonthlyWinners tx: ${tx}`)
 
-  // Reset monthly points for every profile now that winners are locked in.
-  // resolveWalletFromPda gives us the player_key needed by the on-chain PDA seed check.
-  // Failures are logged and skipped — a missed reset is non-critical (player keeps
-  // their points until next cron run, which is fine).
-  console.log(`[runMonthlyPrizes] Resetting monthly points for ${profiles.length} profiles...`)
+  // Reset monthly points — only for profiles that actually have non-zero points.
+  // This avoids resolving wallets for all 107+ profiles (huge RPC cost).
+  // Profiles with 0 points need no reset. Missed resets are non-critical.
+  const profilesToReset = profiles.filter((p: any) =>
+    p.account.pointsThisMonth.toNumber() > 0 ||
+    (p.account.sweepPointsThisMonth?.toNumber?.() ?? 0) > 0
+  )
+  console.log(`[runMonthlyPrizes] Resetting monthly points for ${profilesToReset.length}/${profiles.length} profiles with non-zero points...`)
   let resetCount = 0
   let resetErrors = 0
-  for (const p of profiles) {
+  for (const p of profilesToReset) {
     const wallet = await resolveWalletFromPda(connection, p.publicKey)
     if (!wallet) {
       console.warn(`[runMonthlyPrizes] Could not resolve wallet for ${p.publicKey.toBase58()} — skipping reset`)
@@ -335,15 +339,18 @@ export async function runMonthlyPrizes() {
     // Non-fatal — continue to sweep resolution and email
   }
 
-  // Resolve sweep leaderboard wallets (same fault-tolerant approach)
-  const sweepResolved: (PublicKey | null)[] = []
+  // Resolve sweep top 5, use first 3 that succeed
+  const sweepResolvedAll: (PublicKey | null)[] = []
   for (const p of sweepSorted) {
     const wallet = await resolveWalletFromPda(connection, p.publicKey)
     if (wallet === null) {
-      console.error(`[runMonthlyPrizes] Could not resolve sweep winner wallet for PDA ${p.publicKey.toBase58()}`)
+      console.error(`[runMonthlyPrizes] Could not resolve sweep winner wallet for PDA ${p.publicKey.toBase58()} — trying next`)
     }
-    sweepResolved.push(wallet)
+    sweepResolvedAll.push(wallet)
   }
+  const sweepResolved = sweepResolvedAll.filter(Boolean).slice(0, 3) as (PublicKey | null)[]
+  // Pad to 3
+  while (sweepResolved.length < 3) sweepResolved.push(null)
 
   const monthLabel = new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })
   const placeLabels = ['1st', '2nd', '3rd']

@@ -31,14 +31,15 @@ async function withRetry<T>(fn: () => Promise<T>, label: string, retries = 4): P
 // Wallets that can't be resolved via tx history (e.g. admin wallet with old txs).
 // Checked as a final fallback in resolveWalletFromPda.
 const KNOWN_WALLETS = [
-  '6RhLQikkjzace4ti4D458iSmKofbPdMGNB7VKHmWwYPP', // admin
+  'AkrDdxzqeaPre4QUA1W4pVyyu41UJvgQMomeyDJM7WvM', // new admin
   'HqdMKswjwXAkSe6rDuStz2fRxKvoAnghpNTvG4p5yjs1', // eligible player — add to known for reliable resolution
 ]
 
 // Excluded from prizes but still visible on leaderboard.
 // Derived to profile PDAs at runtime so we can filter the profiles array by PDA pubkey.
 const EXCLUDED_WALLETS = [
-  '6RhLQikkjzace4ti4D458iSmKofbPdMGNB7VKHmWwYPP', // admin
+  '6RhLQikkjzace4ti4D458iSmKofbPdMGNB7VKHmWwYPP', // old admin
+  'AkrDdxzqeaPre4QUA1W4pVyyu41UJvgQMomeyDJM7WvM', // new admin
   'DBH2VpbjWLdrJnau4RjdpYBTcLy9pMGa1qQr4U9dDgER', // house wallet
   'A6CqGe7oeEqctqqiJJn7ep4H64gKUzipKaARssD4hcFx', // playground
   'F6H2mTqL3HvmtRB77w5TTJ48MMjvxaxg2gKxEHyBATpm', // SKR distribution wallet

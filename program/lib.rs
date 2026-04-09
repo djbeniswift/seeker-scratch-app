@@ -3,7 +3,7 @@ use anchor_lang::system_program;
 
 declare_id!("3vt5QCwqtn13ihaYoFk8RV7r7gbQMnbVcqSZdqNL6mKC");
 
-const ADMIN: &str = "6RhLQikkjzace4ti4D458iSmKofbPdMGNB7VKHmWwYPP";
+const ADMIN: &str = "AkrDdxzqeaPre4QUA1W4pVyyu41UJvgQMomeyDJM7WvM";
 const HOUSE: &str = "DBH2VpbjWLdrJnau4RjdpYBTcLy9pMGa1qQr4U9dDgER";
 const MIN_TREASURY: u64 = 5_000_000_000;
 const DAILY_PAYOUT_CAP: u64 = 10_000_000_000;
@@ -482,6 +482,13 @@ pub mod seeker_scratch {
         ctx.accounts.treasury.month_start = Clock::get()?.unix_timestamp;
         Ok(())
     }
+
+    /// Admin-only: transfer admin authority to a new wallet.
+    /// After calling this, all admin-gated instructions require the new wallet to sign.
+    pub fn transfer_admin(ctx: Context<TransferAdmin>, new_admin: Pubkey) -> Result<()> {
+        ctx.accounts.treasury.admin = new_admin;
+        Ok(())
+    }
 }
 
 fn pseudo_random(seed: u64) -> u64 {
@@ -496,11 +503,10 @@ fn calculate_prize(card_type: &CardType, random: u64, max_payout: u64) -> u64 {
     let value = random % 10000;
     match card_type {
         CardType::QuickPick => {
-            if value < 6000 { 12_000_000 }
-            else if value < 8500 { 20_000_000 }
-            else if value < 9500 { 40_000_000 }
-            else if value < 9900 { 80_000_000 }
-            else { 150_000_000 }
+            if value < 6250 { 20_000_000 }       // 62.5% → 0.020 SOL
+            else if value < 8750 { 40_000_000 }  // 25%   → 0.040 SOL
+            else if value < 9750 { 80_000_000 }  // 10%   → 0.080 SOL
+            else { 150_000_000 }                  // 2.5%  → 0.150 SOL
         },
         CardType::Lucky7s => {
             if value < 5000 { 60_000_000 }
@@ -905,6 +911,14 @@ pub struct ResetMonthlyPoints<'info> {
 
 #[derive(Accounts)]
 pub struct SetMonthStart<'info> {
+    #[account(mut, seeds = [b"scratch_treasury_v2"], bump = treasury.bump)]
+    pub treasury: Account<'info, Treasury>,
+    #[account(mut, address = treasury.admin)]
+    pub admin: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct TransferAdmin<'info> {
     #[account(mut, seeds = [b"scratch_treasury_v2"], bump = treasury.bump)]
     pub treasury: Account<'info, Treasury>,
     #[account(mut, address = treasury.admin)]

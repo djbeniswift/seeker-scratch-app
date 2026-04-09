@@ -5,7 +5,7 @@ import { PublicKey, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { PROGRAM_ID, TREASURY_SEED, MASTER_CONFIG_SEED, GAME_CONFIG_SEED, PROFILE_SEED, MONTHLY_PRIZE_SEED, IDL } from '../lib/constants'
 
-const ADMIN = '6RhLQikkjzace4ti4D458iSmKofbPdMGNB7VKHmWwYPP'
+const ADMIN = 'AkrDdxzqeaPre4QUA1W4pVyyu41UJvgQMomeyDJM7WvM'
 
 async function rpcWithRetry(fn: () => Promise<any>): Promise<any> {
   for (let attempt = 0; attempt < 4; attempt++) {

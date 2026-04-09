@@ -479,6 +479,12 @@ export function useScratchProgram() {
       // Get referrer profile PDA — fall back to admin's profile (always a valid PlayerProfile) if no referrer
       const ADMIN_PUBKEY = new PublicKey('AkrDdxzqeaPre4QUA1W4pVyyu41UJvgQMomeyDJM7WvM')
       let referrerProfilePda: PublicKey = getProfilePda(ADMIN_PUBKEY)
+      // If player IS the admin, the admin profile PDA == profilePda — same mutable account twice
+      // causes a borrow conflict in Anchor. Use gameConfigPda as a safe placeholder instead
+      // (referrer_profile is UncheckedAccount and never read/written in buy_and_scratch).
+      if (referrerProfilePda.equals(profilePda)) {
+        referrerProfilePda = gameConfigPda
+      }
       let shouldRegisterReferral = false
       let shouldCreditReferrer = false
       let creditReferrerKey: PublicKey | null = null

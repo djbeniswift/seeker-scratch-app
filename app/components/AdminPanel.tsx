@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { PROGRAM_ID, TREASURY_SEED, MASTER_CONFIG_SEED, GAME_CONFIG_SEED, PROFILE_SEED, MONTHLY_PRIZE_SEED, IDL } from '../lib/constants'
 
 const ADMIN = 'AkrDdxzqeaPre4QUA1W4pVyyu41UJvgQMomeyDJM7WvM'
+const OLD_ADMIN = '6RhLQikkjzace4ti4D458iSmKofbPdMGNB7VKHmWwYPP'
 
 async function rpcWithRetry(fn: () => Promise<any>): Promise<any> {
   for (let attempt = 0; attempt < 4; attempt++) {
@@ -240,7 +241,9 @@ export default function AdminPanel({ onSettingsSaved }: { onSettingsSaved?: () =
   }, [activeSection]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!mounted) return null
-  if (!publicKey || publicKey.toBase58() !== ADMIN) return null
+  const isOldAdmin = publicKey?.toBase58() === OLD_ADMIN
+  const isNewAdmin = publicKey?.toBase58() === ADMIN
+  if (!publicKey || (!isOldAdmin && !isNewAdmin)) return null
 
   const setS = (msg: string) => setStatus(msg)
 
@@ -330,6 +333,18 @@ export default function AdminPanel({ onSettingsSaved }: { onSettingsSaved?: () =
       onSettingsSaved?.()
       setS('✅ Promo countdown activated!')
     } catch (e: any) { setS(`❌ ${e.message?.slice(0, 80)}`) }
+  }
+
+  const transferAdminAuthority = async () => {
+    if (!confirm(`Transfer admin authority to new admin wallet (${ADMIN})? This is irreversible.`)) return
+    try {
+      setS('Transferring admin authority...')
+      const program = getProgram(); if (!program) return setS('❌ No wallet')
+      await rpcWithRetry(() => (program.methods as any).transferAdmin(new PublicKey(ADMIN)).accounts({
+        treasury: treasuryPda, admin: publicKey,
+      }).rpc())
+      setS('✅ Admin authority transferred! You can now disconnect this wallet.')
+    } catch (e: any) { setS(`❌ ${e.message?.slice(0, 120)}`) }
   }
 
   const fund = async () => {
@@ -660,6 +675,37 @@ export default function AdminPanel({ onSettingsSaved }: { onSettingsSaved?: () =
   ]
 
   const pctUsed = dailyCap > 0 ? Math.min(100, (dailyPaidOut / dailyCap) * 100) : 0
+
+  // Old admin: show only the authority transfer panel
+  if (isOldAdmin) return (
+    <>
+      <button
+        onClick={() => setOpen(!open)}
+        style={{ position: 'fixed', bottom: 70, right: 16, zIndex: 9998, background: '#1a1a2e', border: '1px solid #ff4444', borderRadius: '50%', width: 44, height: 44, fontSize: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      >⚙️</button>
+      {open && (
+        <div style={{ position: 'fixed', bottom: 124, right: 16, zIndex: 9998, background: '#0d0d1a', border: '1px solid #ff4444', borderRadius: 14, width: 320, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div style={{ padding: '10px 14px', borderBottom: '1px solid #222', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ color: '#ff4444', fontWeight: 'bold', fontSize: 13 }}>⚙️ Old Admin — Transfer Authority</span>
+            <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', color: '#ffffffcc', cursor: 'pointer', fontSize: 16 }}>✕</button>
+          </div>
+          <div style={{ padding: 14 }}>
+            <div style={{ color: '#ffffffcc', fontSize: 12, marginBottom: 12, lineHeight: 1.5 }}>
+              You are connected as the <b>old admin wallet</b>. The on-chain treasury still lists this wallet as admin.
+              Click below to transfer authority to the new admin wallet.
+            </div>
+            <div style={{ color: '#aaa', fontSize: 11, marginBottom: 12, wordBreak: 'break-all' }}>
+              New admin: <span style={{ color: '#ffd700' }}>{ADMIN}</span>
+            </div>
+            <button onClick={transferAdminAuthority} style={{ ...btn('#e53935'), width: '100%', marginBottom: 8 }}>
+              Transfer Admin Authority
+            </button>
+            {status && <div style={{ fontSize: 11, color: status.startsWith('✅') ? '#4caf50' : '#ff5252', marginTop: 6 }}>{status}</div>}
+          </div>
+        </div>
+      )}
+    </>
+  )
 
   return (
     <>

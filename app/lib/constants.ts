@@ -197,6 +197,16 @@ export const IDL = {
         { name: "admin", isMut: true, isSigner: true }
       ],
       args: []
+    },
+    {
+      name: "transferAdmin",
+      accounts: [
+        { name: "treasury", isMut: true, isSigner: false },
+        { name: "admin", isMut: true, isSigner: true }
+      ],
+      args: [
+        { name: "newAdmin", type: "publicKey" }
+      ]
     }
   ],
   accounts: [

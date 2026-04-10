@@ -283,8 +283,11 @@ pub mod seeker_scratch {
             CardType::MegaGold => 10,
         };
         let final_points = if double_points { base_points.saturating_mul(2) } else { base_points };
-        profile.points_this_month = profile.points_this_month.saturating_add(final_points);
-        profile.points_all_time = profile.points_all_time.saturating_add(final_points);
+        // 5× multiplier on wins: add 4× base on top of the base points already awarded
+        let win_bonus = if won { final_points.saturating_mul(4) } else { 0 };
+        let total_points = final_points.saturating_add(win_bonus);
+        profile.points_this_month = profile.points_this_month.saturating_add(total_points);
+        profile.points_all_time = profile.points_all_time.saturating_add(total_points);
 
         if profile.has_been_referred
             && !profile.referral_bonus_paid

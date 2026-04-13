@@ -125,7 +125,7 @@ async function resolveWalletFromPda(connection: Connection, profilePda: PublicKe
   return null
 }
 
-export async function runMonthlyPrizes() {
+export async function runMonthlyPrizes({ dryRun = false }: { dryRun?: boolean } = {}) {
   const rpcUrl = process.env.SOLANA_RPC_URL
     || 'https://mainnet.helius-rpc.com/?api-key=0b4b8765-216d-4304-b433-34df430427f7'
   const adminPrivateKey = process.env.ADMIN_PRIVATE_KEY
@@ -268,23 +268,27 @@ export async function runMonthlyPrizes() {
   const [monthlyPrizePda] = PublicKey.findProgramAddressSync([MONTHLY_PRIZE_SEED], PROGRAM_ID)
 
   let tx: string
-  try {
-    tx = await (program.methods as any)
-      .setMonthlyWinners(winners, amounts)
-      .accounts({
-        monthlyPrize: monthlyPrizePda,
-        treasury: treasuryPda,
-        admin: adminKeypair.publicKey,
-        systemProgram: PublicKey.default,
-      })
-      .rpc({ commitment: 'confirmed' })
-  } catch (err: any) {
-    console.error(`[runMonthlyPrizes] setMonthlyWinners failed:`, err?.message ?? err)
-    console.error(`[runMonthlyPrizes] Program logs:`, err?.logs ?? 'none')
-    throw err
+  if (dryRun) {
+    tx = 'DRY_RUN_SKIPPED'
+    console.log(`[runMonthlyPrizes] DRY RUN — skipping setMonthlyWinners`)
+  } else {
+    try {
+      tx = await (program.methods as any)
+        .setMonthlyWinners(winners, amounts)
+        .accounts({
+          monthlyPrize: monthlyPrizePda,
+          treasury: treasuryPda,
+          admin: adminKeypair.publicKey,
+          systemProgram: PublicKey.default,
+        })
+        .rpc({ commitment: 'confirmed' })
+    } catch (err: any) {
+      console.error(`[runMonthlyPrizes] setMonthlyWinners failed:`, err?.message ?? err)
+      console.error(`[runMonthlyPrizes] Program logs:`, err?.logs ?? 'none')
+      throw err
+    }
+    console.log(`[runMonthlyPrizes] setMonthlyWinners tx: ${tx}`)
   }
-
-  console.log(`[runMonthlyPrizes] setMonthlyWinners tx: ${tx}`)
 
   // Reset monthly points — only for profiles that actually have non-zero points.
   // This avoids resolving wallets for all 107+ profiles (huge RPC cost).
@@ -293,51 +297,59 @@ export async function runMonthlyPrizes() {
     p.account.pointsThisMonth.toNumber() > 0 ||
     (p.account.sweepPointsThisMonth?.toNumber?.() ?? 0) > 0
   )
-  console.log(`[runMonthlyPrizes] Resetting monthly points for ${profilesToReset.length}/${profiles.length} profiles with non-zero points...`)
+  console.log(`[runMonthlyPrizes] ${dryRun ? 'DRY RUN — would reset' : 'Resetting'} monthly points for ${profilesToReset.length}/${profiles.length} profiles with non-zero points...`)
   let resetCount = 0
   let resetErrors = 0
-  for (const p of profilesToReset) {
-    const wallet = await resolveWalletFromPda(connection, p.publicKey)
-    if (!wallet) {
-      console.warn(`[runMonthlyPrizes] Could not resolve wallet for ${p.publicKey.toBase58()} — skipping reset`)
-      resetErrors++
-      continue
+  if (dryRun) {
+    console.log(`[runMonthlyPrizes] DRY RUN — skipping resetMonthlyPoints for all profiles`)
+  } else {
+    for (const p of profilesToReset) {
+      const wallet = await resolveWalletFromPda(connection, p.publicKey)
+      if (!wallet) {
+        console.warn(`[runMonthlyPrizes] Could not resolve wallet for ${p.publicKey.toBase58()} — skipping reset`)
+        resetErrors++
+        continue
+      }
+      try {
+        await withRetry(
+          () => (program.methods as any)
+            .resetMonthlyPoints()
+            .accounts({
+              playerProfile: p.publicKey,
+              playerKey: wallet,
+              treasury: treasuryPda,
+              admin: adminKeypair.publicKey,
+            })
+            .rpc({ commitment: 'confirmed' }),
+          `resetMonthlyPoints:${p.publicKey.toBase58().slice(0, 8)}`
+        )
+        resetCount++
+      } catch (err: any) {
+        console.error(`[runMonthlyPrizes] resetMonthlyPoints failed for ${p.publicKey.toBase58()}:`, err?.message ?? err)
+        resetErrors++
+      }
+      await sleep(200) // avoid hammering RPC
     }
-    try {
-      await withRetry(
-        () => (program.methods as any)
-          .resetMonthlyPoints()
-          .accounts({
-            playerProfile: p.publicKey,
-            playerKey: wallet,
-            treasury: treasuryPda,
-            admin: adminKeypair.publicKey,
-          })
-          .rpc({ commitment: 'confirmed' }),
-        `resetMonthlyPoints:${p.publicKey.toBase58().slice(0, 8)}`
-      )
-      resetCount++
-    } catch (err: any) {
-      console.error(`[runMonthlyPrizes] resetMonthlyPoints failed for ${p.publicKey.toBase58()}:`, err?.message ?? err)
-      resetErrors++
-    }
-    await sleep(200) // avoid hammering RPC
+    console.log(`[runMonthlyPrizes] Points reset complete: ${resetCount} succeeded, ${resetErrors} failed/skipped`)
   }
-  console.log(`[runMonthlyPrizes] Points reset complete: ${resetCount} succeeded, ${resetErrors} failed/skipped`)
 
   // Set month_start on treasury to mark the beginning of the new period.
-  try {
-    const monthStartTx = await (program.methods as any)
-      .setMonthStart()
-      .accounts({
-        treasury: treasuryPda,
-        admin: adminKeypair.publicKey,
-      })
-      .rpc({ commitment: 'confirmed' })
-    console.log(`[runMonthlyPrizes] setMonthStart tx: ${monthStartTx}`)
-  } catch (err: any) {
-    console.error(`[runMonthlyPrizes] setMonthStart failed:`, err?.message ?? err)
-    // Non-fatal — continue to sweep resolution and email
+  if (dryRun) {
+    console.log(`[runMonthlyPrizes] DRY RUN — skipping setMonthStart`)
+  } else {
+    try {
+      const monthStartTx = await (program.methods as any)
+        .setMonthStart()
+        .accounts({
+          treasury: treasuryPda,
+          admin: adminKeypair.publicKey,
+        })
+        .rpc({ commitment: 'confirmed' })
+      console.log(`[runMonthlyPrizes] setMonthStart tx: ${monthStartTx}`)
+    } catch (err: any) {
+      console.error(`[runMonthlyPrizes] setMonthStart failed:`, err?.message ?? err)
+      // Non-fatal — continue to sweep resolution and email
+    }
   }
 
   // Resolve sweep top 5, use first 3 that succeed
@@ -388,8 +400,9 @@ export async function runMonthlyPrizes() {
   await resend.emails.send({
     from: 'Seeker Scratch <onboarding@resend.dev>',
     to: 'labswift@gmail.com',
-    subject: `🏆 Monthly Winners — ${monthLabel}`,
+    subject: `${dryRun ? '[DRY RUN] ' : ''}🏆 Monthly Winners — ${monthLabel}`,
     text: [
+      ...(dryRun ? [`⚠️ DRY RUN — no on-chain transactions were submitted. Points and prizes are unchanged.\n`] : []),
       `=== SOL LEADERBOARD WINNERS (auto-set on-chain) ===`,
       ...solRows,
       '',

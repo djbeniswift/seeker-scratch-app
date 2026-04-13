@@ -10,8 +10,8 @@ export async function GET(request: Request) {
   }
 
   try {
-    const result = await runMonthlyPrizes()
-    return NextResponse.json({ test: true, ...result })
+    const result = await runMonthlyPrizes({ dryRun: true })
+    return NextResponse.json({ test: true, dryRun: true, ...result })
   } catch (error: any) {
     console.error('Test monthly prizes error:', error)
     return NextResponse.json({ test: true, error: error.message }, { status: 500 })

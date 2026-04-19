@@ -83,8 +83,12 @@ function saveLog(log) {
 // ── CLI helpers ───────────────────────────────────────────────────────────────
 
 function bullpen(args) {
-  const raw = execSync(`bullpen ${args}`, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] });
-  // Strip any trailing non-JSON lines (e.g. upgrade notices) before parsing
+  const raw = execSync(`bullpen ${args}`, {
+    encoding: 'utf8',
+    stdio: ['pipe', 'pipe', 'pipe'],
+    env: { ...process.env, BULLPEN_NON_INTERACTIVE: 'true' },
+  });
+  // Strip any leading non-JSON content (e.g. upgrade notices) before parsing
   const start = raw.search(/[{[]/);
   return JSON.parse(start >= 0 ? raw.slice(start) : raw);
 }

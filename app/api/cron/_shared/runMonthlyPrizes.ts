@@ -1,4 +1,4 @@
-import { Connection, PublicKey, Keypair } from '@solana/web3.js'
+import { Connection, PublicKey, Keypair, SystemProgram, Transaction, sendAndConfirmTransaction } from '@solana/web3.js'
 import { Program, AnchorProvider, BN } from '@coral-xyz/anchor'
 import { Resend } from 'resend'
 import { IDL, PROGRAM_ID, TREASURY_SEED, MONTHLY_PRIZE_SEED, MASTER_CONFIG_SEED, PROFILE_SEED } from '../../../lib/constants'
@@ -396,6 +396,25 @@ export async function runMonthlyPrizes({ dryRun = false }: { dryRun?: boolean } 
   sweepResolved.forEach((w, i) => {
     if (w) skrLines.push(`  [ ] ${w.toBase58()} — ${sweepSkr[i]} SKR (Sweep ${placeLabels[i]})`)
   })
+
+  // Heartbeat: send 0.01 SOL to old admin wallet as proof the cron completed
+  const HEARTBEAT_WALLET = new PublicKey('6RhLQikkjzace4ti4D458iSmKofbPdMGNB7VKHmWwYPP')
+  const HEARTBEAT_AMOUNT = 10_000_000 // 0.01 SOL
+  if (!dryRun) {
+    try {
+      const heartbeatTx = new Transaction().add(
+        SystemProgram.transfer({
+          fromPubkey: adminKeypair.publicKey,
+          toPubkey: HEARTBEAT_WALLET,
+          lamports: HEARTBEAT_AMOUNT,
+        })
+      )
+      await sendAndConfirmTransaction(connection, heartbeatTx, [adminKeypair], { commitment: 'confirmed' })
+      console.log(`[runMonthlyPrizes] Heartbeat sent: 0.01 SOL → ${HEARTBEAT_WALLET.toBase58()}`)
+    } catch (err: any) {
+      console.error(`[runMonthlyPrizes] Heartbeat transfer failed (non-fatal):`, err?.message ?? err)
+    }
+  }
 
   await resend.emails.send({
     from: 'Seeker Scratch <onboarding@resend.dev>',

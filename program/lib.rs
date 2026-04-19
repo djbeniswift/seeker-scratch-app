@@ -403,14 +403,14 @@ pub mod seeker_scratch {
 
     pub fn set_monthly_winners(
         ctx: Context<SetMonthlyWinners>,
-        winners: [Pubkey; 3],
-        amounts: [u64; 3],
+        winners: [Pubkey; 4],
+        amounts: [u64; 4],
     ) -> Result<()> {
         let prize = &mut ctx.accounts.monthly_prize;
         prize.month = Clock::get()?.unix_timestamp;
         prize.winners = winners;
         prize.amounts = amounts;
-        prize.paid = [false; 3];
+        prize.paid = [false; 4];
         prize.bump = ctx.bumps.monthly_prize;
         Ok(())
     }
@@ -622,11 +622,12 @@ pub struct MasterConfig {
 
 #[account]
 pub struct MonthlyPrize {
-    pub month: i64,
-    pub winners: [Pubkey; 3],
-    pub amounts: [u64; 3],
-    pub paid: [bool; 3],
-    pub bump: u8,
+    pub month: i64,           // 8
+    pub winners: [Pubkey; 4], // 32*4 = 128
+    pub amounts: [u64; 4],    // 8*4 = 32
+    pub paid: [bool; 4],      // 4
+    pub bump: u8,             // 1
+    // Total: 8 + 128 + 32 + 4 + 1 = 173 bytes data + 8 disc = 181
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
@@ -825,7 +826,7 @@ pub struct SetMonthlyWinners<'info> {
     #[account(
         init_if_needed,
         payer = admin,
-        space = 8 + 8 + 32*3 + 8*3 + 3 + 1,
+        space = 8 + 8 + 32*4 + 8*4 + 4 + 1,
         seeds = [b"monthly_prize"],
         bump
     )]

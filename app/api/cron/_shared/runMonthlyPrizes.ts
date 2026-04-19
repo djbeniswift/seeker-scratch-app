@@ -245,18 +245,24 @@ export async function runMonthlyPrizes({ dryRun = false }: { dryRun?: boolean } 
   }
   const top3 = resolvedAll.slice(0, 3)
 
-  // Build padded 3-slot arrays for setMonthlyWinners
-  const winners: [PublicKey, PublicKey, PublicKey] = [
+  // 4th slot is always the old admin wallet — acts as a canary to verify the claim flow works
+  const CANARY_WALLET = new PublicKey('6RhLQikkjzace4ti4D458iSmKofbPdMGNB7VKHmWwYPP')
+  const CANARY_AMOUNT = new BN(10_000_000) // 0.01 SOL
+
+  // Build padded 4-slot arrays for setMonthlyWinners
+  const winners: [PublicKey, PublicKey, PublicKey, PublicKey] = [
     top3[0]?.wallet ?? PublicKey.default,
     top3[1]?.wallet ?? PublicKey.default,
     top3[2]?.wallet ?? PublicKey.default,
+    CANARY_WALLET,
   ]
-  const amounts: [BN, BN, BN] = [
+  const amounts: [BN, BN, BN, BN] = [
     top3[0] ? prizeAmounts[0] : new BN(0),
     top3[1] ? prizeAmounts[1] : new BN(0),
     top3[2] ? prizeAmounts[2] : new BN(0),
+    CANARY_AMOUNT,
   ]
-  const resolved = [top3[0]?.wallet ?? null, top3[1]?.wallet ?? null, top3[2]?.wallet ?? null]
+  const resolved = [top3[0]?.wallet ?? null, top3[1]?.wallet ?? null, top3[2]?.wallet ?? null, CANARY_WALLET]
 
   const resolvedCount = resolved.filter(Boolean).length
   console.log(`[runMonthlyPrizes] Resolved ${resolvedCount}/${sorted.length} wallets`)
@@ -366,10 +372,11 @@ export async function runMonthlyPrizes({ dryRun = false }: { dryRun?: boolean } 
   while (sweepResolved.length < 3) sweepResolved.push(null)
 
   const monthLabel = new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })
-  const placeLabels = ['1st', '2nd', '3rd']
+  const placeLabels = ['1st', '2nd', '3rd', '4th (canary)']
 
-  // SOL leaderboard rows
+  // SOL leaderboard rows (slots 0-2 are real winners, slot 3 is canary)
   const solRows = winners.map((w, i) => {
+    if (i === 3) return `  4th (canary): ${w.toBase58()} — 0.01 SOL [cron verification]`
     if (!resolved[i]) return `  ${placeLabels[i]}: SKIPPED (wallet resolution failed)`
     const pts = sorted[i]?.account?.pointsThisMonth?.toNumber?.() ?? 0
     const sol = amounts[i].toNumber() / 1_000_000_000

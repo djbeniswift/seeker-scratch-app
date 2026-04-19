@@ -6,11 +6,22 @@ const https = require('https');
 const fs   = require('fs');
 const path = require('path');
 
+// Load scripts/.env if env vars not already set (fallback for direct `node` invocation)
+if (!process.env.TG_TOKEN) {
+  const envFile = path.join(__dirname, '.env');
+  if (fs.existsSync(envFile)) {
+    for (const line of fs.readFileSync(envFile, 'utf8').split('\n')) {
+      const m = line.match(/^([A-Z_]+)=(.+)$/);
+      if (m) process.env[m[1]] = m[2].trim();
+    }
+  }
+}
+
 // ── Config ────────────────────────────────────────────────────────────────────
 
 const POLL_INTERVAL_MS  = 60_000;
-const TG_TOKEN  = '8729098613:AAG4TyPM2NjxjFwwWfS1_stHET9OFaI6d9o';
-const TG_CHAT   = '8348194715';
+const TG_TOKEN  = process.env.TG_TOKEN;
+const TG_CHAT   = process.env.TG_CHAT;
 
 function tg(text) {
   const body = JSON.stringify({ chat_id: TG_CHAT, text, parse_mode: 'HTML' });

@@ -225,57 +225,59 @@ body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono','Fira C
 .pos{color:var(--green)}.neg{color:var(--red)}.neu{color:var(--text)}.yel{color:var(--yellow)}.blu{color:var(--blue)}
 
 /* ── Layout ── */
-.layout{display:grid;grid-template-columns:1fr 280px;gap:8px;margin-bottom:8px}
+.layout{display:grid;grid-template-columns:1fr 310px;gap:8px;margin-bottom:8px}
 .panel{background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden}
-.ph{display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--border2);color:var(--muted);font-size:8px;letter-spacing:2.5px;text-transform:uppercase;background:var(--surface2)}
-.ph-count{color:var(--dimmed);font-size:8px}
+.ph{display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--border2);color:var(--muted);font-size:10px;letter-spacing:2px;text-transform:uppercase;background:var(--surface2)}
+.ph-count{color:var(--dimmed);font-size:9px}
 .filters{display:flex;gap:3px;margin-left:auto}
-.fb{padding:3px 9px;border:1px solid var(--dimmed);border-radius:3px;cursor:pointer;font-family:inherit;font-size:8px;background:transparent;color:var(--muted);letter-spacing:1px;transition:all .1s}
+.fb{padding:3px 9px;border:1px solid var(--dimmed);border-radius:3px;cursor:pointer;font-family:inherit;font-size:10px;background:transparent;color:var(--muted);letter-spacing:1px;transition:all .1s}
 .fb.on{border-color:var(--border2);color:var(--text);background:var(--surface)}
 
 /* ── Trade feed ── */
-.feed{max-height:460px;overflow-y:auto}
-.trow{display:grid;grid-template-columns:38px 28px 120px 1fr 52px 68px 52px;align-items:center;gap:6px;padding:7px 14px;border-bottom:1px solid #0d1117;transition:background .08s}
+.feed{max-height:580px;overflow-y:auto}
+.trow{display:grid;grid-template-columns:38px 46px 110px 1fr 46px 70px 52px;align-items:center;gap:6px;padding:7px 14px;border-bottom:1px solid #0d1117;transition:background .08s}
 .trow:hover{background:var(--surface2)}
-.side-b{font-size:8px;font-weight:700;padding:2px 5px;border-radius:3px;text-align:center;background:#3fb95014;color:var(--green);border:1px solid #3fb95030;letter-spacing:.5px}
-.side-s{font-size:8px;font-weight:700;padding:2px 5px;border-radius:3px;text-align:center;background:#f8514914;color:var(--red);border:1px solid #f8514930;letter-spacing:.5px}
-.tprice{font-size:9px;color:var(--muted);text-align:right}
-.ttrader{color:var(--blue);font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tmarket{color:var(--text);font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tstatus{font-size:8px;text-align:right;color:var(--muted)}
+.side-b{font-size:10px;font-weight:700;padding:2px 5px;border-radius:3px;text-align:center;background:#3fb95014;color:var(--green);border:1px solid #3fb95030;letter-spacing:.5px}
+.side-s{font-size:10px;font-weight:700;padding:2px 5px;border-radius:3px;text-align:center;background:#f8514914;color:var(--red);border:1px solid #f8514930;letter-spacing:.5px}
+.tprice{font-size:10px;color:var(--muted);text-align:right}
+.ttrader{color:var(--blue);font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tmarket{color:var(--text);font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tstatus{font-size:10px;text-align:right;color:var(--muted)}
 .s-ok{color:var(--green)}.s-pend{color:var(--yellow)}.s-fail{color:var(--red)}.s-skip{color:var(--dimmed)}
-.outcome-badge{font-size:8px;font-weight:700;padding:2px 6px;border-radius:3px;text-align:center;letter-spacing:.5px;white-space:nowrap}
+.outcome-badge{font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;text-align:center;letter-spacing:.5px;white-space:nowrap}
 .ob-win{background:#3fb95018;color:var(--green);border:1px solid #3fb95040}
 .ob-loss{background:#f8514918;color:var(--red);border:1px solid #f8514940}
 .ob-open{background:#58a6ff10;color:var(--blue);border:1px solid #58a6ff30}
 .ob-resolved{background:#bc8cff10;color:var(--purple);border:1px solid #bc8cff30}
-.ob-null{color:var(--dimmed);font-size:8px;text-align:center}
+.ob-null{color:var(--dimmed);font-size:10px;text-align:center}
 
-/* ── Resolved section ── */
-.resolved-panel{background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:8px}
-.rrow{display:grid;grid-template-columns:32px 1fr 80px 70px;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid #0d1117;transition:background .08s}
+/* ── Resolved section (in sidebar) ── */
+.rrow{display:grid;grid-template-columns:22px 1fr 56px;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid #0d1117;transition:background .08s}
 .rrow:hover{background:var(--surface2)}
-.ricon-w{font-size:11px;font-weight:700;color:var(--green);text-align:center}
-.ricon-l{font-size:11px;font-weight:700;color:var(--red);text-align:center}
-.ricon-o{font-size:11px;font-weight:700;color:var(--blue);text-align:center}
-.rmarket{color:var(--text);font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.rtrader{color:var(--muted);font-size:8px;margin-top:2px}
-.rprice{font-size:9px;text-align:right;color:var(--muted)}
-.rpnl{font-size:10px;font-weight:700;text-align:right}
+.ricon-w{font-size:13px;font-weight:700;color:var(--green);text-align:center}
+.ricon-l{font-size:13px;font-weight:700;color:var(--red);text-align:center}
+.ricon-o{font-size:13px;font-weight:700;color:var(--blue);text-align:center}
+.rmarket{color:var(--text);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rtrader{color:var(--muted);font-size:10px;margin-top:2px}
+.rprice{font-size:9px;color:var(--dimmed)}
+.rpnl{font-size:11px;font-weight:700;text-align:right}
+#resolvedList{max-height:220px;overflow-y:auto}
 
 /* ── Right sidebar ── */
 .rside{display:flex;flex-direction:column;gap:8px}
-.trader-row{display:flex;align-items:center;gap:0;padding:8px 14px;border-bottom:1px solid #0d1117;flex-wrap:wrap;transition:background .08s}
+.trader-row{display:flex;align-items:center;gap:0;padding:8px 12px;border-bottom:1px solid #0d1117;flex-wrap:wrap;transition:background .08s}
 .trader-row:hover{background:var(--surface2)}
-.tr-nick{color:var(--text);font-size:9px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
-.tr-trades{color:var(--muted);font-size:8px;margin-left:8px;white-space:nowrap}
-.tr-dep{color:var(--muted);font-size:8px;min-width:32px;text-align:right}
-.tr-record{width:100%;margin-top:3px;font-size:8px;color:var(--dimmed)}
+.tr-nick{color:var(--text);font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.tr-trades{color:var(--muted);font-size:10px;margin-left:8px;white-space:nowrap}
+.tr-dep{color:var(--muted);font-size:10px;min-width:32px;text-align:right}
+.tr-record{width:100%;margin-top:3px;font-size:10px;color:var(--dimmed)}
 .tr-w{color:var(--green)}.tr-l{color:var(--red)}
+#traderList{max-height:200px;overflow-y:auto}
 
-.err-row{padding:6px 14px;color:var(--red);font-size:8px;border-bottom:1px solid #0d1117;word-break:break-all}
+.err-row{padding:6px 12px;color:var(--red);font-size:10px;border-bottom:1px solid #0d1117;word-break:break-all}
 .err-ts{color:var(--dimmed);margin-right:6px}
-.empty{padding:14px;color:var(--dimmed);font-size:9px;text-align:center}
+#errList{max-height:110px;overflow-y:auto}
+.empty{padding:12px 14px;color:var(--dimmed);font-size:10px;text-align:center}
 
 /* ── Scrollbar ── */
 ::-webkit-scrollbar{width:3px;height:3px}
@@ -337,15 +339,14 @@ body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono','Fira C
       <div id="traderList"><div class="empty">Loading…</div></div>
     </div>
     <div class="panel">
+      <div class="ph">Positions <span class="ph-count" id="resolvedCount"></span></div>
+      <div id="resolvedList"><div class="empty">Loading…</div></div>
+    </div>
+    <div class="panel">
       <div class="ph">Errors <span class="ph-count" id="errCount" style="color:var(--red)"></span></div>
       <div id="errList"><div class="empty">No errors</div></div>
     </div>
   </div>
-</div>
-
-<div class="resolved-panel">
-  <div class="ph">Resolved Positions <span class="ph-count" id="resolvedCount"></span></div>
-  <div id="resolvedList"><div class="empty">Loading…</div></div>
 </div>
 
 <div class="footer" id="footer"></div>
@@ -412,13 +413,11 @@ function renderResolved(trades) {
   const resolved = trades.filter(t => t.side === 'BUY' && (t.tradeOutcome === 'win' || t.tradeOutcome === 'loss' || t.tradeOutcome === 'open'));
   document.getElementById('resolvedCount').textContent = resolved.length ? \`(\${resolved.length})\` : '';
   const el = document.getElementById('resolvedList');
-  if (!resolved.length) { el.innerHTML = '<div class="empty">No resolved positions yet</div>'; return; }
+  if (!resolved.length) { el.innerHTML = '<div class="empty">No positions yet</div>'; return; }
   el.innerHTML = resolved.map(t => {
     const oc = t.tradeOutcome;
     const iconClass = oc === 'win' ? 'ricon-w' : oc === 'loss' ? 'ricon-l' : 'ricon-o';
     const iconText  = oc === 'win' ? 'W' : oc === 'loss' ? 'L' : '~';
-    const entry  = t.trader_price ? (t.trader_price*100).toFixed(0)+'¢' : '—';
-    const cur    = t.currentPrice != null ? (t.currentPrice*100).toFixed(0)+'¢' : '—';
     const pnlAmt = t.currentPrice != null && t.trader_price
       ? ((t.our_amount_usd / t.trader_price) * t.currentPrice - t.our_amount_usd)
       : null;
@@ -426,13 +425,13 @@ function renderResolved(trades) {
       ? \`<span class="\${pnlAmt>=0?'pos':'neg'}">\${pnlAmt>=0?'+':''}\$\${pnlAmt.toFixed(2)}</span>\`
       : '—';
     const title = t.market_title && t.market_title !== t.market_slug ? t.market_title : t.market_slug;
+    const cur   = t.currentPrice != null ? (t.currentPrice*100).toFixed(0)+'¢' : '';
     return \`<div class="rrow">
       <div class="\${iconClass}">\${iconText}</div>
       <div>
-        <div class="rmarket" title="\${title} · \${t.outcome}">\${t.outcome} — \${title}</div>
-        <div class="rtrader">\${t.trader_nickname}</div>
+        <div class="rmarket" title="\${title}">\${t.outcome} — \${title}</div>
+        <div class="rtrader">\${t.trader_nickname}\${cur ? ' · '+cur+' now' : ''}</div>
       </div>
-      <div class="rprice">\${entry} → \${cur}</div>
       <div class="rpnl">\${pnlStr}</div>
     </div>\`;
   }).join('');

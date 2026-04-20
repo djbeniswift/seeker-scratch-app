@@ -211,8 +211,15 @@ async function poll() {
       if (seenExecIds.has(e.id)) continue;
       seenExecIds.add(e.id);
 
-      // Skip trades Bullpen filtered out — they never touched our money
-      if ((e.status || '').toLowerCase() === 'skipped') continue;
+      const statusLower = (e.status || '').toLowerCase();
+
+      // Skip filtered-out or unresolved statuses — no money moved
+      if (statusLower === 'skipped') continue;
+      if (statusLower === 'failed') {
+        log.errors.push({ timestamp: now, source: 'execution-failed', error: `${e.trader_name} — ${e.source_market_slug} ${e.source_outcome}` });
+        continue;
+      }
+      if (statusLower === 'pending') continue; // auto-execute mode; will complete shortly
 
       const entry = {
         id:                e.id,

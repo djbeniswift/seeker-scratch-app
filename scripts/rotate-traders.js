@@ -26,8 +26,8 @@ const TARGET_SIZE = 10;
 // Per-subscription settings applied to every new trader added
 const SUB_SETTINGS = {
   amount:          5,
-  budget:          35,
-  minTradeSize:    10,
+  budget:          200,
+  minTradeSize:    5,
   priceRangeMin:   0.05,
   priceRangeMax:   0.71,
   executionMode:   'auto',
@@ -158,7 +158,23 @@ async function rotate() {
     return;
   }
 
-  // ── Step 5: Stop dropped traders ───────────────────────────────────────────
+  // ── Step 5: Reset budget on carried-over traders ───────────────────────────
+  // The budget cap is cumulative since subscription creation and never resets
+  // automatically. Bump it each rotation so existing traders stay unblocked.
+  const keepSubs = currentSubs.filter(s => topAddrs.has(s.followed_address.toLowerCase()));
+  for (const sub of keepSubs) {
+    try {
+      execSync(
+        `bullpen tracker copy edit ${sub.followed_address} --budget ${SUB_SETTINGS.budget} --min-trade-size ${SUB_SETTINGS.minTradeSize}`,
+        { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env, BULLPEN_NON_INTERACTIVE: 'true' } }
+      );
+      console.log(`${ts} RESET:   ${sub.nickname || sub.followed_address} budget→$${SUB_SETTINGS.budget}`);
+    } catch (err) {
+      errors.push(`Failed to reset budget for ${sub.nickname || sub.followed_address}: ${err.message}`);
+    }
+  }
+
+  // ── Step 6: Stop dropped traders ───────────────────────────────────────────
   const dropped = [];
   for (const sub of safeDrop) {
     const name = sub.nickname || label(sub.followed_address, '');
@@ -175,7 +191,7 @@ async function rotate() {
     }
   }
 
-  // ── Step 6: Start new traders ───────────────────────────────────────────────
+  // ── Step 7: Start new traders ───────────────────────────────────────────────
   const added = [];
   for (const trader of safeAdd) {
     const name = label(trader.address, trader.username);

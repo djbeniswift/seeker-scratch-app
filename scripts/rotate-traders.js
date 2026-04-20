@@ -29,7 +29,7 @@ const SUB_SETTINGS = {
   budget:          200,
   minTradeSize:    5,
   priceRangeMin:   0.05,
-  priceRangeMax:   0.71,
+  priceRangeMax:   0.59,
   executionMode:   'auto',
   exitBehavior:    'mirror_sells',
   slippage:        3,

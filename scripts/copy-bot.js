@@ -103,26 +103,79 @@ function fetchCopyExecutions() {
   return result.executions || [];
 }
 
-// ── Open position tracker ─────────────────────────────────────────────────────
-// Key: `${address}::${slug}::${outcome}` → trade log entry id
+// ── Position helpers ──────────────────────────────────────────────────────────
 
-function buildPositionIndex(trades) {
-  // Returns a map of open positions we hold (net BUY not yet matched by a SELL)
-  const positions = {};
-  for (const t of trades) {
-    const key = `${t.trader_address}::${t.market_slug}::${t.outcome}`;
-    if (t.side === 'BUY' && t.copy_status !== 'failed') {
-      if (!positions[key]) positions[key] = [];
-      positions[key].push(t.id);
-    } else if (t.side === 'SELL') {
-      // Remove one matching BUY (FIFO)
-      if (positions[key] && positions[key].length > 0) {
-        positions[key].shift();
-        if (positions[key].length === 0) delete positions[key];
-      }
+// Returns map: "slug::outcome" → position object (null on fetch failure)
+function fetchCurrentPositions() {
+  try {
+    const data = bullpen('polymarket positions --output json');
+    const map = {};
+    for (const p of (data.positions || [])) {
+      map[`${p.slug}::${p.outcome}`] = {
+        slug:           p.slug,
+        outcome:        p.outcome,
+        market:         p.market,
+        condition_id:   p.condition_id,
+        current_price:  parseFloat(p.current_price),
+        invested_usd:   parseFloat(p.invested_usd),
+        current_value:  parseFloat(p.current_value),
+        unrealized_pnl: parseFloat(p.unrealized_pnl),
+        end_date:       p.end_date,
+      };
+    }
+    return map;
+  } catch {
+    return null; // null = fetch failed, skip diff this cycle
+  }
+}
+
+// Diff prev vs current positions; fire WIN/LOSS notifications for newly resolved.
+// Prevents duplicates via state.notifiedResolutions (persisted across cycles).
+function checkPositionResolutions(state, currentPositions, ts) {
+  if (!currentPositions) return;
+
+  const prev     = state.positions || {};
+  const notified = new Set(state.notifiedResolutions || []);
+  const today    = new Date();
+
+  // Check active positions for threshold crossings
+  for (const [key, pos] of Object.entries(currentPositions)) {
+    if (notified.has(key)) continue;
+    const price = pos.current_price;
+    const endDate = new Date(pos.end_date);
+
+    if (price >= 0.95) {
+      const profit = pos.current_value - pos.invested_usd;
+      console.log(`${ts} WIN: ${pos.market} | ${pos.outcome} | invested $${pos.invested_usd.toFixed(2)} | value $${pos.current_value.toFixed(2)}`);
+      tg(`✅ WIN — ${pos.market} | ${pos.outcome} | Invested: $${pos.invested_usd.toFixed(2)} | Returned: $${pos.current_value.toFixed(2)} | Profit: +$${profit.toFixed(2)}`);
+      notified.add(key);
+    } else if (price <= 0.05 && endDate <= today) {
+      console.log(`${ts} LOSS: ${pos.market} | ${pos.outcome} | invested $${pos.invested_usd.toFixed(2)}`);
+      tg(`❌ LOSS — ${pos.market} | ${pos.outcome} | Invested: $${pos.invested_usd.toFixed(2)} | Lost: $${pos.invested_usd.toFixed(2)}`);
+      notified.add(key);
     }
   }
-  return positions;
+
+  // Check for disappeared positions (present last cycle, gone now)
+  for (const [key, prevPos] of Object.entries(prev)) {
+    if (currentPositions[key]) continue; // still present
+    if (notified.has(key)) continue;     // already reported
+
+    const lastPrice = prevPos.current_price;
+    if (lastPrice >= 0.95) {
+      const profit = prevPos.current_value - prevPos.invested_usd;
+      console.log(`${ts} WIN (redeemed): ${prevPos.market} | ${prevPos.outcome}`);
+      tg(`✅ WIN — ${prevPos.market} | ${prevPos.outcome} | Invested: $${prevPos.invested_usd.toFixed(2)} | Returned: $${prevPos.current_value.toFixed(2)} | Profit: +$${profit.toFixed(2)}`);
+    } else if (lastPrice <= 0.05) {
+      console.log(`${ts} LOSS (expired): ${prevPos.market} | ${prevPos.outcome}`);
+      tg(`❌ LOSS — ${prevPos.market} | ${prevPos.outcome} | Invested: $${prevPos.invested_usd.toFixed(2)} | Lost: $${prevPos.invested_usd.toFixed(2)}`);
+    }
+    // Between 0.05–0.95: position closed for unknown reason; don't notify
+    notified.add(key);
+  }
+
+  state.positions            = currentPositions;
+  state.notifiedResolutions  = [...notified];
 }
 
 // ── Main poll ─────────────────────────────────────────────────────────────────
@@ -134,7 +187,16 @@ async function poll() {
   const state = loadState();
   const log   = loadLog();
 
-  // ── Step 1: Log copy executions directly (source of truth for OUR trades) ──
+  // ── Step 1: Snapshot current positions (before any redeem) ────────────────
+  const currentPositions = fetchCurrentPositions();
+
+  // Build condition_id → position map for redeem cross-referencing
+  const conditionIdToPos = {};
+  for (const pos of Object.values(currentPositions || {})) {
+    if (pos.condition_id) conditionIdToPos[pos.condition_id] = pos;
+  }
+
+  // ── Step 2: Log copy executions directly (source of truth for OUR trades) ──
   if (!state.seenExecutionIds) state.seenExecutionIds = [];
   const seenExecIds = new Set(state.seenExecutionIds);
   let execsBySourceSlugOutcome = {};
@@ -214,11 +276,11 @@ async function poll() {
     tg(`⚠️ Bot error: ${err.message}`);
   }
 
-  // Copy executions IS the only source of truth — trader activity loop removed
+  // ── Step 3: Check position resolutions (WIN/LOSS notifications) ─────────────
+  checkPositionResolutions(state, currentPositions, ts);
 
-  // Auto-redeem any resolved positions
+  // ── Step 4: Auto-redeem resolved positions ────────────────────────────────
   try {
-    // Snapshot balance before redeem so we can calculate exact winnings
     const balBefore = (() => {
       try {
         const d = bullpen('portfolio balances --output json');
@@ -227,11 +289,9 @@ async function poll() {
       } catch { return 0; }
     })();
 
-    const redeem = JSON.parse(
-      execSync('bullpen polymarket redeem --output json --yes', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] })
-    );
+    const redeem = bullpen('polymarket redeem --output json --yes');
+
     if (redeem.status === 'success' && redeem.condition_ids?.length) {
-      // Snapshot balance after to get exact payout
       const balAfter = (() => {
         try {
           const d = bullpen('portfolio balances --output json');
@@ -240,29 +300,52 @@ async function poll() {
         } catch { return 0; }
       })();
 
-      const winnings = (balAfter - balBefore).toFixed(2);
-      const stake    = (redeem.condition_ids.length * 5).toFixed(2);
-      const pnl      = (balAfter - balBefore - (redeem.condition_ids.length * 5)).toFixed(2);
+      const totalReturned = (balAfter - balBefore);
+      console.log(`${ts} REDEEMED ${redeem.condition_ids.length} position(s) → +$${totalReturned.toFixed(2)}`);
 
-      console.log(`${ts} REDEEMED ${redeem.condition_ids.length} resolved position(s) → +$${winnings}`);
-      tg(`💰 Winning redeemed!\n\n` +
-         `Markets resolved: ${redeem.condition_ids.length}\n` +
-         `💵 Returned to balance: +$${winnings}\n` +
-         `📈 P&L: ${pnl >= 0 ? '+' : ''}$${pnl}\n` +
-         `🏦 New balance: $${balAfter.toFixed(2)}`);
+      // Per-market redeem notifications using pre-redeem position snapshot
+      for (const cid of redeem.condition_ids) {
+        const pos = conditionIdToPos[cid];
+        if (pos) {
+          tg(`💰 REDEEMED — $${pos.current_value.toFixed(2)} from ${pos.market} | ${pos.outcome}`);
+          console.log(`${ts}   → ${pos.market} | ${pos.outcome} | $${pos.current_value.toFixed(2)}`);
+        } else {
+          tg(`💰 REDEEMED — condition ${cid.slice(0, 10)}…`);
+        }
+      }
+
       log.trades.push({
-        id:        `redeem-${Date.now()}`,
-        timestamp: now,
-        logged_at: now,
-        side:      'REDEEM',
-        copy_status: 'executed',
-        market_slug: redeem.condition_ids.join(','),
+        id:           `redeem-${Date.now()}`,
+        timestamp:    now,
+        logged_at:    now,
+        side:         'REDEEM',
+        copy_status:  'executed',
+        market_slug:  redeem.condition_ids.join(','),
         market_title: `Auto-redeem (${redeem.condition_ids.length} market(s))`,
-        outcome:   null,
-        our_amount_usd: null,
+        outcome:      null,
+        our_amount_usd: totalReturned,
         trader_nickname: 'system',
       });
       log.stats.totalCopied++;
+
+      // Update tracked balance to post-redeem value
+      state.cashBalance = balAfter;
+    } else {
+      // No redeem — still track balance for change detection
+      const balNow = (() => {
+        try {
+          const d = bullpen('portfolio balances --output json');
+          const poly = (d?.chains || []).find(c => c.chain_name === 'Polygon');
+          return poly?.total_usd || 0;
+        } catch { return 0; }
+      })();
+
+      const prevBal = state.cashBalance || 0;
+      if (prevBal > 0 && balNow - prevBal > 0.10) {
+        console.log(`${ts} Balance up: $${prevBal.toFixed(2)} → $${balNow.toFixed(2)}`);
+        tg(`💵 Balance update: $${prevBal.toFixed(2)} → $${balNow.toFixed(2)} (+$${(balNow - prevBal).toFixed(2)})`);
+      }
+      state.cashBalance = balNow;
     }
   } catch (err) {
     log.errors.push({ timestamp: now, source: 'auto-redeem', error: err.message });

@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 
 const PROGRAM_ID = '3vt5QCwqtn13ihaYoFk8RV7r7gbQMnbVcqSZdqNL6mKC'
-const HELIUS_RPC = 'https://mainnet.helius-rpc.com/?api-key=0b4b8765-216d-4304-b433-34df430427f7'
+const HELIUS_RPC = 'https://mainnet.helius-rpc.com/?api-key=2577cba5-757b-4934-9e93-3fcb8bb264ea'
 const HOUSE_WALLET = 'DBH2VpbjWLdrJnau4RjdpYBTcLy9pMGa1qQr4U9dDgER'
 const TREASURY = 'H5icwcoysjVVVfzKxfJnPFBmn5wzMEzEDSJo66p2LkMv'
 

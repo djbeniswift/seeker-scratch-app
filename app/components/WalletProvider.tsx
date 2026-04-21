@@ -88,7 +88,7 @@ function detectInjectedWalletName(): string | null {
 
 export function WalletProviders({ children }: { children: React.ReactNode }) {
   const network = WalletAdapterNetwork.Mainnet
-  const endpoint = 'https://mainnet.helius-rpc.com/?api-key=0b4b8765-216d-4304-b433-34df430427f7'
+  const endpoint = 'https://mainnet.helius-rpc.com/?api-key=2577cba5-757b-4934-9e93-3fcb8bb264ea'
 
   // When inside a wallet's in-app browser, preset walletName in localStorage
   // BEFORE WalletProvider mounts so autoConnect picks it up automatically.

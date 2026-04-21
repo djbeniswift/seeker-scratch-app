@@ -127,7 +127,7 @@ async function resolveWalletFromPda(connection: Connection, profilePda: PublicKe
 
 export async function runMonthlyPrizes({ dryRun = false }: { dryRun?: boolean } = {}) {
   const rpcUrl = process.env.SOLANA_RPC_URL
-    || 'https://mainnet.helius-rpc.com/?api-key=0b4b8765-216d-4304-b433-34df430427f7'
+    || 'https://mainnet.helius-rpc.com/?api-key=2577cba5-757b-4934-9e93-3fcb8bb264ea'
   const adminPrivateKey = process.env.ADMIN_PRIVATE_KEY
   if (!adminPrivateKey) throw new Error('ADMIN_PRIVATE_KEY env var not set')
 

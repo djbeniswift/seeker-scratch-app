@@ -140,8 +140,8 @@ export const IDL = {
         { name: "systemProgram", isMut: false, isSigner: false }
       ],
       args: [
-        { name: "winners", type: { array: ["publicKey", 3] } },
-        { name: "amounts", type: { array: ["u64", 3] } }
+        { name: "winners", type: { array: ["publicKey", 4] } },
+        { name: "amounts", type: { array: ["u64", 4] } }
       ]
     },
     {
@@ -246,9 +246,9 @@ export const IDL = {
         kind: "struct",
         fields: [
           { name: "month", type: "i64" },
-          { name: "winners", type: { array: ["publicKey", 3] } },
-          { name: "amounts", type: { array: ["u64", 3] } },
-          { name: "paid", type: { array: ["bool", 3] } },
+          { name: "winners", type: { array: ["publicKey", 4] } },
+          { name: "amounts", type: { array: ["u64", 4] } },
+          { name: "paid", type: { array: ["bool", 4] } },
           { name: "bump", type: "u8" }
         ]
       }

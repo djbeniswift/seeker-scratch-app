@@ -245,18 +245,24 @@ export async function runMonthlyPrizes({ dryRun = false }: { dryRun?: boolean } 
   }
   const top3 = resolvedAll.slice(0, 3)
 
-  // Build padded 3-slot arrays for setMonthlyWinners
-  const winners: [PublicKey, PublicKey, PublicKey] = [
+  // 4th slot is a canary: old admin wallet at 0.01 SOL so we can verify cron ran end-to-end
+  const CANARY_WALLET = new PublicKey('6RhLQikkjzace4ti4D458iSmKofbPdMGNB7VKHmWwYPP')
+  const CANARY_AMOUNT = new BN(10_000_000) // 0.01 SOL
+
+  // Build padded 4-slot arrays for setMonthlyWinners
+  const winners: [PublicKey, PublicKey, PublicKey, PublicKey] = [
     top3[0]?.wallet ?? PublicKey.default,
     top3[1]?.wallet ?? PublicKey.default,
     top3[2]?.wallet ?? PublicKey.default,
+    CANARY_WALLET,
   ]
-  const amounts: [BN, BN, BN] = [
+  const amounts: [BN, BN, BN, BN] = [
     top3[0] ? prizeAmounts[0] : new BN(0),
     top3[1] ? prizeAmounts[1] : new BN(0),
     top3[2] ? prizeAmounts[2] : new BN(0),
+    CANARY_AMOUNT,
   ]
-  const resolved = [top3[0]?.wallet ?? null, top3[1]?.wallet ?? null, top3[2]?.wallet ?? null]
+  const resolved = [top3[0]?.wallet ?? null, top3[1]?.wallet ?? null, top3[2]?.wallet ?? null, CANARY_WALLET]
 
   const resolvedCount = resolved.filter(Boolean).length
   console.log(`[runMonthlyPrizes] Resolved ${resolvedCount}/${sorted.length} wallets`)

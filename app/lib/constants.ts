@@ -207,6 +207,15 @@ export const IDL = {
       args: [
         { name: "newAdmin", type: "publicKey" }
       ]
+    },
+    {
+      name: "resetMonthlyPrize",
+      accounts: [
+        { name: "monthlyPrize", isMut: true, isSigner: false },
+        { name: "treasury", isMut: false, isSigner: false },
+        { name: "admin", isMut: true, isSigner: true }
+      ],
+      args: []
     }
   ],
   accounts: [

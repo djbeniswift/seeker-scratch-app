@@ -492,6 +492,22 @@ pub mod seeker_scratch {
         ctx.accounts.treasury.admin = new_admin;
         Ok(())
     }
+
+    /// Admin-only: close the monthly_prize PDA so it can be re-initialized at the
+    /// correct size on the next set_monthly_winners call. Use this once to migrate
+    /// from the old 3-slot (140-byte) account to the new 4-slot (181-byte) account.
+    pub fn reset_monthly_prize(ctx: Context<ResetMonthlyPrize>) -> Result<()> {
+        let source = ctx.accounts.monthly_prize.to_account_info();
+        let dest = ctx.accounts.admin.to_account_info();
+        let lamports = source.lamports();
+        **source.try_borrow_mut_lamports()? = 0;
+        **dest.try_borrow_mut_lamports()? = dest.lamports()
+            .checked_add(lamports)
+            .ok_or(ScratchError::Overflow)?;
+        let mut data = source.try_borrow_mut_data()?;
+        for b in data.iter_mut() { *b = 0; }
+        Ok(())
+    }
 }
 
 fn pseudo_random(seed: u64) -> u64 {
@@ -924,6 +940,17 @@ pub struct SetMonthStart<'info> {
 #[derive(Accounts)]
 pub struct TransferAdmin<'info> {
     #[account(mut, seeds = [b"scratch_treasury_v2"], bump = treasury.bump)]
+    pub treasury: Account<'info, Treasury>,
+    #[account(mut, address = treasury.admin)]
+    pub admin: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct ResetMonthlyPrize<'info> {
+    /// CHECK: closed manually in instruction body — seeds validated, no deserialization needed
+    #[account(mut, seeds = [b"monthly_prize"], bump)]
+    pub monthly_prize: UncheckedAccount<'info>,
+    #[account(seeds = [b"scratch_treasury_v2"], bump = treasury.bump)]
     pub treasury: Account<'info, Treasury>,
     #[account(mut, address = treasury.admin)]
     pub admin: Signer<'info>,

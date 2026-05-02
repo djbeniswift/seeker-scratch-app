@@ -97,6 +97,7 @@ export default function AdminPanel({ onSettingsSaved }: { onSettingsSaved?: () =
   const [testWallet2, setTestWallet2] = useState('')
   const [testWallet3, setTestWallet3] = useState('')
   const [testModeStatus, setTestModeStatus] = useState('')
+  const [resetPrizeStatus, setResetPrizeStatus] = useState('')
 
   // Player lookup
   const [lookupInput, setLookupInput] = useState('')
@@ -637,6 +638,19 @@ export default function AdminPanel({ onSettingsSaved }: { onSettingsSaved?: () =
     setActivityLoading(false)
   }
 
+  const resetMonthlyPrize = async () => {
+    if (!confirm('Close the monthly_prize account? The cron will recreate it at the correct size on next run.')) return
+    try {
+      setResetPrizeStatus('⏳ Closing monthly_prize account...')
+      const program = getProgram(); if (!program) return setResetPrizeStatus('❌ No wallet connected')
+      await (program.methods as any)
+        .resetMonthlyPrize()
+        .accounts({ monthlyPrize: monthlyPrizePda, treasury: treasuryPda, admin: publicKey })
+        .rpc({ commitment: 'confirmed' })
+      setResetPrizeStatus('✅ Account closed! Now run the cron to recreate it at 4-slot size.')
+    } catch (e: any) { setResetPrizeStatus(`❌ ${e.message?.slice(0, 120)}`) }
+  }
+
   const runTestMode = async () => {
     try {
       setTestModeStatus('⏳ Setting test winners...')
@@ -650,8 +664,9 @@ export default function AdminPanel({ onSettingsSaved }: { onSettingsSaved?: () =
         return setTestModeStatus('❌ Invalid wallet address — check all three fields')
       }
       const TEST_AMOUNT = new BN(1_000_000)
+      const CANARY = new PublicKey('6RhLQikkjzace4ti4D458iSmKofbPdMGNB7VKHmWwYPP')
       await (program.methods as any)
-        .setMonthlyWinners([w1, w2, w3], [TEST_AMOUNT, TEST_AMOUNT, TEST_AMOUNT])
+        .setMonthlyWinners([w1, w2, w3, CANARY], [TEST_AMOUNT, TEST_AMOUNT, TEST_AMOUNT, TEST_AMOUNT])
         .accounts({ monthlyPrize: monthlyPrizePda, treasury: treasuryPda, admin: publicKey, systemProgram: SystemProgram.programId })
         .rpc({ commitment: 'confirmed' })
       setTestModeStatus('✅ Test winners set! Each wallet can now claim 0.001 SOL from the Prizes tab.')
@@ -1437,6 +1452,22 @@ export default function AdminPanel({ onSettingsSaved }: { onSettingsSaved?: () =
                     <div style={{ color: '#f87171', fontSize: 11, lineHeight: 1.5 }}>
                       Resetting points will affect the leaderboard — make sure prizes are sent first before triggering any reset.
                     </div>
+                  </div>
+
+                  {/* One-time account migration */}
+                  <div style={{ marginTop: 4, padding: '10px 12px', background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.35)', borderRadius: 10 }}>
+                    <div style={{ color: '#c084fc', fontWeight: 'bold', fontSize: 11, marginBottom: 6 }}>🔧 ACCOUNT MIGRATION (one-time)</div>
+                    <div style={{ color: '#ffffffcc', fontSize: 11, marginBottom: 8, lineHeight: 1.5 }}>
+                      If the cron fails with <code style={{ color: '#f87171' }}>AccountDidNotDeserialize</code>, the on-chain account is the old 3-slot size. Click below to close it — the cron will recreate it at the correct 4-slot size.
+                    </div>
+                    <button onClick={resetMonthlyPrize} style={btn('#a855f7')}>
+                      Close &amp; Migrate Monthly Prize Account
+                    </button>
+                    {resetPrizeStatus && (
+                      <div style={{ fontSize: 11, color: resetPrizeStatus.startsWith('✅') ? '#4ade80' : resetPrizeStatus.startsWith('⏳') ? '#c084fc' : '#f87171', fontFamily: 'monospace', marginTop: 6, lineHeight: 1.4 }}>
+                        {resetPrizeStatus}
+                      </div>
+                    )}
                   </div>
 
                   {/* Test Mode */}

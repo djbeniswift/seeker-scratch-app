@@ -91,9 +91,9 @@ const CARD_TYPES = [
 ]
 
 const MONTHLY_REWARDS = [
-  { place: '1st', sol: '0.25 SOL', skr: '500 SKR', emoji: '🥇', color: 'var(--gold)' },
-  { place: '2nd', sol: '0.15 SOL', skr: '250 SKR', emoji: '🥈', color: '#c0c0c0' },
-  { place: '3rd', sol: '0.1 SOL', skr: '100 SKR', emoji: '🥉', color: '#cd7f32' },
+  { place: '1st', sol: '0.25 SOL', skr: '250 SKR', emoji: '🥇', color: 'var(--gold)' },
+  { place: '2nd', sol: '0.15 SOL', skr: '150 SKR', emoji: '🥈', color: '#c0c0c0' },
+  { place: '3rd', sol: '0.05 SOL', skr: '100 SKR', emoji: '🥉', color: '#cd7f32' },
 ]
 
 export default function Home() {

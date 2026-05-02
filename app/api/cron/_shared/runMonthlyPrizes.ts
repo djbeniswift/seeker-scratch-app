@@ -162,14 +162,14 @@ export async function runMonthlyPrizes({ dryRun = false }: { dryRun?: boolean } 
   ]
   // SKR amounts for SOL leaderboard (token, sent manually)
   const solSkr = [
-    masterConfig.prize1stSkr ? masterConfig.prize1stSkr.toNumber() : 500,
-    masterConfig.prize2ndSkr ? masterConfig.prize2ndSkr.toNumber() : 250,
+    masterConfig.prize1stSkr ? masterConfig.prize1stSkr.toNumber() : 250,
+    masterConfig.prize2ndSkr ? masterConfig.prize2ndSkr.toNumber() : 150,
     masterConfig.prize3rdSkr ? masterConfig.prize3rdSkr.toNumber() : 100,
   ]
   // SKR amounts for Sweep leaderboard (token, sent manually)
   const sweepSkr = [
-    masterConfig.sweep1stSkr ? masterConfig.sweep1stSkr.toNumber() : 500,
-    masterConfig.sweep2ndSkr ? masterConfig.sweep2ndSkr.toNumber() : 250,
+    masterConfig.sweep1stSkr ? masterConfig.sweep1stSkr.toNumber() : 250,
+    masterConfig.sweep2ndSkr ? masterConfig.sweep2ndSkr.toNumber() : 150,
     masterConfig.sweep3rdSkr ? masterConfig.sweep3rdSkr.toNumber() : 100,
   ]
 

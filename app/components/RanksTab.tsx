@@ -135,10 +135,14 @@ export default function RanksTab({ connection, wallet, publicKey, masterConfig }
   const myPda = publicKey ? getProfilePda(publicKey).toBase58() : null
   const isAdmin = publicKey?.toBase58() === ADMIN_WALLET
   const medals = ['🥇', '🥈', '🥉']
-  const solPrizes = ['0.25 SOL + 500 SKR', '0.15 SOL + 250 SKR', '0.05 SOL + 100 SKR']
+  const solPrizes = [
+    `0.25 SOL + ${(masterConfig?.prize1stSkr || 250).toLocaleString()} SKR`,
+    `0.15 SOL + ${(masterConfig?.prize2ndSkr || 150).toLocaleString()} SKR`,
+    `0.05 SOL + ${(masterConfig?.prize3rdSkr || 100).toLocaleString()} SKR`,
+  ]
   const sweepPrizes = [
-    `+ ${(masterConfig?.sweep1stSkr || 500).toLocaleString()} SKR`,
-    `+ ${(masterConfig?.sweep2ndSkr || 250).toLocaleString()} SKR`,
+    `+ ${(masterConfig?.sweep1stSkr || 250).toLocaleString()} SKR`,
+    `+ ${(masterConfig?.sweep2ndSkr || 150).toLocaleString()} SKR`,
     `+ ${(masterConfig?.sweep3rdSkr || 100).toLocaleString()} SKR`,
   ]
   const solMonthly = [...players].filter(p => p.pointsThisMonth > 0).sort((a, b) => b.pointsThisMonth - a.pointsThisMonth)
@@ -203,9 +207,9 @@ export default function RanksTab({ connection, wallet, publicKey, masterConfig }
       {leagueTab === 'sol' && period === 'month' && (
         <div style={{ background: 'rgba(245,200,66,0.08)', border: '1px solid rgba(245,200,66,0.2)', borderRadius: 10, padding: 12, marginBottom: 16, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, textAlign: 'center' }}>
           {[
-            { place: '🥇 1st', sol: '0.25 SOL', skr: '500 SKR' },
-            { place: '🥈 2nd', sol: '0.15 SOL', skr: '250 SKR' },
-            { place: '🥉 3rd', sol: '0.05 SOL', skr: '100 SKR' },
+            { place: '🥇 1st', sol: '0.25 SOL', skr: `${(masterConfig?.prize1stSkr || 250).toLocaleString()} SKR` },
+            { place: '🥈 2nd', sol: '0.15 SOL', skr: `${(masterConfig?.prize2ndSkr || 150).toLocaleString()} SKR` },
+            { place: '🥉 3rd', sol: '0.05 SOL', skr: `${(masterConfig?.prize3rdSkr || 100).toLocaleString()} SKR` },
           ].map(({ place, sol, skr }) => (
             <div key={place}>
               <div style={{ color: 'var(--gold)', fontSize: 13, fontFamily: "'Bebas Neue', sans-serif" }}>{place}</div>

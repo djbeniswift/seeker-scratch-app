@@ -224,8 +224,8 @@ export default function RanksTab({ connection, wallet, publicKey, masterConfig }
           <div style={{ textAlign: 'center', color: '#ffffffdd', fontSize: 13, marginBottom: 10 }}>🎟️ Free daily play • Earn sweep points • Win SKR each month</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, textAlign: 'center' }}>
             {[
-              { place: '🥇 1st', skr: masterConfig?.sweep1stSkr || 500 },
-              { place: '🥈 2nd', skr: masterConfig?.sweep2ndSkr || 250 },
+              { place: '🥇 1st', skr: masterConfig?.sweep1stSkr || 250 },
+              { place: '🥈 2nd', skr: masterConfig?.sweep2ndSkr || 150 },
               { place: '🥉 3rd', skr: masterConfig?.sweep3rdSkr || 100 },
             ].map(({ place, skr }) => (
               <div key={place}>

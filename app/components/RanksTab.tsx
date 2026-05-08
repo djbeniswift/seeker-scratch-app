@@ -1,8 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Program, AnchorProvider } from '@coral-xyz/anchor'
 import { PublicKey } from '@solana/web3.js'
-import { PROGRAM_ID, PROFILE_SEED, IDL } from '../lib/constants'
+import { PROGRAM_ID, PROFILE_SEED } from '../lib/constants'
 
 // Module-level cache — survives RanksTab unmount/remount (tab switches) within a page session.
 // Prevents a new getProgramAccounts call every time the user taps the Ranks tab.
@@ -37,53 +36,14 @@ export default function RanksTab({ connection, wallet, publicKey, masterConfig }
     }
     setLoading(true)
     try {
-      const readProvider = new AnchorProvider(connection, {} as any, { commitment: 'confirmed' })
-      const program = new Program(IDL as any, PROGRAM_ID, readProvider)
-      const profiles: any[] = []
-      try {
-        const accounts = await (program.account as any).playerProfile.all()
-        for (const acc of accounts) {
-          const rawOwner = acc.account.owner?.toBase58() ?? ''
-          const ownerWallet = (rawOwner && rawOwner !== '11111111111111111111111111111111') ? rawOwner : null
-          profiles.push({
-            wallet: acc.publicKey.toBase58(),
-            ownerWallet,
-            displayName: acc.account.displayName || null,
-            pfpUrl: acc.account.pfpUrl || null,
-            pointsThisMonth: acc.account.pointsThisMonth.toNumber(),
-            pointsAllTime: acc.account.pointsAllTime.toNumber(),
-            sweepPointsThisMonth: acc.account.sweepPointsThisMonth?.toNumber() ?? 0,
-            sweepPointsAllTime: acc.account.sweepPointsAllTime?.toNumber() ?? 0,
-            wins: acc.account.wins,
-            cardsScratched: acc.account.cardsScratched,
-            totalWon: acc.account.totalWon.toNumber() / 1_000_000_000,
-          })
-        }
-      } catch {
-        for (const w of KNOWN_WALLETS) {
-          try {
-            const pda = getProfilePda(new PublicKey(w))
-            const data = await (program.account as any).playerProfile.fetch(pda)
-            profiles.push({
-              wallet: pda.toBase58(),
-              displayName: data.displayName || null,
-              pfpUrl: data.pfpUrl || null,
-              pointsThisMonth: data.pointsThisMonth.toNumber(),
-              pointsAllTime: data.pointsAllTime.toNumber(),
-              sweepPointsThisMonth: data.sweepPointsThisMonth?.toNumber() ?? 0,
-              sweepPointsAllTime: data.sweepPointsAllTime?.toNumber() ?? 0,
-              wins: data.wins,
-              cardsScratched: data.cardsScratched,
-              totalWon: data.totalWon.toNumber() / 1_000_000_000,
-            })
-          } catch {}
-        }
-      }
+      const res = await fetch('/api/leaderboard', { cache: force ? 'no-store' : 'default' })
+      if (!res.ok) throw new Error(`API ${res.status}`)
+      const { profiles } = await res.json()
       _cachedPlayers = profiles
       _cacheTime = Date.now()
       setPlayers(profiles)
     } catch (e) {
-      console.error(e)
+      console.error('leaderboard fetch failed', e)
     } finally {
       setLoading(false)
     }

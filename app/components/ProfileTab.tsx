@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { Program, AnchorProvider } from '@coral-xyz/anchor'
-import { PublicKey, SystemProgram } from '@solana/web3.js'
+import { PublicKey } from '@solana/web3.js'
 import { PROGRAM_ID, PROFILE_SEED, IDL } from '../lib/constants'
 
 const UNAVATAR_BASE = 'https://unavatar.io/twitter/'
@@ -123,7 +123,6 @@ export default function ProfileTab({ wallet, publicKey, connection }: any) {
         .accounts({
           profile: pda,
           player: publicKey,
-          systemProgram: SystemProgram.programId,
         })
         .rpc({ commitment: 'confirmed' })
       setStatus('✅ Profile saved!')
@@ -339,6 +338,10 @@ export default function ProfileTab({ wallet, publicKey, connection }: any) {
                 />
               </div>
             )}
+          </div>
+
+          <div style={{ fontSize: 11, color: '#ffffff55', marginBottom: 8, lineHeight: 1.5 }}>
+            ⚡ Profile is stored on-chain. Saving charges a tiny Solana network fee (~0.000005 SOL) — this goes to validators, not to us.
           </div>
 
           <div style={{ display: 'flex', gap: 8 }}>

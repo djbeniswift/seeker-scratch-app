@@ -2,7 +2,7 @@ import { Program, AnchorProvider } from '@coral-xyz/anchor'
 import { Connection, PublicKey } from '@solana/web3.js'
 import { IDL, PROGRAM_ID } from '../../lib/constants'
 
-const RPC = 'https://mainnet.helius-rpc.com/?api-key=2577cba5-757b-4934-9e93-3fcb8bb264ea'
+const RPC = 'https://mainnet.helius-rpc.com/?api-key=0b4b8765-216d-4304-b433-34df430427f7'
 
 export const revalidate = 60 // cache for 60 seconds
 

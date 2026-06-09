@@ -1,9 +1,9 @@
 import { PublicKey } from '@solana/web3.js'
 
 export const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL
-  || 'https://mainnet.helius-rpc.com/?api-key=2577cba5-757b-4934-9e93-3fcb8bb264ea'
+  || 'https://api.mainnet-beta.solana.com'
 
-export const FALLBACK_RPC_URL = 'https://api.mainnet-beta.solana.com'
+export const FALLBACK_RPC_URL = 'https://mainnet.helius-rpc.com/?api-key=2577cba5-757b-4934-9e93-3fcb8bb264ea'
 
 export const IS_DEVNET = process.env.NEXT_PUBLIC_NETWORK === 'devnet'
 
